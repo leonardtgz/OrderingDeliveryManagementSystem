@@ -41,11 +41,10 @@ The system is designed with a responsive interface, allowing it to be accessed t
 ### Front-End
 
 - **React.js** — Used to build the web application's user interface and reusable components.<br>
-- **React-Bootstrap** — Used for responsive layouts and pre-built UI components.<br>
-- **Bootstrap 5** — Provides the responsive grid system and styling foundation.<br>
-- **Bootstrap Icons** — Used for interface icons.<br>
+- **Tailwind CSS** — Used for responsive layouts, styling, spacing, typography, and UI design.<br>
 - **React Router** — Used for navigation between pages.<br>
-- **Vite** — Used as the development server and build tool.
+- **Vite** — Used as the development server and build tool. <br>
+- **SVG Assets** — Used for interface icons and visual elements.
 
 <br>
 
