@@ -44,7 +44,6 @@ The system is designed with a responsive interface, allowing it to be accessed t
 - **Tailwind CSS** — Used for responsive layouts, styling, spacing, typography, and UI design.<br>
 - **React Router** — Used for navigation between pages.<br>
 - **Vite** — Used as the development server and build tool. <br>
-- **SVG Assets** — Used for interface icons and visual elements.
 
 <br>
 
