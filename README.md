@@ -1,16 +1,78 @@
-# React + Vite
+# OrderingDeliveryManagementSystem
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+# Web-Based Ordering and Delivery Management System for Golden-PR Purified Water Refilling Station
 
-Currently, two official plugins are available:
+<br>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Group Members
 
-## React Compiler
+- **Aggarao, Charlene J.**<br><br>
+- **Bonocan, Frinces Lovely M.**<br><br>
+- **Daz, Laurence G.**<br><br>
+- **Hinagpisan, Khrisha B.**<br><br>
+- **Tagaza, Mark Leonard DC.**<br><br>
+- **Talento, Alvin D.** — *Project Manager*
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+<br>
 
-## Expanding the Oxlint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Project Description
+
+The Web-Based Ordering and Delivery Management System for Golden-PR Purified Water Refilling Station is a responsive web application designed to improve the ordering and delivery process of a water refilling station.
+
+<br>
+
+The system provides customers with a convenient way to register an account, place water orders, select delivery schedules, track order status, receive notifications, and view delivery history. For the business owner, the system provides features for managing customer orders, organizing delivery schedules, updating order statuses, and viewing delivery records.
+
+<br>
+
+The system is designed with a responsive interface, allowing it to be accessed through web browsers on mobile phones and desktop computers. The project focuses on providing a more organized and convenient alternative to manual order and delivery management.
+
+<br>
+
+> **Note:** This project is currently developed as a **front-end prototype**. Data and system interactions may use sample/mock data for demonstration purposes.
+
+<br>
+
+---
+## Technology Used
+
+### Front-End
+
+- **React.js** — Used to build the web application's user interface and reusable components.<br>
+- **Tailwind CSS** — Used for responsive layouts, styling, spacing, typography, and UI design.<br>
+- **React Router** — Used for navigation between pages.<br>
+- **Vite** — Used as the development server and build tool. <br>
+
+<br>
+
+### Development Tools
+
+- **Visual Studio Code** — Code editor<br>
+- **Git** — Version control<br>
+- **GitHub** — Repository and project collaboration
+
+<br>
+
+---
+
+## Setup Instructions
+
+### 1. Prerequisites
+
+Make sure the following are installed on your computer:
+
+- **Node.js**
+- **npm**
+- **Git**
+- **Visual Studio Code**
+
+<br>
+
+You can verify the installations by running:
+
+```bash
+node -v
+npm -v
+git --version
