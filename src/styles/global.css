@@ -1,0 +1,276 @@
+@import "tailwindcss";
+
+@theme {
+  /* ================= PRIMARY COLORS ================= */
+
+  --color-primary-background: var(--primary-background);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+
+  /* ================= SECONDARY COLORS ================= */
+
+  --color-secondary-background: var(--secondary-background);
+  --color-secondary-light: var(--secondary-light);
+  --color-secondary-medium: var(--secondary-medium);
+
+  /* ================= TEXT COLORS ================= */
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-accent: var(--text-accent);
+  --color-text-brand: var(--text-brand);
+  --color-text-light: var(--text-light);
+  --color-text-white: var(--text-white);
+  --color-text-inverse: var(--text-inverse);
+  --color-text-highlight: var(--text-highlight);
+
+  /* ================= BACKGROUND COLORS ================= */
+
+  --color-background-main: var(--bg-main);
+  --color-background-card: var(--bg-card);
+  --color-background-primary: var(--bg-primary);
+  --color-background-lightBlue: var(--bg-light-blue);
+  --color-background-lighterBlue: var(--bg-lighter-blue);
+  --color-background-accent: var(--bg-accent);
+
+  /* ================= BORDERS ================= */
+
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-light: var(--border-light);
+
+  /* ================= HEADER ================= */
+
+  --color-header-background: var(--header-bg);
+  --color-header-border: var(--header-border);
+
+  /* ================= BUTTONS ================= */
+
+  --color-button-background: var(--button-bg);
+  --color-button-text: var(--button-text);
+  --color-button-hover: var(--button-hover);
+
+  /* ================= BADGES ================= */
+
+  --color-badge-background: var(--badge-bg);
+  --color-badge-text: var(--badge-text);
+
+  /* ================= CARDS ================= */
+
+  --color-card-background: var(--card-bg);
+  --color-card-border: var(--card-border);
+
+  /* ================= TABLE ================= */
+
+  --color-table-headerBg: var(--table-header-bg);
+  --color-table-rowHover: var(--table-row-hover);
+  --color-table-border: var(--table-border);
+
+  /* ================= STATUS ================= */
+
+  --color-status-pending: var(--status-pending);
+  --color-status-progress: var(--status-progress);
+  --color-status-completed: var(--status-completed);
+
+  /* ================= FONT SIZES ================= */
+
+  --text-xs: var(--font-size-xs);
+  --text-sm: var(--font-size-sm);
+  --text-md: var(--font-size-md);
+  --text-lg: var(--font-size-lg);
+  --text-xl: var(--font-size-xl);
+
+  /* ================= FONT WEIGHTS ================= */
+
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ================= LINE HEIGHTS ================= */
+
+  --leading-xs: var(--line-height-xs);
+  --leading-sm: var(--line-height-sm);
+  --leading-md: var(--line-height-md);
+  --leading-lg: var(--line-height-lg);
+  --leading-xl: var(--line-height-xl);
+  --leading-2xl: var(--line-height-2xl);
+  --leading-3xl: var(--line-height-3xl);
+
+  /* ================= SPACING ================= */
+
+  --spacing-xs: 4px;
+  --spacing-sm: 6px;
+  --spacing-md: 8px;
+  --spacing-lg: 10px;
+  --spacing-xl: 12px;
+  --spacing-2xl: 18px;
+  --spacing-3xl: 24px;
+  --spacing-4xl: 26px;
+  --spacing-5xl: 32px;
+  --spacing-6xl: 34px;
+  --spacing-7xl: 36px;
+  --spacing-8xl: 42px;
+  --spacing-9xl: 46px;
+  --spacing-10xl: 48px;
+  --spacing-11xl: 66px;
+  --spacing-12xl: 118px;
+  --spacing-13xl: 526px;
+
+  /* ================= BORDER RADIUS ================= */
+
+  --radius-none: 0px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+
+  /* ================= BORDER WIDTH ================= */
+
+  --border-width-thin: 1px;
+  --border-width-medium: 4px;
+
+  /* ================= SHADOWS ================= */
+
+  --shadow-card: 0 8px 24px var(--card-shadow);
+  --shadow-table: 0 1px 3px rgba(0, 105, 148, 0.08);
+}
+
+:root {
+  /* ================= PRIMARY BRAND COLORS ================= */
+
+  --primary-background: #006994;
+  --primary-foreground: #ffffff;
+  --primary-light: #2ca6d8;
+  --primary-dark: #001d32;
+
+  /* ================= SECONDARY COLORS ================= */
+
+  --secondary-background: #ffffff;
+  --secondary-light: #bfeaf5;
+  --secondary-medium: #c1ddfb;
+
+  /* ================= TEXT COLORS ================= */
+
+  --text-primary: #001d32;
+  --text-secondary: #123047;
+  --text-accent: #006688;
+  --text-brand: #006994;
+  --text-light: #40484e;
+  --text-white: #ffffff;
+  --text-inverse: #ffffff;
+  --text-highlight: #2ca6d8;
+
+  /* ================= BACKGROUND COLORS ================= */
+
+  --bg-main: #ffffff;
+  --bg-card: #ffffff;
+  --bg-primary: #006994;
+  --bg-light-blue: #bfeaf5;
+  --bg-lighter-blue: #c1ddfb;
+  --bg-accent: #bfeaf5;
+
+  /* ================= OVERLAYS ================= */
+
+  --bg-overlay-light: #ffffff4c;
+  --bg-overlay-medium: #ffffff66;
+  --bg-overlay-dark: #ffffff7f;
+
+  /* ================= BORDER COLORS ================= */
+
+  --border-primary: #006994;
+  --border-secondary: #a3ced8;
+  --border-light: #bfc7cf;
+
+  /* ================= HEADER ================= */
+
+  --header-bg: #ffffff;
+  --header-border: #bfc7cf;
+
+  /* ================= BUTTON COLORS ================= */
+
+  --button-bg: #006994;
+  --button-text: #ffffff;
+  --button-hover: #006688;
+
+  /* ================= BADGE COLORS ================= */
+
+  --badge-bg: #bfeaf5;
+  --badge-text: #123047;
+
+  /* ================= CARD COLORS ================= */
+
+  --card-bg: #ffffff;
+  --card-border: #bfc7cf;
+  --card-shadow: rgba(0, 105, 148, 0.1);
+
+  /* ================= TABLE COLORS ================= */
+
+  --table-header-bg: #bfeaf5;
+  --table-row-hover: #c1ddfb;
+  --table-border: #a3ced8;
+
+  /* ================= STATUS COLORS ================= */
+
+  --status-pending: #2ca6d8;
+  --status-progress: #006688;
+  --status-completed: #006994;
+
+  /* ================= TYPOGRAPHY ================= */
+
+  --font-size-xs: 14px;
+  --font-size-sm: 16px;
+  --font-size-md: 24px;
+  --font-size-lg: 32px;
+  --font-size-xl: 48px;
+
+  --line-height-xs: 17px;
+  --line-height-sm: 20px;
+  --line-height-md: 24px;
+  --line-height-lg: 30px;
+  --line-height-xl: 32px;
+  --line-height-2xl: 39px;
+  --line-height-3xl: 59px;
+}
+
+/* ================= GLOBAL STYLES ================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", Arial, sans-serif;
+  background-color: var(--bg-main);
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+}
