@@ -1,14 +1,21 @@
 import { useState } from "react";
 
+import { useNavigate } from "react-router-dom";
+
 import containerIcon from "../../assets/images/img_container.svg";
 import lightBlueIcon40 from "../../assets/images/img_icon_light_blue_900_40x20.svg";
 import lightBlueIcon from "../../assets/images/img_icon_light_blue_900.svg";
 import icon from "../../assets/images/img_icon.svg";
 
+import roundPurifiedWaterImage from "../../assets/images/round-purified-water.png";
+import slimPurifiedWaterImage from "../../assets/images/slim-purified-water.png";
+import bottleImage from "../../assets/images/500ml-bottle.png";
+
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
 
 function Home() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("home");
 
   const products = [
@@ -16,19 +23,19 @@ function Home() {
       id: 1,
       name: "Round Gallon Refill",
       price: "PHP 25.00",
-      image: containerIcon,
+      image: roundPurifiedWaterImage,
     },
     {
       id: 2,
       name: "Slim Gallon Refill",
       price: "PHP 25.00",
-      image: containerIcon,
+      image: slimPurifiedWaterImage,
     },
     {
       id: 3,
       name: "500ml Bottle (Case of 24)",
       price: "PHP 240.00",
-      image: lightBlueIcon40,
+      image: bottleImage,
     },
   ];
 
@@ -47,12 +54,16 @@ function Home() {
     },
   ];
 
+  const handleProductClick = () => {
+    navigate("/customer/products");
+  };
+
   return (
     <div className="min-h-screen w-full bg-background-main text-text-primary">
       <Header />
 
       <main className="w-full px-4 py-6 sm:px-6 md:px-8 lg:px-10">
-        
+        {/* Greeting */}
         <section className="mb-8 w-full">
           <h2 className="text-2xl font-bold text-text-primary">
             Hello, Customer
@@ -65,18 +76,18 @@ function Home() {
           <button
             type="button"
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-button-background px-4 py-3 text-sm font-bold text-button-text transition hover:opacity-90"
-            onClick={() => setActiveTab("products")}
+            onClick={() => navigate("/customer/products")}
           >
             <img
               src={icon}
               alt=""
               className="h-4 w-4 object-contain"
             />
-
             <span>NEW ORDER</span>
           </button>
         </section>
 
+        {/* Current Order Status */}
         <section className="mb-8 w-full">
           <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-text-primary">
             Current Order Status
@@ -127,6 +138,7 @@ function Home() {
           </div>
         </section>
 
+        {/* Available Products */}
         <section className="mb-8 w-full">
           <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-text-primary">
             Available Products
@@ -140,17 +152,30 @@ function Home() {
             {products.map((product) => (
               <div
                 key={product.id}
-                className="w-64 flex-shrink-0 overflow-hidden rounded-md bg-background-accent"
-                style={{ boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)" }}
+                role="button"
+                tabIndex={0}
+                onClick={handleProductClick}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleProductClick();
+                  }
+                }}
+                className="w-64 flex-shrink-0 cursor-pointer overflow-hidden rounded-md bg-background-accent transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary"
+                style={{
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                }}
               >
-                <div className="flex h-56 items-center justify-center bg-white/30">
+                {/* Product Image */}
+                <div className="h-56 w-full overflow-hidden bg-white/30">
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="h-28 w-28 object-contain"
+                    className="h-full w-full object-cover"
                   />
                 </div>
 
+                {/* Product Information */}
                 <div className="p-4">
                   <h4 className="text-sm font-bold">
                     {product.name}
@@ -161,10 +186,7 @@ function Home() {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-center gap-2 bg-white py-3 text-xs font-bold uppercase text-text-accent transition hover:bg-gray-50"
-                >
+                <div className="flex w-full items-center justify-center gap-2 bg-white py-3 text-xs font-bold uppercase text-text-accent">
                   <img
                     src={lightBlueIcon}
                     alt=""
@@ -172,12 +194,13 @@ function Home() {
                   />
 
                   <span>ADD</span>
-                </button>
+                </div>
               </div>
             ))}
           </div>
         </section>
 
+        {/* Recent History */}
         <section className="mb-24 w-full">
           <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-text-primary">
             Recent History
@@ -216,12 +239,18 @@ function Home() {
             ))}
           </div>
         </section>
-
       </main>
 
+      {/* Customer Navbar */}
       <CustomerNavbar
         activeTab={activeTab}
-        onNavigate={setActiveTab}
+        onNavigate={(tab) => {
+          setActiveTab(tab);
+
+          if (tab === "products") {
+            navigate("/customer/products");
+          }
+        }}
       />
     </div>
   );

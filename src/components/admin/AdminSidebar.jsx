@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
 
 const AdminSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState("dashboard");
+  const location = useLocation();
 
   const menuItems = [
     {
@@ -165,8 +166,7 @@ const AdminSidebar = () => {
     },
   ];
 
-  const handleNavigation = (item) => {
-    setActiveMenu(item.id);
+  const handleNavigation = () => {
     setIsOpen(false);
   };
 
@@ -219,9 +219,13 @@ const AdminSidebar = () => {
         `}
       >
         <div className="flex h-full flex-col">
+
           {/* ================= SIDEBAR TITLE ================= */}
           <div className="flex h-20 items-center border-b border-border-light px-5">
-            <h1 className="text-base font-bold leading-lg text-text-secondary" style={{ fontSize: "18px" }}>
+            <h1
+              className="text-base font-bold leading-lg text-text-secondary"
+              style={{ fontSize: "18px" }}
+            >
               Admin Panel
             </h1>
           </div>
@@ -229,29 +233,32 @@ const AdminSidebar = () => {
           {/* ================= NAVIGATION ================= */}
           <nav className="flex-1 overflow-y-auto px-3 py-5">
             <ul className="space-y-2">
-              {menuItems.map((item) => (
-                <li key={item.id}>
-                  <a
-                    href={item.href}
-                    onClick={() => handleNavigation(item)}
-                    className={`
-                      flex w-full items-center gap-3
-                      rounded-md px-4 py-3
-                       text-sm font-semibold
-                      transition-colors duration-200
-                      ${
-                        activeMenu === item.id
-                          ? "bg-primary-background !text-white"
-                          : "text-primary-light hover:bg-secondary-light"
-                      }
-                    `}
-                  >
-                    {item.icon}
+              {menuItems.map((item) => {
+                const isActive = location.pathname === item.href;
 
-                    <span>{item.label}</span>
-                  </a>
-                </li>
-              ))}
+                return (
+                  <li key={item.id}>
+                    <a
+                      href={item.href}
+                      onClick={handleNavigation}
+                      className={`
+                        flex w-full items-center gap-3
+                        rounded-md px-4 py-3
+                        text-sm font-semibold
+                        transition-colors duration-200
+                        ${
+                          isActive
+                            ? "bg-primary-background !text-white"
+                            : "text-primary-light hover:bg-secondary-light"
+                        }
+                      `}
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
 
@@ -287,6 +294,7 @@ const AdminSidebar = () => {
               <span>Logout</span>
             </button>
           </div>
+
         </div>
       </aside>
     </>
