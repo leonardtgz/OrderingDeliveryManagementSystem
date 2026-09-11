@@ -1,9 +1,6 @@
 import React from "react";
-
 import { useNavigate } from "react-router-dom";
-
 import Header from "../../components/Header/Header";
-
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
 
 // Address / Location Icon
@@ -140,51 +137,53 @@ function OrderSummary() {
   return (
     <div className="flex min-h-screen flex-col bg-background-main">
       {/* Header */}
-      <Header />
+      <div className="w-full shrink-0">
+        <Header />
+      </div>
 
       {/* Main Content */}
       <main className="flex flex-1 overflow-y-auto pb-28">
-        <div className="mx-auto flex w-full max-w-[600px] flex-1 flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mx-auto flex w-full max-w-[650px] flex-1 flex-col gap-5 px-4 py-5 sm:px-6 sm:py-7">
           {/* Page Title */}
-          <div className="mb-1">
-            <h1 className="text-[24px] font-bold leading-[120%] tracking-[-0.02em] text-text-accent sm:text-[26px]">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-[23px] font-bold leading-[120%] tracking-[-0.02em] text-text-accent sm:text-[26px]">
               Order Summary
             </h1>
 
-            <p className="mt-1 text-sm text-text-secondary">
+            <p className="text-xs leading-5 text-text-secondary sm:text-sm">
               Review your order before confirming.
             </p>
           </div>
 
           {/* Selected Products */}
-          <section className="overflow-hidden rounded-xl border border-border-primary bg-white shadow-md">
-            <div className="border-b border-border-primary bg-primary-lighter px-5 py-3">
-              <h2 className="text-xs font-bold uppercase tracking-[0.05em] text-text-accent">
+          <section className="overflow-hidden rounded-lg border border-border-light bg-background-card shadow-card">
+            <div className="border-b border-border-light bg-background-lightBlue px-4 py-3 sm:px-5">
+              <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
                 Selected Products
               </h2>
             </div>
 
-            <div className="bg-white">
+            <div className="bg-background-card">
               {items.map((item, index) => (
                 <div
                   key={item.name}
-                  className={`flex items-center justify-between gap-4 px-5 py-4 ${
+                  className={`flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5 ${
                     index < items.length - 1
-                      ? "border-b border-border-primary"
+                      ? "border-b border-border-light"
                       : ""
                   }`}
                 >
                   <div className="flex min-w-0 flex-col">
-                    <span className="text-sm font-bold leading-[140%] text-text-primary">
+                    <span className="break-words text-sm font-bold leading-5 text-text-primary">
                       {item.name}
                     </span>
 
-                    <span className="mt-1 text-xs leading-[140%] text-text-secondary">
-                      Qty: {item.qty}
+                    <span className="mt-1 text-xs leading-5 text-text-secondary">
+                      Quantity: {item.qty}
                     </span>
                   </div>
 
-                  <span className="shrink-0 text-xs font-semibold leading-[140%] text-text-primary sm:text-sm">
+                  <span className="shrink-0 text-sm font-semibold text-text-primary">
                     PHP {(item.price * item.qty).toFixed(2)}
                   </span>
                 </div>
@@ -193,9 +192,9 @@ function OrderSummary() {
           </section>
 
           {/* Delivery Details */}
-          <section className="overflow-hidden rounded-xl border border-border-primary bg-white shadow-md">
-            <div className="flex items-center justify-between border-b border-border-primary bg-primary-lighter px-5 py-3">
-              <h2 className="text-xs font-bold uppercase tracking-[0.05em] text-text-accent">
+          <section className="overflow-hidden rounded-lg border border-border-light bg-background-card shadow-card">
+            <div className="flex items-center justify-between border-b border-border-light bg-background-lightBlue px-4 py-3 sm:px-5">
+              <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
                 Delivery Details
               </h2>
 
@@ -203,7 +202,7 @@ function OrderSummary() {
                 type="button"
                 onClick={handleEditOrder}
                 aria-label="Edit delivery details"
-                className="rounded p-1 text-text-accent transition-opacity hover:opacity-70"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-text-accent transition-colors hover:bg-background-card"
               >
                 <svg
                   width="15"
@@ -213,41 +212,41 @@ function OrderSummary() {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    d="M2 16H3.425L13.2 6.225L11.775 4.8L2 14.575V16ZM0 18V13.75L13.2 0.575C13.4 0.391667 13.6208 0.25 13.8625 0.15C14.1042 0.05 14.3583 0 14.625 0C14.8917 0 15.15 0.05 15.4 0.15C15.65 0.25 15.8667 0.4 16.05 0.6L17.425 2C17.625 2.18333 17.7708 2.4 17.8625 2.65C17.9542 2.9 18 3.15 18 3.4C18 3.66667 17.9542 3.92083 17.8625 4.1625C17.7708 4.40417 17.625 4.625 17.425 4.825L4.25 18H0ZM16 3.4L14.6 2L16 3.4ZM12.475 5.525L11.775 4.8L13.2 6.225L12.475 5.525Z"
+                    d="M2 16H3.425L13.2 6.225L11.775 4.8L2 14.575V16ZM0 18V13.75L13.2 0.575C13.4 0.391667 13.6208 0.25 13.8625 0.15C14.1042 0.05 14.3583 0 14.625 0C14.8917 0 15.15 0.05 15.4 0.15C15.65 0.25 15.8667 0.4 16.05 0.6L17.425 2C17.625 2.18333 17.7708 2.4 17.8625 2.65C17.7708 2.9 18 3.15 18 3.4C18 3.66667 17.9542 3.92083 17.8625 4.1625C17.7708 4.40417 17.625 4.625 17.425 4.825L4.25 18H0ZM16 3.4L14.6 2L16 3.4ZM12.475 5.525L11.775 4.8L13.2 6.225L12.475 5.525Z"
                     fill="currentColor"
                   />
                 </svg>
               </button>
             </div>
 
-            <div className="flex flex-col gap-4 bg-white p-5">
+            <div className="flex flex-col gap-4 bg-background-card p-4 sm:p-5">
               {/* Address */}
               <div className="flex items-start gap-3">
                 <AddressIcon />
 
                 <div className="min-w-0 flex-1">
-                  <span className="block text-xs font-bold uppercase tracking-[0.05em] text-text-secondary">
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
                     Address
                   </span>
 
-                  <span className="mt-1 block break-words text-sm leading-[140%] text-text-primary">
+                  <span className="mt-1 block break-words text-sm leading-5 text-text-primary">
                     123 Sample St, Brgy. San Antonio, Pasig City
                   </span>
                 </div>
               </div>
 
-              <div className="h-px w-full bg-border-primary" />
+              <div className="h-px w-full bg-border-light" />
 
               {/* Date & Time */}
               <div className="flex items-start gap-3">
                 <DateTimeIcon />
 
                 <div className="min-w-0 flex-1">
-                  <span className="block text-xs font-bold uppercase tracking-[0.05em] text-text-secondary">
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
                     Date &amp; Time
                   </span>
 
-                  <span className="mt-1 block text-sm leading-[140%] text-text-primary">
+                  <span className="mt-1 block text-sm leading-5 text-text-primary">
                     Today, 2:00 PM - 4:00 PM
                   </span>
                 </div>
@@ -255,66 +254,57 @@ function OrderSummary() {
             </div>
           </section>
 
-          {/* Payment Summary */}
-          <section className="flex flex-col gap-3 rounded-xl border border-border-primary bg-white p-5 shadow-md">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-text-secondary">
-                Subtotal
-              </span>
+          {/* Order Total */}
+          <section className="rounded-lg border border-border-light bg-background-card p-4 shadow-card sm:p-5">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-text-secondary">
+                  Subtotal
+                </span>
 
-              <span className="text-xs font-medium text-text-primary sm:text-sm">
-                PHP {subtotal.toFixed(2)}
-              </span>
-            </div>
+                <span className="text-sm font-semibold text-text-primary">
+                  PHP {subtotal.toFixed(2)}
+                </span>
+              </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-bold text-text-secondary">
-                Delivery Fee
-              </span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-text-secondary">
+                  Delivery Fee
+                </span>
 
-              <span className="text-xs font-medium text-text-primary sm:text-sm">
-                PHP {deliveryFee.toFixed(2)}
-              </span>
-            </div>
+                <span className="text-sm font-semibold text-text-primary">
+                  PHP {deliveryFee.toFixed(2)}
+                </span>
+              </div>
 
-            <div className="py-1">
-              <div className="h-px w-full bg-border-primary" />
-            </div>
+              <div className="my-1 h-px w-full bg-border-light" />
 
-            {/* Smaller Total */}
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-base font-bold leading-[140%] text-text-accent sm:text-lg">
-                Total
-              </span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-base font-bold text-text-primary">
+                  Total
+                </span>
 
-              <span className="text-lg font-bold leading-[140%] text-text-accent sm:text-xl">
-                PHP {total.toFixed(2)}
-              </span>
-            </div>
-
-            <div className="flex justify-end">
-              <span className="text-xs text-text-secondary">
-                Payment Method: Cash on Delivery
-              </span>
+                <span className="text-xl font-bold text-text-accent">
+                  PHP {total.toFixed(2)}
+                </span>
+              </div>
             </div>
           </section>
 
           {/* Action Buttons */}
-          <div className="flex flex-col gap-3 pb-3 pt-1 sm:flex-row sm:justify-center">
-            {/* Edit Order */}
+          <div className="flex w-full flex-col gap-2.5 pt-1 sm:flex-row">
             <button
               type="button"
               onClick={handleEditOrder}
-              className="flex min-h-11 flex-1 items-center justify-center rounded-lg border-2 border-[#238FA3] bg-white px-3 text-xs font-bold uppercase tracking-[0.05em] text-[#238FA3] shadow-md transition-all hover:bg-[#238FA3] hover:text-white hover:shadow-lg"
+              className="flex h-10 flex-1 items-center justify-center rounded-lg border-2 border-primary-light bg-background-card px-3 text-xs font-bold uppercase tracking-[0.6px] text-primary-light transition-colors hover:bg-primary-light hover:text-primary-foreground"
             >
               Edit Order
             </button>
 
-            {/* Confirm Order */}
             <button
               type="button"
               onClick={handleConfirmOrder}
-              className="flex min-h-11 flex-1 items-center justify-center rounded-lg border-2 border-[#238FA3] bg-[#238FA3] px-3 text-xs font-bold uppercase tracking-[0.05em] !text-white shadow-md transition-all hover:bg-[#1D7D8F] hover:border-[#1D7D8F] hover:shadow-lg"
+              className="flex h-10 flex-1 items-center justify-center rounded-lg bg-button-background px-3 text-xs font-bold uppercase tracking-[0.6px] text-button-text shadow-card transition-colors hover:bg-button-hover"
             >
               Confirm Order
             </button>
@@ -323,7 +313,9 @@ function OrderSummary() {
       </main>
 
       {/* Customer Navbar */}
-      <CustomerNavbar />
+      <div className="w-full shrink-0">
+        <CustomerNavbar />
+      </div>
     </div>
   );
 }

@@ -84,66 +84,63 @@ function HistoryCard({
   };
 
   return (
-    <div className="flex w-full flex-col gap-4 rounded-md bg-background-accent p-3 shadow-[0px_1px_2px_#0000000c] sm:p-4 md:flex-row md:items-center md:justify-between">
+    <div className="group flex w-full flex-col gap-4 rounded-lg border border-border-light bg-background-accent p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-5 md:flex-row md:items-center md:justify-between">
       {/* Product Information */}
-      <div className="flex min-w-0 w-full items-start gap-3 sm:items-center md:w-auto">
-        {/* Product Picture */}
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-background-card p-1">
+      <div className="flex min-w-0 w-full items-center gap-4 md:w-auto">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border-light bg-background-card p-1.5">
           <img
             src={image}
             alt={title}
-            className="h-11 w-10 object-contain sm:h-12 sm:w-11"
+            className="h-12 w-11 object-contain transition-transform duration-200 group-hover:scale-105"
           />
         </div>
 
-        {/* Details */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="pb-1 text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
+          <span className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
             {id}
           </span>
 
-          <span className="break-words text-sm font-bold leading-5 text-text-primary sm:text-base sm:leading-6">
+          <span className="break-words text-sm font-bold leading-5 text-text-primary sm:text-base">
             {title}
           </span>
 
-          <div className="mt-1">
-            <span className="inline-flex w-fit items-center rounded-sm bg-primary-lighter px-2 py-1 text-[10px] font-medium text-text-accent">
+          <div className="mt-1.5">
+            <span className="inline-flex w-fit items-center rounded-full bg-background-lightBlue px-2.5 py-1 text-[10px] font-semibold text-text-accent">
               {tag}
             </span>
           </div>
 
-          <span className="mt-1 text-xs text-text-secondary">
+          <span className="mt-1.5 text-xs text-text-secondary">
             {date}
           </span>
         </div>
       </div>
 
       {/* Right Side Information */}
-      <div className="flex w-full flex-col gap-3 border-t border-primary-lighter pt-3 sm:border-0 sm:pt-0 md:w-auto md:items-end">
-        {/* Total / Location + Status */}
-        <div className="flex w-full items-start justify-between gap-4 sm:justify-end sm:gap-6">
+      <div className="flex w-full flex-col gap-3 border-t border-border-light pt-3 sm:pt-4 md:w-auto md:border-0 md:pt-0 md:items-end">
+        <div className="flex w-full items-start justify-between gap-6 md:w-auto md:justify-end">
           {/* Total / Location */}
-          <div className="flex min-w-0 flex-1 flex-col sm:flex-none">
+          <div className="flex min-w-0 flex-1 flex-col md:min-w-[110px] md:flex-none">
             <span className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
               {secondaryLabel}
             </span>
 
-            <span className="break-words text-sm font-bold leading-5 text-text-primary sm:text-base sm:leading-6">
+            <span className="mt-0.5 break-words text-sm font-bold leading-5 text-text-primary">
               {secondaryValue}
             </span>
           </div>
 
           {/* Status */}
           <div className="flex shrink-0 flex-col items-end">
-            <span className="pb-1 text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
+            <span className="mb-1 text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
               STATUS
             </span>
 
             <span
-              className={`whitespace-nowrap rounded-sm px-2 py-1 text-[10px] font-bold uppercase tracking-[0.6px] ${
+              className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.6px] ${
                 statusType === "active"
                   ? "bg-primary-background text-primary-foreground"
-                  : "bg-background-overlay-dark text-text-primary"
+                  : "bg-background-lightBlue text-text-accent"
               }`}
             >
               {status}
@@ -153,7 +150,7 @@ function HistoryCard({
 
         {/* Action Buttons */}
         {buttons.length > 0 && (
-          <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+          <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
             {buttons.map((button) => {
               const isFilled = button === "Track Order";
 
@@ -162,10 +159,10 @@ function HistoryCard({
                   key={button}
                   type="button"
                   onClick={() => handleButtonClick(button)}
-                  className={`min-h-9 rounded-md px-3 py-2 text-[10px] font-bold uppercase tracking-[0.6px] transition-colors sm:min-h-10 sm:px-4 ${
+                  className={`min-h-9 rounded-md px-3 py-2 text-[10px] font-bold uppercase tracking-[0.6px] transition-all duration-200 sm:px-4 ${
                     isFilled
-                      ? "bg-primary-background text-primary-foreground shadow-[0px_1px_2px_#0000000c] hover:opacity-90"
-                      : "border border-primary-light bg-transparent text-primary-light hover:bg-primary-light hover:text-primary-foreground"
+                      ? "bg-primary-background text-primary-foreground shadow-sm hover:bg-primary-dark"
+                      : "border border-primary-light bg-background-card text-primary-light hover:bg-primary-light hover:text-primary-foreground"
                   }`}
                 >
                   {button}
@@ -196,14 +193,14 @@ function Orders() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background-main">
-      {/* Existing System Header */}
+      {/* Header */}
       <div className="w-full shrink-0">
         <Header />
       </div>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-background-card pb-[120px]">
-        <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-6 px-4 py-5 sm:px-6 sm:py-7 md:px-8">
+        <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-7 px-4 py-6 sm:px-6 sm:py-8 md:px-8">
           {/* Page Title */}
           <div className="flex flex-col gap-1">
             <h1 className="break-words text-[24px] font-bold leading-[120%] tracking-[-0.02em] text-text-accent sm:text-[28px] md:text-[30px]">
@@ -217,9 +214,15 @@ function Orders() {
 
           {/* Order History */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold leading-6 text-text-primary sm:text-xl sm:leading-7">
-              Order History
-            </h2>
+            <div className="flex items-center justify-between border-b border-border-light pb-2">
+              <h2 className="text-base font-bold leading-5 text-text-primary sm:text-lg sm:leading-6">
+                Order History
+              </h2>
+
+              <span className="text-[10px] font-semibold uppercase tracking-[0.5px] text-text-secondary">
+                {orderHistory.length} Orders
+              </span>
+            </div>
 
             <div className="flex flex-col gap-3">
               {orderHistory.map((order) => (
@@ -243,10 +246,16 @@ function Orders() {
           </section>
 
           {/* Delivery History */}
-          <section className="flex flex-col gap-3 pt-4">
-            <h2 className="text-lg font-bold leading-6 text-text-primary sm:text-xl sm:leading-7">
-              Delivery History
-            </h2>
+          <section className="flex flex-col gap-3 pt-3">
+            <div className="flex items-center justify-between border-b border-border-light pb-2">
+              <h2 className="text-base font-bold leading-5 text-text-primary sm:text-lg sm:leading-6">
+                Delivery History
+              </h2>
+
+              <span className="text-[10px] font-semibold uppercase tracking-[0.5px] text-text-secondary">
+                {deliveryHistory.length} Deliveries
+              </span>
+            </div>
 
             <div className="flex flex-col gap-3">
               {deliveryHistory.map((delivery) => (
@@ -271,7 +280,7 @@ function Orders() {
         </div>
       </main>
 
-      {/* Existing System Customer Navbar */}
+      {/* Customer Navbar */}
       <div className="fixed bottom-0 left-0 z-50 w-full">
         <CustomerNavbar />
       </div>

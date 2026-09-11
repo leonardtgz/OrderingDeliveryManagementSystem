@@ -98,14 +98,27 @@ const defaultOrder = {
   address: "123 Sample St, Brgy. San Antonio, Pasig City",
   deliveryDate: "Today",
   deliveryTime: "2:00 PM - 4:00 PM",
-  paymentMethod: "Cash on Delivery",
 };
 
 function OrderDetails() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const order = location.state?.order || defaultOrder;
+  const passedOrder = location.state?.order;
+
+  const order = {
+    ...defaultOrder,
+    ...(passedOrder || {}),
+    address:
+      passedOrder?.address ||
+      "123 Sample St, Brgy. San Antonio, Pasig City",
+    deliveryDate:
+      passedOrder?.deliveryDate ||
+      "Today",
+    deliveryTime:
+      passedOrder?.deliveryTime ||
+      "2:00 PM - 4:00 PM",
+  };
 
   const handleBack = () => {
     navigate("/customer/orders");
@@ -119,15 +132,13 @@ function OrderDetails() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background-main">
-      {/* Existing System Header */}
       <div className="w-full shrink-0">
         <Header />
       </div>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-background-card pb-[120px]">
         <div className="mx-auto flex w-full max-w-[900px] flex-col gap-5 px-4 py-5 sm:px-6 sm:py-7">
-          {/* Page Header */}
+          
           <div className="flex flex-col gap-1">
             <h1 className="text-[24px] font-bold leading-[120%] tracking-[-0.02em] text-text-accent sm:text-[28px]">
               Order Details
@@ -138,9 +149,8 @@ function OrderDetails() {
             </p>
           </div>
 
-          {/* Order Information */}
           <section className="overflow-hidden rounded-lg bg-background-accent shadow-[0px_1px_2px_#0000000c]">
-            {/* Order Header */}
+            
             <div className="flex flex-col gap-2 border-b border-border-light px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
@@ -163,11 +173,10 @@ function OrderDetails() {
               </span>
             </div>
 
-            {/* Product */}
             <div className="flex items-center gap-3 border-b border-border-light px-4 py-4 sm:px-5">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-background-card">
                 <img
-                  src={order.image}
+                  src={order.image || containerIcon}
                   alt={order.title}
                   className="h-11 w-9 object-contain"
                 />
@@ -190,9 +199,8 @@ function OrderDetails() {
               </div>
             </div>
 
-            {/* Delivery Details */}
             <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
-              {/* Address */}
+              
               <div className="flex items-start gap-3">
                 <AddressIcon />
 
@@ -202,14 +210,13 @@ function OrderDetails() {
                   </span>
 
                   <span className="mt-1 block break-words text-sm leading-5 text-text-primary">
-                    {order.address}
+                    {order.address || "123 Sample St, Brgy. San Antonio, Pasig City"}
                   </span>
                 </div>
               </div>
 
               <div className="h-px w-full bg-border-light" />
 
-              {/* Date & Time */}
               <div className="flex items-start gap-3">
                 <DateTimeIcon />
 
@@ -219,14 +226,14 @@ function OrderDetails() {
                   </span>
 
                   <span className="mt-1 block text-sm leading-5 text-text-primary">
-                    {order.deliveryDate}, {order.deliveryTime}
+                    {order.deliveryDate || "Today"},{" "}
+                    {order.deliveryTime || "2:00 PM - 4:00 PM"}
                   </span>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Payment Summary */}
           <section className="flex flex-col gap-3 rounded-lg bg-background-accent p-4 shadow-[0px_1px_2px_#0000000c] sm:p-5">
             <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
               Payment Summary
@@ -253,17 +260,9 @@ function OrderDetails() {
                 {order.total}
               </span>
             </div>
-
-            <div className="flex justify-end">
-              <span className="text-xs text-text-secondary">
-                Payment Method: {order.paymentMethod}
-              </span>
-            </div>
           </section>
 
-          {/* Action Buttons */}
           <div className="flex flex-col gap-3 pb-3 pt-1 sm:flex-row sm:justify-center">
-            {/* Back to Orders */}
             <button
               type="button"
               onClick={handleBack}
@@ -272,7 +271,6 @@ function OrderDetails() {
               Back to Orders
             </button>
 
-            {/* Track Order */}
             <button
               type="button"
               onClick={handleTrackOrder}
@@ -284,7 +282,6 @@ function OrderDetails() {
         </div>
       </main>
 
-      {/* Existing System Customer Navbar */}
       <div className="fixed bottom-0 left-0 z-50 w-full">
         <CustomerNavbar />
       </div>

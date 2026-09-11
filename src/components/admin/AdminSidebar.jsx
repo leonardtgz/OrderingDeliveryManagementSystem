@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const AdminSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const menuItems = [
     {
@@ -17,34 +18,10 @@ const AdminSidebar = () => {
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <rect
-            x="3"
-            y="3"
-            width="7"
-            height="7"
-            strokeWidth="2"
-          />
-          <rect
-            x="14"
-            y="3"
-            width="7"
-            height="7"
-            strokeWidth="2"
-          />
-          <rect
-            x="3"
-            y="14"
-            width="7"
-            height="7"
-            strokeWidth="2"
-          />
-          <rect
-            x="14"
-            y="14"
-            width="7"
-            height="7"
-            strokeWidth="2"
-          />
+          <rect x="3" y="3" width="7" height="7" strokeWidth="2" />
+          <rect x="14" y="3" width="7" height="7" strokeWidth="2" />
+          <rect x="3" y="14" width="7" height="7" strokeWidth="2" />
+          <rect x="14" y="14" width="7" height="7" strokeWidth="2" />
         </svg>
       ),
     },
@@ -90,12 +67,7 @@ const AdminSidebar = () => {
             strokeWidth="2"
             d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"
           />
-          <circle
-            cx="9"
-            cy="7"
-            r="4"
-            strokeWidth="2"
-          />
+          <circle cx="9" cy="7" r="4" strokeWidth="2" />
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -149,18 +121,8 @@ const AdminSidebar = () => {
             strokeWidth="2"
             d="M3 6h11v11H3zM14 10h4l3 3v4h-7z"
           />
-          <circle
-            cx="7"
-            cy="19"
-            r="2"
-            strokeWidth="2"
-          />
-          <circle
-            cx="18"
-            cy="19"
-            r="2"
-            strokeWidth="2"
-          />
+          <circle cx="7" cy="19" r="2" strokeWidth="2" />
+          <circle cx="18" cy="19" r="2" strokeWidth="2" />
         </svg>
       ),
     },
@@ -172,7 +134,6 @@ const AdminSidebar = () => {
 
   return (
     <>
-      {/* ================= MOBILE TOGGLE ================= */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -194,7 +155,6 @@ const AdminSidebar = () => {
         </svg>
       </button>
 
-      {/* ================= MOBILE OVERLAY ================= */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-primary-dark bg-opacity-50 lg:hidden"
@@ -202,7 +162,6 @@ const AdminSidebar = () => {
         />
       )}
 
-      {/* ================= SIDEBAR ================= */}
       <aside
         className={`
           fixed left-0 top-0 z-50 h-screen w-64
@@ -219,8 +178,6 @@ const AdminSidebar = () => {
         `}
       >
         <div className="flex h-full flex-col">
-
-          {/* ================= SIDEBAR TITLE ================= */}
           <div className="flex h-20 items-center border-b border-border-light px-5">
             <h1
               className="text-base font-bold leading-lg text-text-secondary"
@@ -230,7 +187,6 @@ const AdminSidebar = () => {
             </h1>
           </div>
 
-          {/* ================= NAVIGATION ================= */}
           <nav className="flex-1 overflow-y-auto px-3 py-5">
             <ul className="space-y-2">
               {menuItems.map((item) => {
@@ -262,14 +218,11 @@ const AdminSidebar = () => {
             </ul>
           </nav>
 
-          {/* ================= LOGOUT ================= */}
           <div className="border-t border-border-light p-3">
             <button
               type="button"
               className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-sm font-semibold text-text-light transition-colors duration-200 hover:bg-secondary-light"
-              onClick={() => {
-                // Add logout logic here later
-              }}
+              onClick={() => navigate("/login")}
             >
               <svg
                 className="h-5 w-5"
@@ -290,11 +243,9 @@ const AdminSidebar = () => {
                   d="M15 12H3M21 19V5a2 2 0 00-2-2h-6"
                 />
               </svg>
-
               <span>Logout</span>
             </button>
           </div>
-
         </div>
       </aside>
     </>

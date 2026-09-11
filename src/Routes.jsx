@@ -8,6 +8,7 @@ import EditOrder from "./pages/customer/EditOrder";
 import OrderSummary from "./pages/customer/Ordersummary";
 import OrderSuccessful from "./pages/customer/OrderSuccessful";
 import Orders from "./pages/customer/Orders";
+import Track from "./pages/customer/Track";
 
 
 
@@ -26,6 +27,7 @@ import Customers from "./pages/admin/Customers";
 import ViewCustomer from "./pages/admin/ViewCustomer";
 import AddCustomer from "./pages/admin/AddCustomer";
 import OrderDetails from "./pages/customer/OrderDetails";
+
 
 function AppRoutes() {
   return (
@@ -52,6 +54,7 @@ function AppRoutes() {
         <Route path="/customer/order-successful" element={<OrderSuccessful />} />
         <Route path="/customer/orders" element={<Orders />} />
         <Route path="/customer/order-details" element={<OrderDetails />} />
+        <Route path="/customer/track" element={<Track />} />
         
 
 
