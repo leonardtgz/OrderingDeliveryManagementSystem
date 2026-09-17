@@ -1,26 +1,20 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
 
-const steps = [
-  { label: "Pending", time: "09:00 AM", status: "done" },
-  { label: "Purifying", time: "09:45 AM", status: "done" },
-  { label: "Out for Delivery", time: "1:15 PM", status: "current" },
-  { label: "Delivered", time: "--:--", status: "upcoming" },
-];
+import { getCurrentOrder, getOrders } from "../../utils/orderStorage";
 
-const recentHistory = [
-  { id: "#ORD-881-02A", date: "Oct 12, 2023", status: "DELIVERED" },
-  { id: "#ORD-775-01B", date: "Sep 28, 2023", status: "DELIVERED" },
-];
-
-const olderHistory = [
-  { id: "#ORD-662-09C", date: "Sep 14, 2023", status: "DELIVERED" },
-  { id: "#ORD-540-07D", date: "Aug 30, 2023", status: "DELIVERED" },
-  { id: "#ORD-411-05E", date: "Aug 16, 2023", status: "DELIVERED" },
-];
+const customer = {
+  name: "Maria Santos",
+  contactNumber: "0917-555-0192",
+  address: [
+    "Block 4, Lot 12, Phase 2",
+    "Sunnyvale Subdivision",
+    "Brgy. San Jose, Antipolo",
+  ],
+};
 
 function BackArrowIcon({ className = "" }) {
   return (
@@ -208,7 +202,7 @@ function StepLabel({ step }) {
   );
 }
 
-function LinearTracker() {
+function LinearTracker({ steps }) {
   return (
     <div className="flex flex-col gap-5 py-3 sm:gap-6 sm:py-4">
       <div className="hidden sm:flex sm:items-start">
@@ -231,7 +225,10 @@ function LinearTracker() {
                 `}
               />
 
-              <StepIcon status={step.status} index={index} />
+              <StepIcon
+                status={step.status}
+                index={index}
+              />
 
               <div
                 className={`
@@ -254,9 +251,15 @@ function LinearTracker() {
 
       <div className="flex flex-col sm:hidden">
         {steps.map((step, index) => (
-          <div key={step.label} className="flex gap-3">
+          <div
+            key={step.label}
+            className="flex gap-3"
+          >
             <div className="flex flex-col items-center">
-              <StepIcon status={step.status} index={index} />
+              <StepIcon
+                status={step.status}
+                index={index}
+              />
 
               {index < steps.length - 1 && (
                 <div
@@ -295,7 +298,8 @@ function LinearTracker() {
                       : "font-bold"
                   }
                   ${
-                    step.status === "done" || step.status === "current"
+                    step.status === "done" ||
+                    step.status === "current"
                       ? "text-text-accent"
                       : ""
                   }
@@ -318,38 +322,540 @@ function DetailField({ label, children }) {
         {label}
       </span>
 
-      <div className="text-sm text-text-primary sm:text-base">{children}</div>
-    </div>
-  );
-}
-
-function OrderHistoryRow({ order }) {
-  return (
-    <div className="flex items-center justify-between border-b border-dashed border-border-light py-1">
-      <div className="flex min-w-0 flex-col">
-        <span className="text-[11px] font-bold tracking-[0.4px] text-text-primary sm:text-xs">
-          {order.id}
-        </span>
-
-        <span className="text-xs text-text-secondary sm:text-sm">
-          {order.date}
-        </span>
+      <div className="text-sm text-text-primary sm:text-base">
+        {children}
       </div>
-
-      <span className="shrink-0 rounded bg-background-accent px-2 py-1 text-[10px] text-text-primary sm:text-xs">
-        {order.status}
-      </span>
     </div>
   );
 }
+
+function GoogleLocationMap({ deliveryTime }) {
+  return (
+    <div className="overflow-hidden rounded border border-border-light bg-white">
+      <div className="relative h-[220px] w-full bg-[#e8eef1] sm:h-[260px]">
+        <div className="absolute inset-0 opacity-70">
+          <div className="absolute left-[8%] top-[18%] h-8 w-[85%] rotate-[8deg] rounded-full bg-[#d2dde1]" />
+          <div className="absolute left-[-5%] top-[55%] h-7 w-[115%] -rotate-[12deg] rounded-full bg-[#d2dde1]" />
+          <div className="absolute left-[20%] top-[-10%] h-[130%] w-6 rotate-[25deg] rounded-full bg-[#d2dde1]" />
+          <div className="absolute right-[15%] top-[-10%] h-[130%] w-5 rotate-[55deg] rounded-full bg-[#d2dde1]" />
+          <div className="absolute left-[45%] top-[20%] h-20 w-32 rounded-lg bg-[#dbe7df]" />
+          <div className="absolute left-[5%] top-[75%] h-16 w-28 rounded-lg bg-[#dbe7df]" />
+          <div className="absolute right-[5%] top-[55%] h-20 w-36 rounded-lg bg-[#dbe7df]" />
+        </div>
+
+        <svg
+          className="absolute inset-0 h-full w-full"
+          viewBox="0 0 600 260"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M115 210 C190 190, 200 145, 285 155 C360 165, 355 85, 470 65"
+            fill="none"
+            stroke="#238FA3"
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+
+          <path
+            d="M115 210 C190 190, 200 145, 285 155 C360 165, 355 85, 470 65"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeDasharray="8 8"
+          />
+        </svg>
+
+        <div className="absolute bottom-[18%] left-[17%] flex h-9 w-9 items-center justify-center rounded-full border-4 border-white bg-primary-background shadow-md">
+          <div className="h-2.5 w-2.5 rounded-full bg-white" />
+        </div>
+
+        <div className="absolute right-[18%] top-[17%] flex h-11 w-11 items-center justify-center rounded-full border-4 border-white bg-[#238FA3] shadow-lg">
+          <span className="text-lg text-white">●</span>
+        </div>
+
+        <div className="absolute left-3 top-3 rounded bg-white px-3 py-1.5 text-[10px] font-semibold text-text-secondary shadow sm:text-xs">
+          Google Maps
+        </div>
+
+        <div className="absolute bottom-3 right-3 rounded-md bg-white px-3 py-2 shadow-md">
+          <p className="text-[9px] font-bold uppercase tracking-wide text-text-secondary">
+            Estimated arrival
+          </p>
+
+          <p className="text-xs font-bold text-text-primary sm:text-sm">
+            {deliveryTime || "--:--"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/*
+ * Find the newest version of the SAME order.
+ *
+ * Router state is used only as a reference.
+ * The actual displayed order always comes from goldenpr_orders.
+ */
+const findLatestTrackedOrder = (referenceOrder) => {
+  if (!referenceOrder) {
+    return null;
+  }
+
+  const orders = getOrders();
+
+  if (!Array.isArray(orders)) {
+    return null;
+  }
+
+  const referenceId = referenceOrder.id;
+  const referenceOrderNumber =
+    referenceOrder.orderNumber;
+
+  const matchingOrders = orders.filter(
+    (storedOrder) => {
+      const sameId =
+        referenceId != null &&
+        storedOrder.id != null &&
+        String(storedOrder.id) ===
+          String(referenceId);
+
+      const sameOrderNumber =
+        referenceOrderNumber != null &&
+        storedOrder.orderNumber != null &&
+        String(storedOrder.orderNumber) ===
+          String(referenceOrderNumber);
+
+      return sameId || sameOrderNumber;
+    },
+  );
+
+  if (matchingOrders.length === 0) {
+    return null;
+  }
+
+  /*
+   * If duplicates somehow exist, use the most recently
+   * updated version of this exact order.
+   */
+  return [...matchingOrders].sort(
+    (a, b) => {
+      const dateA = new Date(
+        a.updatedAt ||
+          a.createdAt ||
+          0,
+      ).getTime();
+
+      const dateB = new Date(
+        b.updatedAt ||
+          b.createdAt ||
+          0,
+      ).getTime();
+
+      return dateB - dateA;
+    },
+  )[0];
+};
 
 function Track() {
   const navigate = useNavigate();
-  const [showAllHistory, setShowAllHistory] = useState(false);
+  const location = useLocation();
+
+  /*
+   * Keep only the identity of the order being tracked.
+   * Do NOT use the router order object as the source of truth.
+   */
+  const [trackedOrderReference] =
+    useState(() => {
+      return (
+        location.state?.order ||
+        getCurrentOrder()
+      );
+    });
+
+  const [order, setOrder] =
+    useState(null);
+
+  /*
+   * Load the latest version of the SAME order.
+   */
+  const loadTrackedOrder = () => {
+    const latestOrder =
+      findLatestTrackedOrder(
+        trackedOrderReference,
+      );
+
+    setOrder(latestOrder);
+  };
+
+  useEffect(() => {
+    loadTrackedOrder();
+
+    const handleOrderUpdate = () => {
+      loadTrackedOrder();
+    };
+
+    /*
+     * Same-tab updates.
+     */
+    window.addEventListener(
+      "orderUpdated",
+      handleOrderUpdate,
+    );
+
+    window.addEventListener(
+      "ordersUpdated",
+      handleOrderUpdate,
+    );
+
+    /*
+     * Cross-tab updates.
+     */
+    window.addEventListener(
+      "storage",
+      handleOrderUpdate,
+    );
+
+    /*
+     * Fallback synchronization.
+     * This ensures Track catches an Admin update
+     * even if an event is missed.
+     */
+    const interval = setInterval(
+      loadTrackedOrder,
+      1000,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "orderUpdated",
+        handleOrderUpdate,
+      );
+
+      window.removeEventListener(
+        "ordersUpdated",
+        handleOrderUpdate,
+      );
+
+      window.removeEventListener(
+        "storage",
+        handleOrderUpdate,
+      );
+
+      clearInterval(interval);
+    };
+  }, [trackedOrderReference]);
+
+  const normalizedOrder = useMemo(() => {
+    if (!order) {
+      return null;
+    }
+
+    const products =
+      Array.isArray(order.products)
+        ? order.products.map(
+            (product) => {
+              const quantity =
+                Number(
+                  product.quantity,
+                ) || 0;
+
+              const price =
+                Number(
+                  product.price,
+                ) || 0;
+
+              return {
+                ...product,
+                quantity,
+                price,
+                total:
+                  quantity * price,
+              };
+            },
+          )
+        : [];
+
+    /*
+     * Use the actual stored subtotal when available.
+     * Otherwise calculate it from products.
+     */
+    const calculatedSubtotal =
+      products.reduce(
+        (sum, product) =>
+          sum +
+          Number(
+            product.total || 0,
+          ),
+        0,
+      );
+
+    const subtotal =
+      order.subtotal != null
+        ? Number(order.subtotal)
+        : calculatedSubtotal;
+
+    const deliveryFee =
+      order.deliveryFee != null
+        ? Number(order.deliveryFee)
+        : 20;
+
+    /*
+     * Prefer the stored total from the order.
+     * This keeps Track consistent with Order Summary.
+     */
+    const total =
+      order.total != null
+        ? Number(order.total)
+        : subtotal + deliveryFee;
+
+    return {
+      ...order,
+      products,
+      subtotal,
+      deliveryFee,
+      total,
+    };
+  }, [order]);
+
+  const currentStatus = String(
+    normalizedOrder?.status ||
+      "Pending",
+  )
+    .trim()
+    .toLowerCase();
+
+  const isDelivered =
+    currentStatus === "delivered" ||
+    currentStatus === "completed";
+
+  const isCancelled =
+    currentStatus === "cancelled" ||
+    currentStatus === "canceled";
+
+  const getSteps = () => {
+    /*
+     * DELIVERY FINISHED
+     *
+     * Everything is completed.
+     */
+    if (isDelivered) {
+      return [
+        {
+          label: "Pending",
+          time: "Completed",
+          status: "done",
+        },
+        {
+          label: "Purifying",
+          time: "Completed",
+          status: "done",
+        },
+        {
+          label: "Out for Delivery",
+          time: "Completed",
+          status: "done",
+        },
+        {
+          label: "Delivered",
+          time:
+            normalizedOrder?.deliveryTime ||
+            "Completed",
+          status: "done",
+        },
+      ];
+    }
+
+    /*
+     * CANCELLED
+     */
+    if (isCancelled) {
+      return [
+        {
+          label: "Pending",
+          time: "Cancelled",
+          status: "done",
+        },
+        {
+          label: "Purifying",
+          time: "--:--",
+          status: "upcoming",
+        },
+        {
+          label: "Out for Delivery",
+          time: "--:--",
+          status: "upcoming",
+        },
+        {
+          label: "Delivered",
+          time: "--:--",
+          status: "upcoming",
+        },
+      ];
+    }
+
+    /*
+     * OUT FOR DELIVERY
+     */
+    if (
+      currentStatus ===
+        "out for delivery" ||
+      currentStatus ===
+        "in transit" ||
+      currentStatus ===
+        "delivery"
+    ) {
+      return [
+        {
+          label: "Pending",
+          time: "Completed",
+          status: "done",
+        },
+        {
+          label: "Purifying",
+          time: "Completed",
+          status: "done",
+        },
+        {
+          label: "Out for Delivery",
+          time:
+            normalizedOrder?.deliveryTime ||
+            "In Transit",
+          status: "current",
+        },
+        {
+          label: "Delivered",
+          time: "--:--",
+          status: "upcoming",
+        },
+      ];
+    }
+
+    /*
+     * CONFIRMED / PURIFYING
+     */
+    if (
+      currentStatus ===
+        "confirmed" ||
+      currentStatus ===
+        "purifying" ||
+      currentStatus ===
+        "processing"
+    ) {
+      return [
+        {
+          label: "Pending",
+          time: "Completed",
+          status: "done",
+        },
+        {
+          label: "Purifying",
+          time: "Preparing",
+          status: "current",
+        },
+        {
+          label: "Out for Delivery",
+          time: "--:--",
+          status: "upcoming",
+        },
+        {
+          label: "Delivered",
+          time: "--:--",
+          status: "upcoming",
+        },
+      ];
+    }
+
+    /*
+     * PENDING
+     */
+    return [
+      {
+        label: "Pending",
+        time: "Order Received",
+        status: "current",
+      },
+      {
+        label: "Purifying",
+        time: "--:--",
+        status: "upcoming",
+      },
+      {
+        label: "Out for Delivery",
+        time: "--:--",
+        status: "upcoming",
+      },
+      {
+        label: "Delivered",
+        time: "--:--",
+        status: "upcoming",
+      },
+    ];
+  };
+
+  const steps = getSteps();
 
   const handleBackToOrders = () => {
     navigate("/customer/orders");
   };
+
+  if (!normalizedOrder) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background-main">
+        <div className="w-full shrink-0">
+          <Header />
+        </div>
+
+        <main className="flex flex-1 items-center justify-center bg-background-card px-4 pb-[120px]">
+          <div className="w-full max-w-md rounded-lg border border-border-light bg-background-accent p-8 text-center">
+            <h1 className="text-lg font-bold text-text-primary">
+              No Order to Track
+            </h1>
+
+            <p className="mt-2 text-sm text-text-secondary">
+              Place an order first to view its tracking information.
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  "/customer/products",
+                )
+              }
+              className="mt-5 rounded-md bg-primary-background px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-primary-foreground"
+            >
+              Browse Products
+            </button>
+          </div>
+        </main>
+
+        <div className="fixed bottom-0 left-0 z-50 w-full">
+          <CustomerNavbar activeTab="track" />
+        </div>
+      </div>
+    );
+  }
+
+  const deliveryAddress =
+    Array.isArray(
+      normalizedOrder.deliveryAddressLines,
+    )
+      ? normalizedOrder.deliveryAddressLines
+      : Array.isArray(
+          normalizedOrder.deliveryAddress,
+        )
+        ? normalizedOrder.deliveryAddress
+        : customer.address;
+
+  const deliveryTime =
+    normalizedOrder.deliveryTime ||
+    "--:--";
+
+  const deliverySchedule =
+    normalizedOrder.deliverySchedule ||
+    `${normalizedOrder.deliveryDate || "Today"}, ${deliveryTime}`;
 
   return (
     <div className="flex min-h-screen flex-col bg-background-main">
@@ -366,7 +872,9 @@ function Track() {
 
             <button
               type="button"
-              onClick={handleBackToOrders}
+              onClick={
+                handleBackToOrders
+              }
               className="flex min-h-10 w-fit items-center gap-1 rounded border border-border-light bg-background-main px-3 py-2.5 text-[10px] font-bold tracking-[0.4px] text-text-primary transition-colors hover:bg-background-accent sm:min-h-12 sm:px-4 sm:py-3.5 sm:text-xs sm:tracking-[0.6px]"
             >
               <BackArrowIcon className="h-3 w-3" />
@@ -379,20 +887,61 @@ function Track() {
               <div className="flex flex-col gap-3 border-b border-border-light pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <DetailField label="Order Number">
                   <span className="text-base font-semibold sm:text-lg">
-                    #ORD-992-04X
+                    #
+                    {String(
+                      normalizedOrder.orderNumber ||
+                        normalizedOrder.id ||
+                        "",
+                    ).replace(/^#/, "")}
                   </span>
                 </DetailField>
 
                 <div className="sm:text-right">
                   <DetailField label="Expected Delivery">
                     <span className="text-sm font-bold sm:text-base">
-                      Today, 2:30 PM
+                      {deliverySchedule}
                     </span>
                   </DetailField>
                 </div>
               </div>
 
-              <LinearTracker />
+              <LinearTracker
+                steps={steps}
+              />
+
+              <div className="border-t border-border-light pt-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base font-semibold text-text-primary sm:text-lg">
+                      Delivery Location
+                    </h2>
+
+                    <p className="mt-1 text-xs text-text-secondary sm:text-sm">
+                      {isDelivered
+                        ? "Your order has been delivered."
+                        : isCancelled
+                          ? "This order has been cancelled."
+                          : "Your order is being prepared for delivery."}
+                    </p>
+                  </div>
+
+                  {!isDelivered &&
+                    !isCancelled && (
+                      <span className="rounded-full bg-background-accent px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-text-accent sm:text-xs">
+                        LIVE
+                      </span>
+                    )}
+                </div>
+
+                <GoogleLocationMap
+                  deliveryTime={
+                    isDelivered
+                      ? normalizedOrder.deliveryTime ||
+                        "Delivered"
+                      : deliveryTime
+                  }
+                />
+              </div>
             </section>
 
             <section className="flex flex-col gap-5 lg:col-span-1">
@@ -403,18 +952,29 @@ function Track() {
 
                 <DetailField label="Customer">
                   <div className="flex flex-col gap-1">
-                    <span>Maria Santos</span>
+                    <span>
+                      {normalizedOrder.customerName ||
+                        customer.name}
+                    </span>
+
                     <span className="text-xs text-text-secondary sm:text-sm">
-                      0917-555-0192
+                      {normalizedOrder.contactNumber ||
+                        customer.contactNumber}
                     </span>
                   </div>
                 </DetailField>
 
                 <DetailField label="Address">
                   <div className="flex flex-col text-sm sm:text-base">
-                    <span>Block 4, Lot 12, Phase 2</span>
-                    <span>Sunnyvale Subdivision</span>
-                    <span>Brgy. San Jose, Antipolo</span>
+                    {deliveryAddress.map(
+                      (line, index) => (
+                        <span
+                          key={`${line}-${index}`}
+                        >
+                          {line}
+                        </span>
+                      ),
+                    )}
                   </div>
                 </DetailField>
               </div>
@@ -424,62 +984,96 @@ function Track() {
                   Order Summary
                 </h2>
 
-                <div className="flex items-start justify-between border-b border-border-light py-1">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="text-sm text-text-primary sm:text-base">
-                      Slim/Round Refill
-                    </span>
+                {normalizedOrder.products.map(
+                  (product) => (
+                    <div
+                      key={
+                        product.id ||
+                        product.name
+                      }
+                      className="flex items-start justify-between gap-4 border-b border-border-light py-2"
+                    >
+                      <div className="flex min-w-0 flex-col">
+                        <span className="text-sm text-text-primary sm:text-base">
+                          {product.name}
+                        </span>
 
-                    <span className="text-[10px] text-text-secondary sm:text-xs">
-                      Service: Refill Only
-                    </span>
+                        <span className="text-[10px] text-text-secondary sm:text-xs">
+                          Qty:{" "}
+                          {product.quantity}
+                        </span>
+                      </div>
 
-                    <span className="text-xs text-text-secondary sm:text-sm">
-                      Qty: 4
-                    </span>
-                  </div>
+                      <span className="shrink-0 text-[11px] font-bold text-text-primary sm:text-xs">
+                        PHP{" "}
+                        {Number(
+                          product.total ||
+                            0,
+                        ).toFixed(2)}
+                      </span>
+                    </div>
+                  ),
+                )}
 
-                  <span className="shrink-0 text-[11px] font-bold text-text-primary sm:text-xs">
-                    ₱180.00
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs text-text-secondary">
+                    Subtotal
+                  </span>
+
+                  <span className="text-xs font-semibold text-text-primary">
+                    PHP{" "}
+                    {normalizedOrder.subtotal.toFixed(
+                      2,
+                    )}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-text-secondary">
+                    Delivery Fee
+                  </span>
+
+                  <span className="text-xs font-semibold text-text-primary">
+                    PHP{" "}
+                    {normalizedOrder.deliveryFee.toFixed(
+                      2,
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-border-light pt-2">
                   <span className="text-base font-semibold text-text-primary sm:text-lg">
                     Total
                   </span>
 
                   <span className="text-base font-semibold text-text-primary sm:text-lg">
-                    ₱180.00
+                    PHP{" "}
+                    {normalizedOrder.total.toFixed(
+                      2,
+                    )}
                   </span>
                 </div>
               </div>
 
               <div className="flex flex-col gap-4 rounded border border-border-light bg-background-accent p-4">
                 <h2 className="border-b border-border-light pb-2 text-base font-semibold text-text-primary sm:text-lg">
-                  Order History
+                  Order Information
                 </h2>
 
-                <div className="flex flex-col gap-2">
-                  {recentHistory.map((order) => (
-                    <OrderHistoryRow key={order.id} order={order} />
-                  ))}
+                <DetailField label="Status">
+                  <span className="font-semibold text-text-accent">
+                    {normalizedOrder.status ||
+                      "Pending"}
+                  </span>
+                </DetailField>
 
-                  {showAllHistory &&
-                    olderHistory.map((order) => (
-                      <OrderHistoryRow key={order.id} order={order} />
-                    ))}
-
-                  {!showAllHistory && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAllHistory(true)}
-                      className="pt-2 text-center text-[10px] font-bold tracking-[0.4px] text-text-accent transition-opacity hover:opacity-70 sm:text-xs sm:tracking-[0.6px]"
-                    >
-                      VIEW ALL PREVIOUS ORDERS
-                    </button>
-                  )}
-                </div>
+                {normalizedOrder.notes && (
+                  <DetailField label="Notes">
+                    <span>
+                      {normalizedOrder.notes}
+                    </span>
+                  </DetailField>
+                )}
               </div>
             </section>
           </div>

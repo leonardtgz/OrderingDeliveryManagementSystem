@@ -7,9 +7,13 @@ import OrderReview from "./pages/customer/OrderReview";
 import EditOrder from "./pages/customer/EditOrder";
 import OrderSummary from "./pages/customer/Ordersummary";
 import OrderSuccessful from "./pages/customer/OrderSuccessful";
+import OrderDetails from "./pages/customer/OrderDetails";
 import Orders from "./pages/customer/Orders";
 import Track from "./pages/customer/Track";
-
+import Profile from "./pages/customer/Profile";
+import EditProfile from "./pages/customer/EditProfile";
+import ChangePassword from "./pages/customer/ChangePassword";
+import Notifications from "./pages/customer/Notifications";
 
 
 
@@ -26,7 +30,12 @@ import EditAdminProduct from "./pages/admin/EditAdminProduct";
 import Customers from "./pages/admin/Customers";
 import ViewCustomer from "./pages/admin/ViewCustomer";
 import AddCustomer from "./pages/admin/AddCustomer";
-import OrderDetails from "./pages/customer/OrderDetails";
+import AdminOrders from "./pages/admin/Orders";
+import Deliveries from "./pages/admin/Deliveries";
+import EditCustomer from "./pages/admin/EditCustomer";
+import AdminProfile from "./pages/admin/Profile";
+import AdminNotifications from "./pages/admin/Notifications";
+
 
 
 function AppRoutes() {
@@ -55,6 +64,12 @@ function AppRoutes() {
         <Route path="/customer/orders" element={<Orders />} />
         <Route path="/customer/order-details" element={<OrderDetails />} />
         <Route path="/customer/track" element={<Track />} />
+        <Route path="/customer/profile" element={<Profile />} />
+        <Route path="/customer/edit-profile" element={<EditProfile />} />
+        <Route path="/customer/change-password" element={<ChangePassword />} />
+        <Route path="/customer/notifications" element={<Notifications />} />
+        <Route path="/admin/notifications" element={<AdminNotifications />} />
+        
         
 
 
@@ -64,8 +79,13 @@ function AppRoutes() {
         <Route path="/admin/products/new" element={<AddProduct />} />
         <Route path="/admin/products/edit/:id" element={<EditAdminProduct />} />
         <Route path="/admin/customers" element={<Customers />} />
-        <Route path="/admin/customers/:id" element={<ViewCustomer />}/>
+        <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/admin/deliveries" element={<Deliveries />} />
+        <Route path="/admin/customers/:id" element={<ViewCustomer />} />
         <Route path="/admin/customers/new" element={<AddCustomer />} />
+        <Route path="/admin/customers/:id/edit" element={<EditCustomer />} />
+        <Route path="/admin/profile" element={<AdminProfile />} />
+
 
         {/* Unknown URL → Login */}
         <Route

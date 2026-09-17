@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Upload } from "lucide-react";
+
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import Header from "../../components/Header/Header";
+import WarningModal from "../../components/admin/WarningModal";
 
-const PRODUCT_STATUSES = [
-  "In Stock",
-  "Low Stock",
-  "Out of Stock",
-];
+const PRODUCTS_KEY = "adminProducts";
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
-function EditAdminProduct() {
+const EditAdminProduct = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+
+  const [product, setProduct] = useState(null);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -19,245 +21,477 @@ function EditAdminProduct() {
   const [price, setPrice] = useState("");
   const [status, setStatus] = useState("In Stock");
 
+  const [image, setImage] = useState("");
+  const [imageError, setImageError] = useState("");
+
+  const [saving, setSaving] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+
   useEffect(() => {
-    const savedProducts = localStorage.getItem("adminProducts");
-
-    if (!savedProducts) {
-      navigate("/admin/products");
-      return;
-    }
-
     try {
-      const products = JSON.parse(savedProducts);
-      const product = products.find(
-        (item) => String(item.id) === String(id)
-      );
+      const savedProducts =
+        localStorage.getItem(PRODUCTS_KEY);
 
-      if (!product) {
+      if (!savedProducts) {
         navigate("/admin/products");
         return;
       }
 
-      setName(product.name || "");
-      setDescription(product.description || "");
-      setQuantity(product.quantity ?? "");
-      setPrice(product.price ?? "");
-      setStatus(product.status || "In Stock");
-    } catch {
+      const products = JSON.parse(savedProducts);
+
+      if (!Array.isArray(products)) {
+        navigate("/admin/products");
+        return;
+      }
+
+      const foundProduct = products.find(
+        (item) =>
+          String(item.id) === String(id),
+      );
+
+      if (!foundProduct) {
+        navigate("/admin/products");
+        return;
+      }
+
+      setProduct(foundProduct);
+
+      setName(foundProduct.name || "");
+      setDescription(
+        foundProduct.description || "",
+      );
+      setQuantity(
+        foundProduct.quantity ?? 0,
+      );
+      setPrice(foundProduct.price ?? 0);
+      setStatus(
+        foundProduct.status || "In Stock",
+      );
+      setImage(foundProduct.image || "");
+    } catch (error) {
+      console.error(
+        "Failed to load product:",
+        error,
+      );
+
       navigate("/admin/products");
     }
   }, [id, navigate]);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0];
 
-    const savedProducts = localStorage.getItem("adminProducts");
-
-    if (!savedProducts) {
-      navigate("/admin/products");
+    if (!file) {
       return;
     }
 
-    try {
-      const products = JSON.parse(savedProducts);
+    setImageError("");
 
-      const updatedProducts = products.map((product) =>
-        String(product.id) === String(id)
-          ? {
-              ...product,
-              name,
-              description,
-              quantity: Number(quantity) || 0,
-              price: Number(price) || 0,
-              status,
-            }
-          : product
+    if (!file.type.startsWith("image/")) {
+      setImageError(
+        "Please select a valid image file.",
       );
+
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setImageError(
+        "Image must be 5MB or below.",
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      setImage(reader.result);
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    if (
+      !name.trim() ||
+      !description.trim() ||
+      quantity === "" ||
+      price === ""
+    ) {
+      return;
+    }
+
+    if (saving) {
+      return;
+    }
+
+    setShowWarning(true);
+  };
+
+  const handleSave = () => {
+    if (saving) {
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const savedProducts =
+        localStorage.getItem(PRODUCTS_KEY);
+
+      if (!savedProducts) {
+        alert(
+          "Product data could not be found.",
+        );
+
+        setSaving(false);
+        setShowWarning(false);
+        return;
+      }
+
+      const products = JSON.parse(
+        savedProducts,
+      );
+
+      if (!Array.isArray(products)) {
+        alert(
+          "Product data is invalid.",
+        );
+
+        setSaving(false);
+        setShowWarning(false);
+        return;
+      }
+
+      const productExists = products.some(
+        (item) =>
+          String(item.id) === String(id),
+      );
+
+      if (!productExists) {
+        alert(
+          "The product could not be found.",
+        );
+
+        setSaving(false);
+        setShowWarning(false);
+        return;
+      }
+
+      const updatedProducts =
+        products.map((item) => {
+          if (
+            String(item.id) !== String(id)
+          ) {
+            return item;
+          }
+
+          return {
+            ...item,
+            name: name.trim(),
+            description: description.trim(),
+            quantity: Number(quantity),
+            price: Number(price),
+            status,
+            image:
+              image ||
+              item.image ||
+              "",
+          };
+        });
 
       localStorage.setItem(
-        "adminProducts",
-        JSON.stringify(updatedProducts)
+        PRODUCTS_KEY,
+        JSON.stringify(updatedProducts),
       );
 
+      window.dispatchEvent(
+        new Event("productUpdated"),
+      );
+
+      setShowWarning(false);
+
       navigate("/admin/products");
-    } catch {
-      navigate("/admin/products");
+    } catch (error) {
+      console.error(
+        "Failed to update product:",
+        error,
+      );
+
+      alert(
+        "Failed to save the product changes.",
+      );
+
+      setSaving(false);
+      setShowWarning(false);
     }
   };
 
-  const handleCancel = () => {
-    navigate("/admin/products");
-  };
+  if (!product) {
+    return null;
+  }
 
   return (
-    <div className="flex min-h-screen w-full bg-background-main">
-      {/* Sidebar */}
+    <div className="flex min-h-screen bg-background-main">
       <AdminSidebar />
 
-      {/* Main application area */}
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
 
-        {/* Page Content */}
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="w-full px-8 py-8 lg:px-12">
+        <main className="flex-1 overflow-y-auto p-4 pb-10 sm:p-6 md:p-8">
+          <div className="mx-auto w-full max-w-[1000px]">
+
             {/* Page Header */}
-            <div className="mb-6">
+            <div className="mb-6 flex items-center gap-3">
               <button
                 type="button"
-                onClick={handleCancel}
-                className="mb-1 block text-sm font-semibold uppercase tracking-[0.7px] text-text-accent hover:underline"
+                onClick={() =>
+                  navigate("/admin/products")
+                }
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-border-light bg-background-card text-text-secondary transition-colors hover:bg-background-accent"
+                aria-label="Back to Products"
               >
-                ← Back to Products
+                <ArrowLeft className="h-5 w-5" />
               </button>
 
-              <h1 className="text-3xl font-bold leading-10 tracking-[-0.32px] text-text-primary">
-                Edit Product
-              </h1>
+              <div>
+                <h1 className="text-2xl font-bold text-text-primary sm:text-3xl">
+                  Edit Product
+                </h1>
+
+                <p className="mt-1 text-sm text-text-secondary">
+                  Update the product information and quantity.
+                </p>
+              </div>
             </div>
 
-            {/* Edit Product Form */}
+            {/* Form */}
             <form
               onSubmit={handleSubmit}
-              className="block w-full max-w-[650px] rounded-xl border border-card-border bg-card-background p-7 shadow-card"
+              className="rounded-xl border border-border-light bg-background-card p-5 shadow-sm sm:p-6"
             >
-              <div className="flex w-full flex-col gap-5">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
                 {/* Product Name */}
-                <div className="flex w-full flex-col gap-2">
+                <div className="flex flex-col gap-2">
                   <label
-                    htmlFor="name"
+                    htmlFor="product-name"
                     className="text-sm font-semibold text-text-primary"
                   >
                     Product Name
                   </label>
 
                   <input
-                    id="name"
+                    id="product-name"
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Slim Gallon Refill"
-                    required
-                    className="box-border w-full rounded-lg border border-border-secondary bg-background-card px-3 py-2.5 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+                    onChange={(event) =>
+                      setName(event.target.value)
+                    }
+                    className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
                   />
                 </div>
 
                 {/* Description */}
-                <div className="flex w-full flex-col gap-2">
+                <div className="flex flex-col gap-2">
                   <label
-                    htmlFor="description"
+                    htmlFor="product-description"
                     className="text-sm font-semibold text-text-primary"
                   >
                     Description
                   </label>
 
                   <input
-                    id="description"
+                    id="product-description"
                     type="text"
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="e.g. Purified Drinking Water"
-                    required
-                    className="box-border w-full rounded-lg border border-border-secondary bg-background-card px-3 py-2.5 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+                    onChange={(event) =>
+                      setDescription(
+                        event.target.value,
+                      )
+                    }
+                    className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
                   />
                 </div>
 
-                {/* Quantity and Price */}
-                <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2">
-                  {/* Available Quantity */}
-                  <div className="flex w-full flex-col gap-2">
-                    <label
-                      htmlFor="quantity"
-                      className="text-sm font-semibold text-text-primary"
-                    >
-                      Available Quantity
-                    </label>
+                {/* Quantity */}
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="product-quantity"
+                    className="text-sm font-semibold text-text-primary"
+                  >
+                    Available Quantity
+                  </label>
 
-                    <input
-                      id="quantity"
-                      type="number"
-                      min="0"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      placeholder="0"
-                      required
-                      className="box-border w-full rounded-lg border border-border-secondary bg-background-card px-3 py-2.5 text-sm text-text-primary outline-none transition-colors focus:border-primary"
-                    />
-                  </div>
+                  <input
+                    id="product-quantity"
+                    type="number"
+                    min="0"
+                    value={quantity}
+                    onChange={(event) =>
+                      setQuantity(
+                        event.target.value,
+                      )
+                    }
+                    className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
+                  />
+                </div>
 
-                  {/* Price */}
-                  <div className="flex w-full flex-col gap-2">
-                    <label
-                      htmlFor="price"
-                      className="text-sm font-semibold text-text-primary"
-                    >
-                      Price (₱)
-                    </label>
+                {/* Price */}
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="product-price"
+                    className="text-sm font-semibold text-text-primary"
+                  >
+                    Price
+                  </label>
 
-                    <input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      placeholder="0.00"
-                      required
-                      className="box-border w-full rounded-lg border border-border-secondary bg-background-card px-3 py-2.5 text-sm text-text-primary outline-none transition-colors focus:border-primary"
-                    />
-                  </div>
+                  <input
+                    id="product-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={price}
+                    onChange={(event) =>
+                      setPrice(
+                        event.target.value,
+                      )
+                    }
+                    className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
+                  />
                 </div>
 
                 {/* Status */}
-                <div className="flex w-full flex-col gap-2">
+                <div className="flex flex-col gap-2">
                   <label
-                    htmlFor="status"
+                    htmlFor="product-status"
                     className="text-sm font-semibold text-text-primary"
                   >
                     Status
                   </label>
 
                   <select
-                    id="status"
+                    id="product-status"
                     value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="box-border w-full rounded-lg border border-border-secondary bg-background-card px-3 py-2.5 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+                    onChange={(event) =>
+                      setStatus(
+                        event.target.value,
+                      )
+                    }
+                    className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
                   >
-                    {PRODUCT_STATUSES.map((productStatus) => (
-                      <option
-                        key={productStatus}
-                        value={productStatus}
-                      >
-                        {productStatus}
-                      </option>
-                    ))}
+                    <option value="In Stock">
+                      In Stock
+                    </option>
+
+                    <option value="Low Stock">
+                      Low Stock
+                    </option>
+
+                    <option value="Out of Stock">
+                      Out of Stock
+                    </option>
                   </select>
                 </div>
 
-                {/* Buttons */}
-                <div className="flex w-full items-center justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="rounded-lg border border-border-secondary px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.7px] text-text-accent transition-colors hover:bg-background-lightBlue"
-                  >
-                    Cancel
-                  </button>
+                {/* Image */}
+                <div className="flex flex-col gap-2 md:col-span-2">
+                  <label className="text-sm font-semibold text-text-primary">
+                    Product Image
+                  </label>
 
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-button-background px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.7px] text-white shadow-sm transition-colors hover:bg-button-hover"
+                  <label
+                    htmlFor="product-image"
+                    className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border-secondary bg-background-main p-5 transition-colors hover:bg-background-accent"
                   >
-                    Save Changes
-                  </button>
+                    {image ? (
+                      <img
+                        src={image}
+                        alt="Product preview"
+                        className="h-[150px] w-full object-contain"
+                      />
+                    ) : (
+                      <>
+                        <Upload className="mb-3 h-8 w-8 text-text-secondary" />
+
+                        <span className="text-sm font-semibold text-text-primary">
+                          Click to upload product image
+                        </span>
+
+                        <span className="mt-1 text-xs text-text-secondary">
+                          PNG, JPG, JPEG, or other image files
+                        </span>
+                      </>
+                    )}
+
+                    <input
+                      id="product-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <p className="text-center text-xs text-text-secondary">
+                    Image should be 5MB or below.
+                  </p>
+
+                  {imageError && (
+                    <p className="text-sm font-medium text-red-600">
+                      {imageError}
+                    </p>
+                  )}
                 </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate("/admin/products")
+                  }
+                  className="rounded-lg border border-border-secondary px-5 py-3 text-sm font-semibold text-text-primary transition-colors hover:bg-background-accent"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-lg bg-button-background px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving
+                    ? "Saving..."
+                    : "Save Changes"}
+                </button>
               </div>
             </form>
           </div>
         </main>
       </div>
+
+      {/* Warning Modal */}
+      <WarningModal
+        isOpen={showWarning}
+        type="edit"
+        product={{
+          ...product,
+          name: name.trim(),
+        }}
+        onCancel={() =>
+          setShowWarning(false)
+        }
+        onConfirm={handleSave}
+      />
     </div>
   );
-}
+};
 
 export default EditAdminProduct;

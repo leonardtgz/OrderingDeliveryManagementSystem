@@ -1,26 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import Header from "../../components/Header/Header";
 import WarningModal from "../../components/admin/WarningModal";
 
-function JugIcon() {
-  return (
-    <svg
-      width="18"
-      height="20"
-      viewBox="0 0 18 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="shrink-0"
-    >
-      <path
-        d="M8.1 7C7.18333 7 6.28333 7.12917 5.4 7.3875C4.51667 7.64583 3.7 8.03333 2.95 8.55L4 18H14L15.1 8H14.4C13.7667 8 13.1917 7.95417 12.675 7.8625C12.1583 7.77083 11.45 7.59167 10.55 7.325C10.1667 7.20833 9.76667 7.125 9.35 7.075C8.93333 7.025 8.51667 7 8.1 7ZM2.7 6.375C3.55 5.925 4.42917 5.58333 5.3375 5.35C6.24583 5.11667 7.175 5 8.125 5C8.625 5 9.12083 5.03333 9.6125 5.1C10.1042 5.16667 10.5917 5.26667 11.075 5.4C11.9083 5.63333 12.5458 5.79167 12.9875 5.875C13.4292 5.95833 13.9 6 14.4 6H15.325L15.75 2H2.25L2.7 6.375ZM3.975 20C3.45833 20 3.0125 19.8333 2.6375 19.5C2.2625 19.1667 2.05 18.7417 2 18.225L0 0H18L16 18.225C15.95 18.7417 15.7375 19.1667 15.3625 19.5C14.9875 19.8333 14.5417 20 14.025 20H3.975ZM8.1 18C8.51667 18 8.93333 18 9.35 18C9.76667 18 10.1667 18 10.55 18C11.45 18 12.1458 18 12.6375 18C13.1292 18 13.5833 18 14 18H4C4.23333 18 4.74583 18 5.5375 18C6.32917 18 7.18333 18 8.1 18Z"
-        fill="#2CA6D8"
-      />
-    </svg>
-  );
-}
+import slimPurifiedWater from "../../assets/images/slim-purified-water.png";
+import roundPurifiedWater from "../../assets/images/round-purified-water.png";
+import bottle500ml from "../../assets/images/500ml-bottle.png";
+
+const PRODUCTS_KEY = "adminProducts";
 
 const defaultProducts = [
   {
@@ -30,6 +19,7 @@ const defaultProducts = [
     quantity: 145,
     price: 25,
     status: "In Stock",
+    image: slimPurifiedWater,
   },
   {
     id: "2",
@@ -38,88 +28,236 @@ const defaultProducts = [
     quantity: 85,
     price: 25,
     status: "In Stock",
+    image: roundPurifiedWater,
+  },
+  {
+    id: "3",
+    name: "500ml Bottle (Case of 24)",
+    description: "Purified Drinking Water",
+    quantity: 50,
+    price: 240,
+    status: "In Stock",
+    image: bottle500ml,
   },
 ];
+
+const getProductImage = (product) => {
+  if (product.image) {
+    return product.image;
+  }
+
+  const productName = String(
+    product.name || "",
+  ).toLowerCase();
+
+  if (productName.includes("slim")) {
+    return slimPurifiedWater;
+  }
+
+  if (productName.includes("round")) {
+    return roundPurifiedWater;
+  }
+
+  if (
+    productName.includes("500ml") ||
+    productName.includes("bottle")
+  ) {
+    return bottle500ml;
+  }
+
+  return slimPurifiedWater;
+};
+
+const getProducts = () => {
+  try {
+    const savedProducts =
+      localStorage.getItem(PRODUCTS_KEY);
+
+    if (!savedProducts) {
+      localStorage.setItem(
+        PRODUCTS_KEY,
+        JSON.stringify(defaultProducts),
+      );
+
+      return defaultProducts;
+    }
+
+    const parsedProducts =
+      JSON.parse(savedProducts);
+
+    if (!Array.isArray(parsedProducts)) {
+      localStorage.setItem(
+        PRODUCTS_KEY,
+        JSON.stringify(defaultProducts),
+      );
+
+      return defaultProducts;
+    }
+
+    return parsedProducts;
+  } catch (error) {
+    console.error(
+      "Failed to load products:",
+      error,
+    );
+
+    localStorage.setItem(
+      PRODUCTS_KEY,
+      JSON.stringify(defaultProducts),
+    );
+
+    return defaultProducts;
+  }
+};
+
+const saveProducts = (products) => {
+  localStorage.setItem(
+    PRODUCTS_KEY,
+    JSON.stringify(products),
+  );
+
+  window.dispatchEvent(
+    new Event("productUpdated"),
+  );
+};
 
 function Products() {
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
 
-  // Modal is CLOSED by default.
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  // Warning modal state
+  const [showWarning, setShowWarning] =
+    useState(false);
+
+  const [selectedProduct, setSelectedProduct] =
+    useState(null);
+
+  const [deleting, setDeleting] =
+    useState(false);
 
   useEffect(() => {
-    const savedProducts = localStorage.getItem("adminProducts");
+    const load = () => {
+      setProducts(getProducts());
+    };
 
-    if (savedProducts) {
-      try {
-        setProducts(JSON.parse(savedProducts));
-      } catch {
-        setProducts(defaultProducts);
-        localStorage.setItem(
-          "adminProducts",
-          JSON.stringify(defaultProducts)
-        );
+    load();
+
+    const handleProductUpdated = () => {
+      load();
+    };
+
+    const handleStorage = (event) => {
+      if (event.key === PRODUCTS_KEY) {
+        load();
       }
-    } else {
-      setProducts(defaultProducts);
-      localStorage.setItem(
-        "adminProducts",
-        JSON.stringify(defaultProducts)
+    };
+
+    window.addEventListener(
+      "productUpdated",
+      handleProductUpdated,
+    );
+
+    window.addEventListener(
+      "storage",
+      handleStorage,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "productUpdated",
+        handleProductUpdated,
       );
-    }
+
+      window.removeEventListener(
+        "storage",
+        handleStorage,
+      );
+    };
   }, []);
 
-  // Only opens the warning modal when Edit/Delete is clicked.
-  const openWarning = (type, product) => {
-    setSelectedProduct(product);
-    setModalType(type);
-    setModalOpen(true);
-  };
-
-  const closeWarning = () => {
-    setModalOpen(false);
-    setModalType("");
-    setSelectedProduct(null);
-  };
-
-  const handleEditConfirm = () => {
-    if (!selectedProduct) return;
-
-    const productId = selectedProduct.id;
-
-    closeWarning();
-    navigate(`/admin/products/edit/${productId}`);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (!selectedProduct) return;
-
-    const updatedProducts = products.filter(
-      (product) => product.id !== selectedProduct.id
+  const handleEdit = (product) => {
+    navigate(
+      `/admin/products/edit/${product.id}`,
     );
-
-    setProducts(updatedProducts);
-
-    localStorage.setItem(
-      "adminProducts",
-      JSON.stringify(updatedProducts)
-    );
-
-    closeWarning();
   };
 
-  const handleModalConfirm = () => {
-    if (modalType === "edit") {
-      handleEditConfirm();
+  // Open warning modal
+  const handleDelete = (product) => {
+    if (deleting) {
       return;
     }
 
-    if (modalType === "delete") {
-      handleDeleteConfirm();
+    setSelectedProduct(product);
+    setShowWarning(true);
+  };
+
+  // Actually delete the product after confirmation
+  const handleConfirmDelete = () => {
+    if (!selectedProduct || deleting) {
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const savedProducts =
+        localStorage.getItem(PRODUCTS_KEY);
+
+      if (!savedProducts) {
+        alert(
+          "Product data could not be found.",
+        );
+
+        setDeleting(false);
+        setShowWarning(false);
+        setSelectedProduct(null);
+        return;
+      }
+
+      const parsedProducts =
+        JSON.parse(savedProducts);
+
+      if (!Array.isArray(parsedProducts)) {
+        alert(
+          "Product data is invalid.",
+        );
+
+        setDeleting(false);
+        setShowWarning(false);
+        setSelectedProduct(null);
+        return;
+      }
+
+      const updatedProducts =
+        parsedProducts.filter(
+          (item) =>
+            String(item.id) !==
+            String(selectedProduct.id),
+        );
+
+      saveProducts(updatedProducts);
+
+      // Update the list immediately
+      setProducts(updatedProducts);
+
+      // Close modal
+      setShowWarning(false);
+      setSelectedProduct(null);
+      setDeleting(false);
+    } catch (error) {
+      console.error(
+        "Failed to delete product:",
+        error,
+      );
+
+      alert(
+        "Failed to delete the product.",
+      );
+
+      setDeleting(false);
+      setShowWarning(false);
+      setSelectedProduct(null);
     }
   };
 
@@ -156,7 +294,9 @@ function Products() {
                   />
                 </svg>
 
-                <span className="text-white">Add Product</span>
+                <span className="text-white">
+                  Add Product
+                </span>
               </Link>
             </div>
 
@@ -189,77 +329,103 @@ function Products() {
                   </thead>
 
                   <tbody className="bg-card-background">
-                    {products.map((product, index) => (
-                      <tr
-                        key={product.id}
-                        className={
-                          index > 0
-                            ? "border-t border-table-border"
-                            : ""
-                        }
-                      >
-                        {/* Product */}
-                        <td className="p-5">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border-secondary bg-background-accent">
-                              <JugIcon />
+                    {products.map(
+                      (product, index) => (
+                        <tr
+                          key={product.id}
+                          className={
+                            index > 0
+                              ? "border-t border-table-border"
+                              : ""
+                          }
+                        >
+                          {/* Product */}
+                          <td className="p-5">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border-secondary bg-background-accent">
+                                <img
+                                  src={getProductImage(
+                                    product,
+                                  )}
+                                  alt={
+                                    product.name
+                                  }
+                                  className="h-8 w-8 object-contain"
+                                />
+                              </div>
+
+                              <div className="flex flex-col">
+                                <span className="text-base font-bold leading-6 text-text-primary">
+                                  {
+                                    product.name
+                                  }
+                                </span>
+
+                                <span className="text-sm leading-5 text-text-light">
+                                  {
+                                    product.description
+                                  }
+                                </span>
+                              </div>
                             </div>
+                          </td>
 
-                            <div className="flex flex-col">
-                              <span className="text-base font-bold leading-6 text-text-primary">
-                                {product.name}
-                              </span>
+                          {/* Quantity */}
+                          <td className="p-5 text-right text-base leading-6 text-text-primary">
+                            {
+                              product.quantity
+                            }
+                          </td>
 
-                              <span className="text-sm leading-5 text-text-light">
-                                {product.description}
-                              </span>
+                          {/* Status */}
+                          <td className="p-5 text-center">
+                            <span className="inline-flex items-center rounded-full border border-secondary-medium bg-background-lightBlue px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                              {
+                                product.status
+                              }
+                            </span>
+                          </td>
+
+                          {/* Price */}
+                          <td className="p-5 text-right text-base leading-6 text-text-primary">
+                            ₱{" "}
+                            {Number(
+                              product.price,
+                            ).toFixed(2)}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="p-5">
+                            <div className="flex items-center justify-center gap-4">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleEdit(
+                                    product,
+                                  )
+                                }
+                                className="text-sm font-semibold uppercase tracking-[0.7px] text-text-secondary transition-colors hover:text-text-accent"
+                              >
+                                Edit
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleDelete(
+                                    product,
+                                  )
+                                }
+                                disabled={deleting}
+                                className="text-sm font-semibold uppercase tracking-[0.7px] text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Delete
+                              </button>
                             </div>
-                          </div>
-                        </td>
-
-                        {/* Quantity */}
-                        <td className="p-5 text-right text-base leading-6 text-text-primary">
-                          {product.quantity}
-                        </td>
-
-                        {/* Status */}
-                        <td className="p-5 text-center">
-                          <span className="inline-flex items-center rounded-full border border-secondary-medium bg-background-lightBlue px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
-                            {product.status}
-                          </span>
-                        </td>
-
-                        {/* Price */}
-                        <td className="p-5 text-right text-base leading-6 text-text-primary">
-                          ₱ {Number(product.price).toFixed(2)}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="p-5">
-                          <div className="flex items-center justify-center gap-4">
-
-                            {/* EDIT ONLY OPENS MODAL */}
-                            <button
-                              type="button"
-                              onClick={() => openWarning("edit", product)}
-                              className="text-sm font-semibold uppercase tracking-[0.7px] text-text-secondary transition-colors hover:text-text-accent"
-                            >
-                              Edit
-                            </button>
-
-                            {/* DELETE ONLY OPENS MODAL */}
-                            <button
-                              type="button"
-                              onClick={() => openWarning("delete", product)}
-                              className="text-sm font-semibold uppercase tracking-[0.7px] text-red-600 transition-colors hover:text-red-700"
-                            >
-                              Delete
-                            </button>
-
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      ),
+                    )}
 
                     {products.length === 0 && (
                       <tr>
@@ -278,8 +444,13 @@ function Products() {
               {/* Footer */}
               <div className="flex w-full flex-col items-center justify-between gap-4 border-t border-table-border bg-card-background px-5 py-4 sm:flex-row">
                 <span className="text-sm leading-6 text-text-light">
-                  Showing {products.length === 0 ? 0 : 1}-
-                  {products.length} of {products.length} items
+                  Showing{" "}
+                  {products.length === 0
+                    ? 0
+                    : 1}
+                  -
+                  {products.length} of{" "}
+                  {products.length} items
                 </span>
 
                 <div className="flex items-center gap-3">
@@ -305,8 +476,9 @@ function Products() {
 
                   <button
                     type="button"
+                    disabled
                     aria-label="Next page"
-                    className="flex items-center justify-center rounded border border-border-secondary px-3 py-2 transition-colors hover:bg-background-lightBlue"
+                    className="flex items-center justify-center rounded border border-border-secondary px-3 py-2 opacity-50"
                   >
                     <svg
                       width="7"
@@ -328,15 +500,16 @@ function Products() {
         </main>
       </div>
 
-      {/* Warning Modal
-          This is rendered but CLOSED by default.
-          It will ONLY become visible after Edit or Delete is clicked. */}
+      {/* Delete Warning Modal */}
       <WarningModal
-        isOpen={modalOpen}
-        type={modalType}
+        isOpen={showWarning}
+        type="delete"
         product={selectedProduct}
-        onCancel={closeWarning}
-        onConfirm={handleModalConfirm}
+        onCancel={() => {
+          setShowWarning(false);
+          setSelectedProduct(null);
+        }}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

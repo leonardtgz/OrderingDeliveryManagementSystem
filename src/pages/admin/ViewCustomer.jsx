@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import Header from "../../components/Header/Header";
 
-const customers = [
+const defaultCustomers = [
   {
     id: "1",
     name: "John Doe",
@@ -23,30 +23,101 @@ const customers = [
     orders: 8,
     status: "Active",
   },
+  {
+    id: "3",
+    name: "Maria Santos",
+    contact: "0917-555-0192",
+    email: "maria.santos@email.com",
+    address:
+      "Block 4, Lot 12, Phase 2, Sunnyvale Subdivision, Brgy. San Jose, Antipolo",
+    orders: 2,
+    status: "Active",
+  },
 ];
 
-const orderHistory = [
-  {
-    id: "TRX-8921",
-    date: "Oct 24, 2023",
-    items: "2x Round Gallon",
-    amount: "PHP 80.00",
-    status: "COMPLETED",
-  },
-  {
-    id: "TRX-8915",
-    date: "Oct 18, 2023",
-    items: "1x Slim Gallon",
-    amount: "PHP 50.00",
-    status: "COMPLETED",
-  },
-];
+const orderHistory = {
+  "1": [
+    {
+      id: "TRX-8921",
+      date: "Oct 24, 2023",
+      items: "2x Round Gallon",
+      amount: "PHP 80.00",
+      status: "COMPLETED",
+    },
+    {
+      id: "TRX-8915",
+      date: "Oct 18, 2023",
+      items: "1x Slim Gallon",
+      amount: "PHP 50.00",
+      status: "COMPLETED",
+    },
+  ],
+
+  "2": [
+    {
+      id: "TRX-7854",
+      date: "Oct 20, 2023",
+      items: "3x Round Gallon",
+      amount: "PHP 120.00",
+      status: "COMPLETED",
+    },
+  ],
+
+  "3": [
+    {
+      id: "ORD-2023-104",
+      date: "Oct 24, 2023",
+      items: "5x 5-Gallon Round Refill",
+      amount: "PHP 150.00",
+      status: "PROCESSING",
+    },
+    {
+      id: "ORD-2023-098",
+      date: "Oct 18, 2023",
+      items: "2x Slim Gallon Refill",
+      amount: "PHP 100.00",
+      status: "COMPLETED",
+    },
+  ],
+};
 
 function ViewCustomer() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const customer = customers.find((item) => item.id === id);
+  const [customers, setCustomers] = useState([]);
+
+  // Load customers from localStorage
+  useEffect(() => {
+    const savedCustomers = localStorage.getItem("adminCustomers");
+
+    if (savedCustomers) {
+      try {
+        const parsedCustomers = JSON.parse(savedCustomers);
+
+        if (Array.isArray(parsedCustomers)) {
+          setCustomers(parsedCustomers);
+          return;
+        }
+      } catch {
+        // Use default customers if localStorage data is invalid
+      }
+    }
+
+    // If there are no saved customers yet, use the default customers
+    setCustomers(defaultCustomers);
+  }, []);
+
+  // Find the selected customer using the URL id
+  const customer = useMemo(() => {
+    return customers.find((item) => String(item.id) === String(id));
+  }, [customers, id]);
+
+  // Get existing order history for default customers
+  const existingOrderHistory = orderHistory[String(id)] || [];
+
+  // For newly added customers, there will normally be no history yet
+  const customerOrders = existingOrderHistory;
 
   const handleBack = () => {
     navigate("/admin/customers");
@@ -86,14 +157,15 @@ function ViewCustomer() {
     );
   }
 
+  const completedOrders = customerOrders.filter(
+    (order) => order.status === "COMPLETED",
+  ).length;
+
   return (
     <div className="flex min-h-screen w-full bg-background-main">
-      {/* Existing Admin Sidebar */}
       <AdminSidebar />
 
-      {/* Main Application Area */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Existing Header */}
         <Header />
 
         <main className="min-w-0 flex-1 overflow-y-auto">
@@ -120,7 +192,7 @@ function ViewCustomer() {
                 </div>
 
                 <span className="rounded-full border border-secondary-medium bg-background-lightBlue px-4 py-2 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
-                  {customer.status}
+                  {customer.status || "Active"}
                 </span>
               </div>
             </div>
@@ -172,7 +244,7 @@ function ViewCustomer() {
                   </p>
 
                   <p className="text-base font-bold text-text-primary">
-                    {customer.orders}
+                    {customer.orders || 0}
                   </p>
                 </div>
 
@@ -182,7 +254,7 @@ function ViewCustomer() {
                     Address
                   </p>
 
-                  <p className="text-base text-text-primary">
+                  <p className="text-base leading-7 text-text-primary">
                     {customer.address}
                   </p>
                 </div>
@@ -196,33 +268,36 @@ function ViewCustomer() {
               </h2>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {/* Total Orders */}
                 <div className="rounded-lg bg-background-accent p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
                     Total Orders
                   </p>
 
                   <p className="mt-2 text-2xl font-bold text-text-primary">
-                    {customer.orders}
+                    {customer.orders || 0}
                   </p>
                 </div>
 
+                {/* Completed */}
                 <div className="rounded-lg bg-background-accent p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
                     Completed
                   </p>
 
                   <p className="mt-2 text-2xl font-bold text-text-primary">
-                    {customer.orders}
+                    {completedOrders}
                   </p>
                 </div>
 
+                {/* Customer Status */}
                 <div className="rounded-lg bg-background-accent p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
                     Customer Status
                   </p>
 
                   <p className="mt-2 text-base font-bold text-text-accent">
-                    {customer.status}
+                    {customer.status || "Active"}
                   </p>
                 </div>
               </div>
@@ -237,66 +312,78 @@ function ViewCustomer() {
               </div>
 
               <div className="w-full overflow-x-auto">
-                <table className="w-full min-w-[650px] border-collapse">
-                  <thead>
-                    <tr className="border-b border-table-border bg-background-accent">
-                      <th className="p-5 text-left text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
-                        Order
-                      </th>
+                {customerOrders.length > 0 ? (
+                  <table className="w-full min-w-[650px] border-collapse">
+                    <thead>
+                      <tr className="border-b border-table-border bg-background-accent">
+                        <th className="p-5 text-left text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Order
+                        </th>
 
-                      <th className="p-5 text-left text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
-                        Date
-                      </th>
+                        <th className="p-5 text-left text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Date
+                        </th>
 
-                      <th className="p-5 text-left text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
-                        Items
-                      </th>
+                        <th className="p-5 text-left text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Items
+                        </th>
 
-                      <th className="p-5 text-right text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
-                        Amount
-                      </th>
+                        <th className="p-5 text-right text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Amount
+                        </th>
 
-                      <th className="p-5 text-center text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody className="bg-card-background">
-                    {orderHistory.map((order, index) => (
-                      <tr
-                        key={order.id}
-                        className={
-                          index > 0
-                            ? "border-t border-table-border"
-                            : ""
-                        }
-                      >
-                        <td className="p-5 text-sm font-bold text-text-primary">
-                          #{order.id}
-                        </td>
-
-                        <td className="p-5 text-sm text-text-primary">
-                          {order.date}
-                        </td>
-
-                        <td className="p-5 text-sm text-text-secondary">
-                          {order.items}
-                        </td>
-
-                        <td className="p-5 text-right text-sm font-semibold text-text-primary">
-                          {order.amount}
-                        </td>
-
-                        <td className="p-5 text-center">
-                          <span className="inline-flex items-center rounded-full border border-secondary-medium bg-background-lightBlue px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
-                            {order.status}
-                          </span>
-                        </td>
+                        <th className="p-5 text-center text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Status
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+
+                    <tbody className="bg-card-background">
+                      {customerOrders.map((order, index) => (
+                        <tr
+                          key={order.id}
+                          className={
+                            index > 0
+                              ? "border-t border-table-border"
+                              : ""
+                          }
+                        >
+                          <td className="p-5 text-sm font-bold text-text-primary">
+                            #{order.id}
+                          </td>
+
+                          <td className="p-5 text-sm text-text-primary">
+                            {order.date}
+                          </td>
+
+                          <td className="p-5 text-sm text-text-secondary">
+                            {order.items}
+                          </td>
+
+                          <td className="p-5 text-right text-sm font-semibold text-text-primary">
+                            {order.amount}
+                          </td>
+
+                          <td className="p-5 text-center">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] ${
+                                order.status === "PROCESSING"
+                                  ? "border-secondary-medium bg-background-lightBlue text-text-accent"
+                                  : "border-secondary-medium bg-background-lightBlue text-text-secondary"
+                              }`}
+                            >
+                              {order.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="p-8 text-center text-sm text-text-secondary">
+                    No order history available for this customer.
+                  </div>
+                )}
               </div>
             </section>
           </div>

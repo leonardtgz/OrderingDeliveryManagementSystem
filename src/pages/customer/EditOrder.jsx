@@ -1,7 +1,13 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+
+import {
+  getCurrentOrder,
+  saveCurrentOrder,
+} from "../../utils/orderStorage";
 
 const TIME_SLOTS = [
   "9:00 AM - 12:00 PM",
@@ -10,25 +16,117 @@ const TIME_SLOTS = [
   "6:00 PM - 9:00 PM",
 ];
 
+const CUSTOMER = {
+  fullName: "Maria Santos",
+  contactNumber: "0917-555-0192",
+  deliveryAddress: [
+    "Block 4, Lot 12, Phase 2",
+    "Sunnyvale Subdivision",
+    "Brgy. San Jose, Antipolo",
+  ],
+};
+
 function EditOrder() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [contactNumber, setContactNumber] = useState("09123456789");
-  const [deliveryDate, setDeliveryDate] = useState("");
-  const [deliveryTime, setDeliveryTime] = useState("");
-  const [notes, setNotes] = useState("");
+  const existingOrder =
+    location.state?.order || getCurrentOrder();
+
+  const products = Array.isArray(existingOrder?.products)
+    ? existingOrder.products
+    : [];
+
+  const [contactNumber, setContactNumber] = useState(
+    existingOrder?.contactNumber || CUSTOMER.contactNumber,
+  );
+
+  const [deliveryDate, setDeliveryDate] = useState(
+    existingOrder?.deliveryDate || "",
+  );
+
+  const [deliveryTime, setDeliveryTime] = useState(
+    existingOrder?.deliveryTime || "",
+  );
+
+  const [notes, setNotes] = useState(
+    existingOrder?.notes || "",
+  );
+
+  // ============================================================
+  // CALCULATE ORDER TOTALS
+  // ============================================================
+
+  const subtotal = products.reduce(
+    (sum, product) =>
+      sum +
+      Number(product.price || 0) *
+        Number(product.quantity || 0),
+    0,
+  );
+
+  const deliveryFee = existingOrder?.deliveryFee ?? 20;
+
+  const total = subtotal + deliveryFee;
+
+  // ============================================================
+  // CONTINUE TO ORDER SUMMARY
+  // ============================================================
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    console.log({
-      contactNumber,
-      deliveryDate,
-      deliveryTime,
-      notes,
-    });
+    const orderData = {
+      ...existingOrder,
 
-    navigate("/customer/order-summary");
+      id:
+        existingOrder?.id ||
+        `ORD-${Date.now()}`,
+
+      customerName:
+        existingOrder?.customerName ||
+        CUSTOMER.fullName,
+
+      contactNumber,
+
+      // IMPORTANT:
+      // Keep the exact products selected in Products.jsx.
+      products,
+
+      deliveryAddress:
+        existingOrder?.deliveryAddress ||
+        CUSTOMER.deliveryAddress.join(", "),
+
+      deliveryAddressLines:
+        existingOrder?.deliveryAddressLines ||
+        CUSTOMER.deliveryAddress,
+
+      deliveryDate,
+
+      deliveryTime,
+
+      deliverySchedule: deliveryDate
+        ? `${deliveryDate}, ${deliveryTime}`
+        : `Today, ${deliveryTime}`,
+
+      notes,
+
+      subtotal,
+      deliveryFee,
+      total,
+
+      status:
+        existingOrder?.status ||
+        "Pending",
+    };
+
+    saveCurrentOrder(orderData);
+
+    navigate("/customer/order-summary", {
+      state: {
+        order: orderData,
+      },
+    });
   };
 
   const handleBack = () => {
@@ -37,15 +135,13 @@ function EditOrder() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background-main">
-      {/* Header */}
       <div className="w-full shrink-0">
         <Header />
       </div>
 
-      {/* Main Content */}
       <main className="flex w-full flex-1 overflow-y-auto pb-24">
         <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-4 py-5 sm:px-6 sm:py-7">
-          {/* Page Header */}
+
           <div className="mb-5">
             <h1 className="text-[23px] font-bold leading-[120%] tracking-[-0.02em] text-text-accent sm:text-[26px]">
               Edit Order
@@ -56,11 +152,77 @@ function EditOrder() {
             </p>
           </div>
 
+          {/* =====================================================
+              SELECTED PRODUCTS
+          ====================================================== */}
+
+          <section className="mb-5 rounded-lg border border-border-light bg-background-card p-4 shadow-card sm:p-5">
+            <div className="mb-4">
+              <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
+                Selected Products
+              </h2>
+            </div>
+
+            <div className="flex flex-col">
+              {products.length === 0 ? (
+                <p className="text-sm text-text-secondary">
+                  No products selected.
+                </p>
+              ) : (
+                products.map((product, index) => (
+                  <div
+                    key={product.id || index}
+                    className={`flex items-center justify-between gap-4 py-3 ${
+                      index < products.length - 1
+                        ? "border-b border-border-light"
+                        : ""
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="break-words text-sm font-semibold text-text-primary">
+                        {product.name}
+                      </p>
+
+                      <p className="mt-1 text-xs text-text-secondary">
+                        Quantity: {product.quantity}
+                      </p>
+
+                      <p className="text-xs text-text-secondary">
+                        ₱{Number(product.price).toFixed(2)} each
+                      </p>
+                    </div>
+
+                    <span className="shrink-0 text-sm font-bold text-text-primary">
+                      ₱
+                      {(
+                        Number(product.price || 0) *
+                        Number(product.quantity || 0)
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-4 flex items-center justify-between border-t border-border-light pt-4">
+              <span className="text-sm font-semibold text-text-primary">
+                Subtotal
+              </span>
+
+              <span className="text-sm font-bold text-text-accent">
+                ₱{subtotal.toFixed(2)}
+              </span>
+            </div>
+          </section>
+
+          {/* =====================================================
+              CUSTOMER INFORMATION
+          ====================================================== */}
+
           <form
             onSubmit={handleSubmit}
             className="flex w-full flex-col gap-5"
           >
-            {/* Customer Information */}
             <section className="rounded-lg border border-border-light bg-background-card p-4 shadow-card sm:p-5">
               <div className="mb-4">
                 <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
@@ -69,7 +231,9 @@ function EditOrder() {
               </div>
 
               <div className="flex flex-col gap-4">
+
                 {/* Full Name */}
+
                 <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="fullName"
@@ -81,13 +245,17 @@ function EditOrder() {
                   <input
                     id="fullName"
                     type="text"
-                    value="Juan Dela Cruz"
+                    value={
+                      existingOrder?.customerName ||
+                      CUSTOMER.fullName
+                    }
                     readOnly
                     className="h-10 w-full rounded-md border border-border-light bg-background-main px-3 text-sm text-text-secondary outline-none"
                   />
                 </div>
 
                 {/* Delivery Address */}
+
                 <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="deliveryAddress"
@@ -98,14 +266,18 @@ function EditOrder() {
 
                   <textarea
                     id="deliveryAddress"
-                    value="123 Main St, Brgy. San Jose, Anytown City, Province"
+                    value={(
+                      existingOrder?.deliveryAddressLines ||
+                      CUSTOMER.deliveryAddress
+                    ).join("\n")}
                     readOnly
-                    rows={2}
+                    rows={3}
                     className="w-full resize-none rounded-md border border-border-light bg-background-main px-3 py-2 text-sm leading-5 text-text-secondary outline-none"
                   />
                 </div>
 
                 {/* Contact Number */}
+
                 <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="contactNumber"
@@ -118,14 +290,19 @@ function EditOrder() {
                     id="contactNumber"
                     type="tel"
                     value={contactNumber}
-                    onChange={(e) => setContactNumber(e.target.value)}
+                    onChange={(e) =>
+                      setContactNumber(e.target.value)
+                    }
                     className="h-10 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-background"
                   />
                 </div>
               </div>
             </section>
 
-            {/* Preferred Delivery */}
+            {/* =====================================================
+                DELIVERY
+            ====================================================== */}
+
             <section className="rounded-lg border border-border-light bg-background-lightBlue p-4 sm:p-5">
               <div className="mb-4">
                 <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
@@ -138,7 +315,7 @@ function EditOrder() {
               </div>
 
               <div className="flex w-full flex-col gap-4 sm:flex-row">
-                {/* Preferred Delivery Date */}
+
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <label
                     htmlFor="deliveryDate"
@@ -151,12 +328,13 @@ function EditOrder() {
                     id="deliveryDate"
                     type="date"
                     value={deliveryDate}
-                    onChange={(e) => setDeliveryDate(e.target.value)}
+                    onChange={(e) =>
+                      setDeliveryDate(e.target.value)
+                    }
                     className="h-10 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-background"
                   />
                 </div>
 
-                {/* Preferred Delivery Time */}
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <label
                     htmlFor="deliveryTime"
@@ -168,7 +346,9 @@ function EditOrder() {
                   <select
                     id="deliveryTime"
                     value={deliveryTime}
-                    onChange={(e) => setDeliveryTime(e.target.value)}
+                    onChange={(e) =>
+                      setDeliveryTime(e.target.value)
+                    }
                     className="h-10 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-background"
                   >
                     <option value="" disabled>
@@ -185,7 +365,10 @@ function EditOrder() {
               </div>
             </section>
 
-            {/* Additional Notes */}
+            {/* =====================================================
+                NOTES
+            ====================================================== */}
+
             <section className="rounded-lg border border-border-light bg-background-card p-4 shadow-card sm:p-5">
               <div className="flex flex-col gap-1.5">
                 <label
@@ -198,7 +381,9 @@ function EditOrder() {
                 <textarea
                   id="notes"
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={(e) =>
+                    setNotes(e.target.value)
+                  }
                   placeholder="e.g. Leave with guard, near the gate..."
                   rows={3}
                   className="w-full resize-none rounded-md border border-border-light bg-background-card px-3 py-2 text-sm leading-5 text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-primary-background"
@@ -206,7 +391,26 @@ function EditOrder() {
               </div>
             </section>
 
-            {/* Action Buttons */}
+            {/* =====================================================
+                TOTAL
+            ====================================================== */}
+
+            <section className="rounded-lg border border-border-light bg-background-card p-4 shadow-card sm:p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-text-primary">
+                  Total
+                </span>
+
+                <span className="text-lg font-bold text-text-accent">
+                  ₱{total.toFixed(2)}
+                </span>
+              </div>
+            </section>
+
+            {/* =====================================================
+                BUTTONS
+            ====================================================== */}
+
             <div className="flex w-full flex-col gap-2.5 pt-1 sm:flex-row">
               <button
                 type="button"
@@ -218,7 +422,8 @@ function EditOrder() {
 
               <button
                 type="submit"
-                className="flex h-10 flex-1 items-center justify-center rounded-lg bg-button-background px-3 text-xs font-bold uppercase tracking-[0.6px] text-button-text shadow-card transition-colors hover:bg-button-hover"
+                disabled={products.length === 0}
+                className="flex h-10 flex-1 items-center justify-center rounded-lg bg-button-background px-3 text-xs font-bold uppercase tracking-[0.6px] text-button-text shadow-card transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Continue
               </button>
@@ -227,8 +432,7 @@ function EditOrder() {
         </div>
       </main>
 
-      {/* Customer Navbar */}
-      <div className="w-full shrink-0">
+      <div className="fixed bottom-0 left-0 z-50 w-full">
         <CustomerNavbar />
       </div>
     </div>
