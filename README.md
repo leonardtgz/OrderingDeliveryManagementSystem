@@ -42,6 +42,7 @@ The system is designed with a responsive interface, allowing it to be accessed t
 
 - **React.js** — Used to build the web application's user interface and reusable components.<br>
 - **Tailwind CSS** — Used for responsive layouts, styling, spacing, typography, and UI design.<br>
+- **Lucide React** — Used for icons. <br>
 - **React Router** — Used for navigation between pages.<br>
 - **Vite** — Used as the development server and build tool. <br>
 
