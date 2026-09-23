@@ -175,8 +175,9 @@ const AdminSidebar = () => {
     },
   ];
 
-  const handleNavigation = () => {
+  const handleNavigation = (href) => {
     setIsOpen(false);
+    navigate(href);
   };
 
   const handleLogout = () => {
@@ -255,13 +256,15 @@ const AdminSidebar = () => {
 
                 return (
                   <li key={item.id}>
-                    <a
-                      href={item.href}
-                      onClick={handleNavigation}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleNavigation(item.href)
+                      }
                       className={`
                         flex w-full items-center gap-3
                         rounded-md px-4 py-3
-                        text-sm font-semibold
+                        text-left text-sm font-semibold
                         transition-colors duration-200
                         ${
                           isActive
@@ -272,7 +275,7 @@ const AdminSidebar = () => {
                     >
                       {item.icon}
                       <span>{item.label}</span>
-                    </a>
+                    </button>
                   </li>
                 );
               })}
@@ -298,7 +301,6 @@ const AdminSidebar = () => {
       {/* Logout Warning Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4 backdrop-blur-[2px]">
-
           <div className="w-full max-w-[420px] overflow-hidden rounded-xl border border-red-200 bg-background-card shadow-2xl">
 
             {/* Modal Body */}
