@@ -121,8 +121,6 @@ function OrderSummary() {
 
       contactNumber,
 
-      // IMPORTANT:
-      // Keep the exact product selection.
       products: products.map((product) => ({
         ...product,
         quantity: Number(product.quantity),
@@ -209,10 +207,8 @@ function OrderSummary() {
         new Date().toISOString(),
     };
 
-    // Save current order.
     saveCurrentOrder(newOrder);
 
-    // Save to shared order list.
     addOrder(newOrder);
 
     navigate("/customer/order-successful", {
@@ -355,7 +351,7 @@ function OrderSummary() {
                 type="button"
                 onClick={handleEditOrder}
                 aria-label="Edit delivery details"
-                className="flex h-8 w-8 items-center justify-center rounded-md text-text-accent transition-colors hover:bg-background-card"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-text-accent transition-colors hover:bg-background-card active:scale-95"
               >
                 <Pencil className="h-4 w-4" />
               </button>
@@ -448,11 +444,11 @@ function OrderSummary() {
               BUTTONS
           ====================================================== */}
 
-          <div className="flex w-full flex-col gap-2.5 pt-1 sm:flex-row">
+          <div className="flex w-full flex-col gap-3 pt-1 sm:flex-row sm:justify-end sm:gap-3">
             <button
               type="button"
               onClick={handleEditOrder}
-              className="flex h-10 flex-1 items-center justify-center rounded-lg border-2 border-primary-light bg-background-card px-3 text-xs font-bold uppercase tracking-[0.6px] text-primary-light transition-colors hover:bg-primary-light hover:text-primary-foreground"
+              className="flex h-11 w-full items-center justify-center rounded-lg border-2 border-primary-light bg-background-card px-4 text-xs font-bold uppercase tracking-[0.6px] text-primary-light transition-colors hover:bg-primary-light hover:text-primary-foreground sm:h-11 sm:w-auto sm:min-w-[160px] sm:px-6"
             >
               Edit Order
             </button>
@@ -461,7 +457,7 @@ function OrderSummary() {
               type="button"
               onClick={handleConfirmOrder}
               disabled={products.length === 0}
-              className="flex h-10 flex-1 items-center justify-center rounded-lg bg-button-background px-3 text-xs font-bold uppercase tracking-[0.6px] text-button-text shadow-card transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 w-full items-center justify-center rounded-lg bg-button-background px-4 text-xs font-bold uppercase tracking-[0.6px] text-button-text shadow-card transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:w-auto sm:min-w-[180px] sm:px-6"
             >
               Confirm Order
             </button>

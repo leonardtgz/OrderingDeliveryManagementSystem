@@ -14,6 +14,8 @@ import Profile from "./pages/customer/Profile";
 import EditProfile from "./pages/customer/EditProfile";
 import ChangePassword from "./pages/customer/ChangePassword";
 import Notifications from "./pages/customer/Notifications";
+import FAQs from "./pages/customer/FAQs";
+import ContactSupport from "./pages/customer/ContactSupport";
 
 
 
@@ -68,7 +70,9 @@ function AppRoutes() {
         <Route path="/customer/edit-profile" element={<EditProfile />} />
         <Route path="/customer/change-password" element={<ChangePassword />} />
         <Route path="/customer/notifications" element={<Notifications />} />
-        <Route path="/admin/notifications" element={<AdminNotifications />} />
+        <Route path="/customer/faqs" element={<FAQs />} /> 
+        <Route path="/customer/contact-support" element={<ContactSupport />} />
+        
         
         
 
@@ -85,6 +89,7 @@ function AppRoutes() {
         <Route path="/admin/customers/new" element={<AddCustomer />} />
         <Route path="/admin/customers/:id/edit" element={<EditCustomer />} />
         <Route path="/admin/profile" element={<AdminProfile />} />
+        <Route path="/admin/notifications" element={<AdminNotifications />} />
 
 
         {/* Unknown URL → Login */}

@@ -14,6 +14,8 @@ import {
 import Header from "../../components/Header/Header";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 
+import snazzyImage from "../../assets/images/snazzy-image.png";
+
 const DEFAULT_PROFILE = {
   name: "Admin User",
   contact: "0917-000-0000",
@@ -116,7 +118,7 @@ function Profile() {
       if (localStorage.getItem(key)) {
         localStorage.setItem(
           key,
-          JSON.stringify(updatedUser)
+          JSON.stringify(updatedUser),
         );
 
         savedExistingUser = true;
@@ -127,15 +129,20 @@ function Profile() {
     if (!savedExistingUser) {
       localStorage.setItem(
         "currentUser",
-        JSON.stringify(updatedUser)
+        JSON.stringify(updatedUser),
       );
     }
 
     setProfile(updatedUser);
     setFormData(updatedUser);
 
-    window.dispatchEvent(new Event("profileUpdated"));
-    window.dispatchEvent(new Event("userUpdated"));
+    window.dispatchEvent(
+      new Event("profileUpdated"),
+    );
+
+    window.dispatchEvent(
+      new Event("userUpdated"),
+    );
 
     setShowSuccess(true);
 
@@ -315,11 +322,12 @@ function Profile() {
                   {/* Location Picture */}
                   <div className="relative mt-4 h-44 w-full overflow-hidden rounded border border-border-light bg-background-lightBlue">
                     <img
-                      src="https://placehold.co/1200x350/e8f4f8/006994?text=GoldenPR+Delivery+Location"
-                      alt="Delivery location map"
+                      src={snazzyImage}
+                      alt="Registered delivery location"
                       className="h-full w-full object-cover"
                     />
 
+                    {/* Registered Location Marker */}
                     <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-background text-white shadow-md">
                         <MapPin className="h-5 w-5" />
@@ -330,6 +338,7 @@ function Profile() {
                       </div>
                     </div>
 
+                    {/* Verified Status */}
                     <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded bg-background-card px-2 py-1 text-[9px] font-bold text-text-accent shadow-sm">
                       <CheckCircle2 className="h-3 w-3" />
                       Verified
@@ -360,7 +369,10 @@ function Profile() {
                           type="radio"
                           name="status"
                           value="Active"
-                          checked={formData.status === "Active"}
+                          checked={
+                            formData.status ===
+                            "Active"
+                          }
                           onChange={handleChange}
                           className="h-4 w-4 accent-[#006994]"
                         />
@@ -396,7 +408,10 @@ function Profile() {
                           type="radio"
                           name="status"
                           value="Offline"
-                          checked={formData.status === "Offline"}
+                          checked={
+                            formData.status ===
+                            "Offline"
+                          }
                           onChange={handleChange}
                           className="h-4 w-4 accent-[#006994]"
                         />
@@ -450,7 +465,6 @@ function Profile() {
       {/* Save Confirmation Modal */}
       {showSuccess && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4 backdrop-blur-[2px]">
-
           <div className="w-full max-w-[460px] overflow-hidden rounded-2xl border border-border-light bg-background-card shadow-2xl">
 
             {/* Success Content */}

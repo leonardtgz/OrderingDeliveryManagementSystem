@@ -76,7 +76,8 @@ function Orders() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const ordersPerPage = 3;
+  // Show 10 orders per page
+  const ordersPerPage = 10;
 
   const loadOrders = () => {
     const savedOrders = getOrders();

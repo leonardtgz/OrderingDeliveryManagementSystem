@@ -24,33 +24,39 @@ const statusOptions = [
   "CANCELLED",
 ];
 
-function convertOrderStatusToDeliveryStatus(status) {
-  const normalizedStatus = String(
-    status || "Pending",
-  )
+// ============================================================
+// STATUS HELPERS
+// ============================================================
+
+function normalizeStatus(status) {
+  return String(status || "")
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
 
-  if (normalizedStatus === "pending") {
+function convertOrderStatusToDeliveryStatus(status) {
+  const normalizedStatus = normalizeStatus(status);
+
+  if (
+    normalizedStatus === "" ||
+    normalizedStatus === "pending" ||
+    normalizedStatus === "processing"
+  ) {
     return "PENDING";
   }
 
-  if (normalizedStatus === "processing") {
-    return "PENDING";
-  }
-
-  if (normalizedStatus === "purifying") {
-    return "CONFIRMED";
-  }
-
-  if (normalizedStatus === "confirmed") {
+  if (
+    normalizedStatus === "confirmed" ||
+    normalizedStatus === "purifying"
+  ) {
     return "CONFIRMED";
   }
 
   if (
     normalizedStatus === "out for delivery" ||
-    normalizedStatus === "out_for_delivery" ||
-    normalizedStatus === "out-for-delivery"
+    normalizedStatus === "in transit"
   ) {
     return "OUT FOR DELIVERY";
   }
@@ -84,6 +90,10 @@ function convertDeliveryStatusToOrderStatus(status) {
   return statusMap[status] || "Pending";
 }
 
+// ============================================================
+// DELIVERY DATA HELPERS
+// ============================================================
+
 function getDeliveryAddress(order) {
   if (
     Array.isArray(order?.deliveryAddressLines) &&
@@ -115,12 +125,28 @@ function getDeliveryDate(order) {
   );
 }
 
+// ============================================================
+// DELIVERY CARD
+// ============================================================
+
 function DeliveryCard({
   delivery,
   onUpdateStatus,
 }) {
-  const [showStatus, setShowStatus] =
-    useState(false);
+  const [showStatus, setShowStatus] = useState(false);
+
+  /*
+   * This is only the status selected in the dropdown.
+   *
+   * Selecting a status DOES NOT immediately update the order.
+   * The order is only changed when Update Status is clicked.
+   */
+  const [selectedStatus, setSelectedStatus] =
+    useState(delivery.status);
+
+  useEffect(() => {
+    setSelectedStatus(delivery.status);
+  }, [delivery.status]);
 
   const isDelivered =
     delivery.status === "DELIVERED";
@@ -128,15 +154,39 @@ function DeliveryCard({
   const isCancelled =
     delivery.status === "CANCELLED";
 
+  const hasStatusChange =
+    selectedStatus !== delivery.status;
+
+  const handleStatusSelection = (status) => {
+    setSelectedStatus(status);
+    setShowStatus(false);
+  };
+
+  const handleUpdateStatus = () => {
+    if (!hasStatusChange) {
+      return;
+    }
+
+    onUpdateStatus(
+      delivery.orderNumber,
+      selectedStatus,
+    );
+  };
+
   return (
-    <div className="w-full max-w-[720px] rounded-xl border border-[#A8DCE8] bg-[#BFEAF5] px-6 py-5 shadow-sm">
+    <div className="w-full max-w-[720px] rounded-xl border border-[#A8DCE8] bg-[#BFEAF5] px-4 py-4 shadow-sm sm:px-6 sm:py-5">
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_1fr_230px] md:items-center">
+
+        {/* ====================================================
+            CUSTOMER
+        ===================================================== */}
+
         <div className="min-w-0">
-          <p className="text-[13px] font-medium uppercase tracking-[0.4px] text-[#42778A]">
+          <p className="text-[11px] font-medium uppercase tracking-[0.4px] text-[#42778A] sm:text-[13px]">
             Customer
           </p>
 
-          <p className="mt-1 text-[18px] font-bold leading-6 text-[#123047]">
+          <p className="mt-1 break-words text-base font-bold leading-6 text-[#123047] sm:text-[18px]">
             {delivery.customer}
           </p>
 
@@ -147,18 +197,22 @@ function DeliveryCard({
               className="mt-0.5 shrink-0 text-[#42778A]"
             />
 
-            <span className="text-[14px] leading-5 text-[#42778A]">
+            <span className="break-words text-xs leading-5 text-[#42778A] sm:text-[14px]">
               {delivery.address}
             </span>
           </div>
         </div>
 
+        {/* ====================================================
+            ORDER INFO
+        ===================================================== */}
+
         <div className="min-w-0">
-          <p className="text-[13px] font-medium uppercase tracking-[0.4px] text-[#42778A]">
+          <p className="text-[11px] font-medium uppercase tracking-[0.4px] text-[#42778A] sm:text-[13px]">
             Order Info
           </p>
 
-          <p className="mt-1 text-[18px] font-medium leading-6 text-[#123047]">
+          <p className="mt-1 break-words text-base font-medium leading-6 text-[#123047] sm:text-[18px]">
             {delivery.orderNumber}
           </p>
 
@@ -169,14 +223,21 @@ function DeliveryCard({
               className="mt-0.5 shrink-0 text-[#42778A]"
             />
 
-            <span className="text-[14px] leading-5 text-[#42778A]">
+            <span className="break-words text-xs leading-5 text-[#42778A] sm:text-[14px]">
               {delivery.date}
             </span>
           </div>
         </div>
 
+        {/* ====================================================
+            STATUS
+        ===================================================== */}
+
         <div className="flex flex-col items-stretch gap-3 md:items-end">
-          <div className="relative flex justify-end">
+
+          {/* STATUS DROPDOWN */}
+
+          <div className="relative flex w-full justify-start md:justify-end">
             <button
               type="button"
               onClick={() =>
@@ -184,23 +245,25 @@ function DeliveryCard({
                   (value) => !value,
                 )
               }
-              className={`flex min-h-[30px] items-center gap-2 rounded-full border px-3 py-1 text-[13px] font-semibold tracking-[0.3px] transition ${
-                delivery.status ===
+              className={`flex min-h-[36px] w-full items-center justify-between gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-[0.3px] transition sm:min-h-[30px] sm:w-auto sm:py-1 sm:text-[13px] ${
+                selectedStatus ===
                 "OUT FOR DELIVERY"
                   ? "border-[#123047] bg-[#123047] text-white"
-                  : delivery.status ===
+                  : selectedStatus ===
                       "DELIVERED"
                     ? "border-green-700 bg-green-700 text-white"
-                    : delivery.status ===
+                    : selectedStatus ===
                         "CANCELLED"
                       ? "border-red-600 bg-red-600 text-white"
-                      : delivery.status ===
+                      : selectedStatus ===
                           "CONFIRMED"
                         ? "border-[#08779D] bg-[#08779D] text-white"
                         : "border-[#123047] bg-transparent text-[#123047]"
               }`}
             >
-              {delivery.status}
+              <span>
+                {selectedStatus}
+              </span>
 
               <ChevronDown
                 size={13}
@@ -209,23 +272,20 @@ function DeliveryCard({
             </button>
 
             {showStatus && (
-              <div className="absolute right-0 top-9 z-50 w-[180px] overflow-hidden rounded-lg border border-[#C5D8DE] bg-white shadow-lg">
+              <div className="absolute left-0 top-11 z-50 w-full overflow-hidden rounded-lg border border-[#C5D8DE] bg-white shadow-lg sm:left-auto sm:right-0 sm:top-9 sm:w-[180px]">
                 {statusOptions.map(
                   (option) => (
                     <button
                       key={option}
                       type="button"
-                      onClick={() => {
-                        onUpdateStatus(
-                          delivery.orderNumber,
+                      onClick={() =>
+                        handleStatusSelection(
                           option,
-                        );
-
-                        setShowStatus(false);
-                      }}
-                      className={`block w-full px-3 py-2 text-left text-xs font-medium transition hover:bg-[#BFEAF5] ${
+                        )
+                      }
+                      className={`block w-full px-3 py-2.5 text-left text-xs font-medium transition hover:bg-[#BFEAF5] ${
                         option ===
-                        delivery.status
+                        selectedStatus
                           ? "bg-[#EEF8FB] font-bold text-[#08779D]"
                           : "text-[#123047]"
                       }`}
@@ -238,28 +298,20 @@ function DeliveryCard({
             )}
           </div>
 
+          {/* ==================================================
+              UPDATE STATUS BUTTON
+          =================================================== */}
+
           {!isDelivered &&
             !isCancelled && (
               <button
                 type="button"
-                onClick={() => {
-                  const nextStatus =
-                    delivery.status ===
-                      "PENDING" ||
-                    delivery.status ===
-                      "CONFIRMED"
-                      ? "OUT FOR DELIVERY"
-                      : "DELIVERED";
-
-                  onUpdateStatus(
-                    delivery.orderNumber,
-                    nextStatus,
-                  );
-                }}
-                className="flex h-[48px] items-center justify-center gap-2 rounded-lg bg-[#08779D] px-5 text-[13px] font-bold uppercase tracking-[0.3px] text-white shadow-sm transition hover:bg-[#066985]"
+                onClick={handleUpdateStatus}
+                disabled={!hasStatusChange}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#08779D] px-4 text-xs font-bold uppercase tracking-[0.3px] text-white shadow-sm transition hover:bg-[#066985] disabled:cursor-not-allowed disabled:opacity-50 sm:h-[48px] sm:w-auto sm:min-w-[180px] sm:px-5 sm:text-[13px]"
               >
                 <RefreshCw
-                  size={17}
+                  size={16}
                   strokeWidth={2}
                 />
 
@@ -271,6 +323,10 @@ function DeliveryCard({
     </div>
   );
 }
+
+// ============================================================
+// MAIN DELIVERIES PAGE
+// ============================================================
 
 function Deliveries() {
   const [activeTab, setActiveTab] =
@@ -284,11 +340,66 @@ function Deliveries() {
   const [deliveries, setDeliveries] =
     useState([]);
 
+  // ==========================================================
+  // LOAD DELIVERIES
+  // ==========================================================
+
   const loadDeliveries = () => {
     const savedOrders = getOrders();
 
+    /*
+     * IMPORTANT:
+     * Build one delivery card per order.
+     *
+     * This prevents duplicate cards from appearing when
+     * the same order is encountered more than once.
+     */
+    const uniqueOrders = [];
+    const seenOrders = new Set();
+
+    savedOrders.forEach((order) => {
+      const orderNumber =
+        order?.orderNumber ||
+        order?.id;
+
+      if (!orderNumber) {
+        return;
+      }
+
+      const normalizedOrderNumber =
+        String(orderNumber)
+          .trim()
+          .toLowerCase();
+
+      if (
+        seenOrders.has(
+          normalizedOrderNumber,
+        )
+      ) {
+        return;
+      }
+
+      seenOrders.add(
+        normalizedOrderNumber,
+      );
+
+      uniqueOrders.push(order);
+    });
+
+    /*
+     * Convert each order into one clean delivery card.
+     *
+     * All variations of:
+     * - out_for_delivery
+     * - out-for-delivery
+     * - Out for Delivery
+     * - In Transit
+     *
+     * become exactly:
+     * OUT FOR DELIVERY
+     */
     const savedDeliveries =
-      savedOrders.map((order) => ({
+      uniqueOrders.map((order) => ({
         id: `DEL-${
           order?.orderNumber ||
           order?.id
@@ -315,8 +426,14 @@ function Deliveries() {
           ),
       }));
 
-    setDeliveries(savedDeliveries);
+    setDeliveries(
+      savedDeliveries,
+    );
   };
+
+  // ==========================================================
+  // LISTEN FOR ORDER CHANGES
+  // ==========================================================
 
   useEffect(() => {
     loadDeliveries();
@@ -340,10 +457,12 @@ function Deliveries() {
       handleOrderUpdate,
     );
 
+    /*
+     * Keep the admin delivery screen synchronized
+     * with customer/admin order changes.
+     */
     const interval = setInterval(
-      () => {
-        loadDeliveries();
-      },
+      loadDeliveries,
       1000,
     );
 
@@ -367,26 +486,31 @@ function Deliveries() {
     };
   }, []);
 
+  // ==========================================================
+  // UPDATE STATUS
+  // ==========================================================
+
   const handleUpdateStatus = (
     orderNumber,
     newStatus,
   ) => {
+    /*
+     * The status comes directly from the
+     * dropdown selection.
+     *
+     * There is NO automatic status progression.
+     */
     const orderStatus =
       convertDeliveryStatusToOrderStatus(
         newStatus,
       );
 
-    /*
-     * Update the original order.
-     * This keeps the customer and admin
-     * pages synchronized.
-     */
     updateOrder(orderNumber, {
       status: orderStatus,
     });
 
     /*
-     * Immediately update this screen.
+     * Immediately update the current screen.
      */
     setDeliveries(
       (currentDeliveries) =>
@@ -405,14 +529,10 @@ function Deliveries() {
     );
   };
 
-  /*
-   * ACTIVE
-   *
-   * Only orders that are currently
-   * being processed or delivered.
-   *
-   * Cancelled orders are excluded.
-   */
+  // ==========================================================
+  // ACTIVE
+  // ==========================================================
+
   const activeDeliveries = useMemo(
     () =>
       deliveries.filter(
@@ -425,33 +545,44 @@ function Deliveries() {
     [deliveries],
   );
 
+  // ==========================================================
+  // HISTORY
+  // ==========================================================
+
   /*
-   * HISTORY
+   * History contains BOTH:
    *
-   * IMPORTANT:
-   * History ONLY contains delivered orders.
+   * DELIVERED
+   * CANCELLED
    *
-   * Cancelled orders do NOT appear here.
+   * Cancelled orders do not disappear.
    */
-  const completedDeliveries =
+  const historyDeliveries =
     useMemo(
       () =>
         deliveries.filter(
           (delivery) =>
             delivery.status ===
-            "DELIVERED",
+              "DELIVERED" ||
+            delivery.status ===
+              "CANCELLED",
         ),
       [deliveries],
     );
 
+  // ==========================================================
+  // ACTIVE / HISTORY TAB
+  // ==========================================================
+
   const filteredDeliveries =
     activeTab === "active"
       ? activeDeliveries
-      : completedDeliveries;
+      : historyDeliveries;
 
-  /*
-   * Scheduled Today filter.
-   */
+  // ==========================================================
+  // SCHEDULED TODAY
+  // ==========================================================
+
   const displayedDeliveries =
     scheduledToday
       ? filteredDeliveries.filter(
@@ -484,6 +615,10 @@ function Deliveries() {
         )
       : filteredDeliveries;
 
+  // ==========================================================
+  // RENDER
+  // ==========================================================
+
   return (
     <div className="flex min-h-screen bg-background-main">
       <AdminSidebar />
@@ -492,21 +627,34 @@ function Deliveries() {
         <Header />
 
         <main className="min-h-[calc(100vh-74px)] bg-background-main">
-          <div className="px-6 py-7 sm:px-8 lg:px-12">
+          <div className="px-4 py-6 sm:px-8 sm:py-7 lg:px-12">
+
+            {/* ==================================================
+                HEADER
+            =================================================== */}
+
             <div className="flex flex-col gap-5 border-b border-[#C7D4D9] pb-6 xl:flex-row xl:items-start xl:justify-between">
+
               <div>
-                <h1 className="text-[30px] font-bold leading-[1.2] tracking-[-0.6px] text-[#123047] sm:text-[34px]">
+                <h1 className="text-[26px] font-bold leading-[1.2] tracking-[-0.6px] text-[#123047] sm:text-[30px] lg:text-[34px]">
                   Delivery Management
                 </h1>
 
-                <p className="mt-1 text-[15px] leading-6 text-[#456474]">
+                <p className="mt-1 text-sm leading-6 text-[#456474] sm:text-[15px]">
                   Logistics and routing
                   overview.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex h-[38px] items-center rounded-lg border border-[#C8D8DF] bg-[#EEF5FF] p-1">
+              {/* ==================================================
+                  FILTERS
+              =================================================== */}
+
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:w-auto">
+
+                {/* ACTIVE / HISTORY */}
+
+                <div className="flex h-[40px] w-full items-center rounded-lg border border-[#C8D8DF] bg-[#EEF5FF] p-1 sm:w-auto">
                   <button
                     type="button"
                     onClick={() =>
@@ -514,7 +662,7 @@ function Deliveries() {
                         "active",
                       )
                     }
-                    className={`h-[30px] min-w-[96px] rounded-md px-4 text-[13px] font-bold uppercase tracking-[0.3px] transition ${
+                    className={`h-[32px] flex-1 rounded-md px-4 text-xs font-bold uppercase tracking-[0.3px] transition sm:min-w-[96px] ${
                       activeTab ===
                       "active"
                         ? "bg-[#08779D] text-white shadow-sm"
@@ -531,7 +679,7 @@ function Deliveries() {
                         "history",
                       )
                     }
-                    className={`h-[30px] min-w-[96px] rounded-md px-4 text-[13px] font-medium uppercase tracking-[0.3px] transition ${
+                    className={`h-[32px] flex-1 rounded-md px-4 text-xs font-medium uppercase tracking-[0.3px] transition sm:min-w-[96px] ${
                       activeTab ===
                       "history"
                         ? "bg-[#08779D] text-white shadow-sm"
@@ -542,6 +690,8 @@ function Deliveries() {
                   </button>
                 </div>
 
+                {/* SCHEDULED TODAY */}
+
                 <button
                   type="button"
                   onClick={() =>
@@ -549,10 +699,10 @@ function Deliveries() {
                       (value) => !value,
                     )
                   }
-                  className="flex h-[38px] items-center gap-2 rounded-lg border border-[#C8D8DF] bg-[#F5F8FC] px-3 text-[13px] font-bold uppercase tracking-[0.25px] text-[#123047] transition hover:bg-[#EEF5FF]"
+                  className="flex h-[40px] w-full items-center justify-center gap-2 rounded-lg border border-[#C8D8DF] bg-[#F5F8FC] px-3 text-xs font-bold uppercase tracking-[0.25px] text-[#123047] transition hover:bg-[#EEF5FF] sm:w-auto"
                 >
                   <span
-                    className={`flex h-[19px] w-[19px] items-center justify-center rounded-[4px] ${
+                    className={`flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-[4px] ${
                       scheduledToday
                         ? "bg-[#08779D] text-white"
                         : "border border-[#8299A5] bg-white"
@@ -571,7 +721,11 @@ function Deliveries() {
               </div>
             </div>
 
-            <div className="mt-12 flex flex-col gap-6">
+            {/* ==================================================
+                DELIVERY CARDS
+            =================================================== */}
+
+            <div className="mt-8 flex flex-col gap-5 sm:mt-12 sm:gap-6">
               {displayedDeliveries.length >
               0 ? (
                 displayedDeliveries.map(
@@ -590,7 +744,7 @@ function Deliveries() {
                   ),
                 )
               ) : (
-                <div className="w-full max-w-[720px] rounded-xl border border-[#C8D8DF] bg-white px-6 py-10 text-center">
+                <div className="w-full max-w-[720px] rounded-xl border border-[#C8D8DF] bg-white px-4 py-10 text-center sm:px-6">
                   <CalendarCheck
                     size={32}
                     className="mx-auto text-[#08779D]"

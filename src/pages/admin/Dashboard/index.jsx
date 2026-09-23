@@ -6,6 +6,7 @@ import Header from "../../../components/Header/Header";
 import StatisticsGrid from "./StatisticsGrid";
 import RecentOrders from "./RecentOrders";
 import DeliverySchedule from "./DeliverySchedule";
+import ActivityLog from "./ActivityLog";
 
 const Dashboard = () => {
   return (
@@ -42,6 +43,9 @@ const Dashboard = () => {
                 <RecentOrders />
                 <DeliverySchedule />
               </div>
+
+              {/* ================= ACTIVITY LOG ================= */}
+              <ActivityLog />
 
             </div>
           </div>

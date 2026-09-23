@@ -4,6 +4,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
 
+import snazzyImage from "../../assets/images/snazzy-image (1).png";
+
 import { getCurrentOrder, getOrders } from "../../utils/orderStorage";
 
 const customer = {
@@ -225,10 +227,7 @@ function LinearTracker({ steps }) {
                 `}
               />
 
-              <StepIcon
-                status={step.status}
-                index={index}
-              />
+              <StepIcon status={step.status} index={index} />
 
               <div
                 className={`
@@ -251,15 +250,9 @@ function LinearTracker({ steps }) {
 
       <div className="flex flex-col sm:hidden">
         {steps.map((step, index) => (
-          <div
-            key={step.label}
-            className="flex gap-3"
-          >
+          <div key={step.label} className="flex gap-3">
             <div className="flex flex-col items-center">
-              <StepIcon
-                status={step.status}
-                index={index}
-              />
+              <StepIcon status={step.status} index={index} />
 
               {index < steps.length - 1 && (
                 <div
@@ -332,51 +325,12 @@ function DetailField({ label, children }) {
 function GoogleLocationMap({ deliveryTime }) {
   return (
     <div className="overflow-hidden rounded border border-border-light bg-white">
-      <div className="relative h-[220px] w-full bg-[#e8eef1] sm:h-[260px]">
-        <div className="absolute inset-0 opacity-70">
-          <div className="absolute left-[8%] top-[18%] h-8 w-[85%] rotate-[8deg] rounded-full bg-[#d2dde1]" />
-          <div className="absolute left-[-5%] top-[55%] h-7 w-[115%] -rotate-[12deg] rounded-full bg-[#d2dde1]" />
-          <div className="absolute left-[20%] top-[-10%] h-[130%] w-6 rotate-[25deg] rounded-full bg-[#d2dde1]" />
-          <div className="absolute right-[15%] top-[-10%] h-[130%] w-5 rotate-[55deg] rounded-full bg-[#d2dde1]" />
-          <div className="absolute left-[45%] top-[20%] h-20 w-32 rounded-lg bg-[#dbe7df]" />
-          <div className="absolute left-[5%] top-[75%] h-16 w-28 rounded-lg bg-[#dbe7df]" />
-          <div className="absolute right-[5%] top-[55%] h-20 w-36 rounded-lg bg-[#dbe7df]" />
-        </div>
-
-        <svg
-          className="absolute inset-0 h-full w-full"
-          viewBox="0 0 600 260"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M115 210 C190 190, 200 145, 285 155 C360 165, 355 85, 470 65"
-            fill="none"
-            stroke="#238FA3"
-            strokeWidth="7"
-            strokeLinecap="round"
-          />
-
-          <path
-            d="M115 210 C190 190, 200 145, 285 155 C360 165, 355 85, 470 65"
-            fill="none"
-            stroke="white"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeDasharray="8 8"
-          />
-        </svg>
-
-        <div className="absolute bottom-[18%] left-[17%] flex h-9 w-9 items-center justify-center rounded-full border-4 border-white bg-primary-background shadow-md">
-          <div className="h-2.5 w-2.5 rounded-full bg-white" />
-        </div>
-
-        <div className="absolute right-[18%] top-[17%] flex h-11 w-11 items-center justify-center rounded-full border-4 border-white bg-[#238FA3] shadow-lg">
-          <span className="text-lg text-white">●</span>
-        </div>
-
-        <div className="absolute left-3 top-3 rounded bg-white px-3 py-1.5 text-[10px] font-semibold text-text-secondary shadow sm:text-xs">
-          Google Maps
-        </div>
+      <div className="relative w-full">
+        <img
+          src={snazzyImage}
+          alt="Delivery location"
+          className="block h-[220px] w-full object-cover sm:h-[260px]"
+        />
 
         <div className="absolute bottom-3 right-3 rounded-md bg-white px-3 py-2 shadow-md">
           <p className="text-[9px] font-bold uppercase tracking-wide text-text-secondary">
@@ -384,7 +338,7 @@ function GoogleLocationMap({ deliveryTime }) {
           </p>
 
           <p className="text-xs font-bold text-text-primary sm:text-sm">
-            {deliveryTime || "--:--"}
+            {deliveryTime || "6:00 PM - 9:00 PM"}
           </p>
         </div>
       </div>
@@ -699,12 +653,9 @@ function Track() {
      * OUT FOR DELIVERY
      */
     if (
-      currentStatus ===
-        "out for delivery" ||
-      currentStatus ===
-        "in transit" ||
-      currentStatus ===
-        "delivery"
+      currentStatus === "out for delivery" ||
+      currentStatus === "in transit" ||
+      currentStatus === "delivery"
     ) {
       return [
         {
@@ -736,12 +687,9 @@ function Track() {
      * CONFIRMED / PURIFYING
      */
     if (
-      currentStatus ===
-        "confirmed" ||
-      currentStatus ===
-        "purifying" ||
-      currentStatus ===
-        "processing"
+      currentStatus === "confirmed" ||
+      currentStatus === "purifying" ||
+      currentStatus === "processing"
     ) {
       return [
         {

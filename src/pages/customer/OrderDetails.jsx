@@ -10,6 +10,7 @@ import bottle500ml from "../../assets/images/500ml-bottle.png";
 
 import {
   getOrders,
+  updateOrder,
 } from "../../utils/orderStorage";
 
 function AddressIcon() {
@@ -199,7 +200,9 @@ const getStatusType = (status) => {
 
   if (
     normalizedStatus === "delivered" ||
-    normalizedStatus === "completed"
+    normalizedStatus === "completed" ||
+    normalizedStatus === "cancelled" ||
+    normalizedStatus === "canceled"
   ) {
     return "completed";
   }
@@ -313,6 +316,60 @@ function OrderDetails() {
     });
   };
 
+  // ============================================================
+  // CANCEL ORDER
+  // ============================================================
+
+  const handleCancelOrder = () => {
+    if (!order) {
+      return;
+    }
+
+    /*
+     * Customers can ONLY cancel orders while
+     * the order is still Pending.
+     */
+    if (order.status !== "Pending") {
+      alert(
+        "Only pending orders can be cancelled.",
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this order?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const orderId =
+      order.orderNumber || order.id;
+
+    /*
+     * Update the shared order storage.
+     *
+     * This automatically notifies the admin
+     * Deliveries page through the existing
+     * orderUpdated/ordersUpdated events.
+     */
+    updateOrder(orderId, {
+      status: "Cancelled",
+    });
+
+    /*
+     * Update the current Order Details screen
+     * immediately.
+     */
+    setOrder((currentOrder) => ({
+      ...currentOrder,
+      status: "Cancelled",
+    }));
+
+    alert("Order cancelled successfully.");
+  };
+
   if (!order) {
     return (
       <div className="flex min-h-screen flex-col bg-background-main">
@@ -382,6 +439,16 @@ function OrderDetails() {
   const isCompleted =
     statusType === "completed";
 
+  /*
+   * IMPORTANT:
+   * This is the only status that allows
+   * customer cancellation.
+   */
+  const canCancel =
+    String(status)
+      .trim()
+      .toLowerCase() === "pending";
+
   return (
     <div className="flex min-h-screen flex-col bg-background-main">
       <div className="w-full shrink-0">
@@ -400,6 +467,10 @@ function OrderDetails() {
               View the details of your order and delivery information.
             </p>
           </div>
+
+          {/* ==================================================
+              ORDER INFORMATION
+          =================================================== */}
 
           <section className="overflow-hidden rounded-lg bg-background-accent shadow-[0px_1px_2px_#0000000c]">
 
@@ -424,6 +495,10 @@ function OrderDetails() {
                 {status}
               </span>
             </div>
+
+            {/* ==================================================
+                PRODUCT
+            =================================================== */}
 
             <div className="flex items-center gap-3 border-b border-border-light px-4 py-4 sm:px-5">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-background-card">
@@ -450,6 +525,10 @@ function OrderDetails() {
                 </span>
               </div>
             </div>
+
+            {/* ==================================================
+                DELIVERY DETAILS
+            =================================================== */}
 
             <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
 
@@ -487,6 +566,10 @@ function OrderDetails() {
             </div>
           </section>
 
+          {/* ==================================================
+              PAYMENT SUMMARY
+          =================================================== */}
+
           <section className="flex flex-col gap-3 rounded-lg bg-background-accent p-4 shadow-[0px_1px_2px_#0000000c] sm:p-5">
 
             <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
@@ -517,6 +600,10 @@ function OrderDetails() {
 
           </section>
 
+          {/* ==================================================
+              ACTION BUTTONS
+          =================================================== */}
+
           <div className="flex flex-col gap-3 pb-3 pt-1 sm:flex-row sm:justify-center">
 
             <button
@@ -526,6 +613,16 @@ function OrderDetails() {
             >
               Back to Orders
             </button>
+
+            {canCancel && (
+              <button
+                type="button"
+                onClick={handleCancelOrder}
+                className="flex min-h-11 flex-1 items-center justify-center rounded-lg border-2 border-red-500 bg-background-card px-3 text-xs font-bold uppercase tracking-[0.05em] text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+              >
+                Cancel Order
+              </button>
+            )}
 
             {!isCompleted && (
               <button

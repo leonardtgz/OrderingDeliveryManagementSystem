@@ -89,8 +89,6 @@ function EditOrder() {
 
       contactNumber,
 
-      // IMPORTANT:
-      // Keep the exact products selected in Products.jsx.
       products,
 
       deliveryAddress:
@@ -411,11 +409,11 @@ function EditOrder() {
                 BUTTONS
             ====================================================== */}
 
-            <div className="flex w-full flex-col gap-2.5 pt-1 sm:flex-row">
+            <div className="flex w-full flex-col gap-3 pt-1 sm:flex-row sm:justify-end sm:gap-3">
               <button
                 type="button"
                 onClick={handleBack}
-                className="flex h-10 flex-1 items-center justify-center rounded-lg border-2 border-primary-light bg-background-card px-3 text-xs font-bold uppercase tracking-[0.6px] text-primary-light shadow-card transition-colors hover:bg-primary-light hover:text-primary-foreground"
+                className="flex h-11 w-full items-center justify-center rounded-lg border-2 border-primary-light bg-background-card px-4 text-xs font-bold uppercase tracking-[0.6px] text-primary-light shadow-card transition-colors hover:bg-primary-light hover:text-primary-foreground sm:h-11 sm:w-auto sm:min-w-[150px] sm:px-6"
               >
                 Back
               </button>
@@ -423,7 +421,7 @@ function EditOrder() {
               <button
                 type="submit"
                 disabled={products.length === 0}
-                className="flex h-10 flex-1 items-center justify-center rounded-lg bg-button-background px-3 text-xs font-bold uppercase tracking-[0.6px] text-button-text shadow-card transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-11 w-full items-center justify-center rounded-lg bg-button-background px-4 text-xs font-bold uppercase tracking-[0.6px] text-button-text shadow-card transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:w-auto sm:min-w-[170px] sm:px-6"
               >
                 Continue
               </button>
