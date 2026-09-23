@@ -5,7 +5,7 @@ import Home from "./pages/customer/Home";
 import Products from "./pages/customer/Products";
 import OrderReview from "./pages/customer/OrderReview";
 import EditOrder from "./pages/customer/EditOrder";
-import OrderSummary from "./pages/customer/Ordersummary";
+import OrderSummary from "./pages/customer/OrderSummary";
 import OrderSuccessful from "./pages/customer/OrderSuccessful";
 import OrderDetails from "./pages/customer/OrderDetails";
 import Orders from "./pages/customer/Orders";
@@ -27,7 +27,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 // Admin pages
 import Dashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/Products";
-import AddProduct from "./pages/admin/Addproduct";
+import AddProduct from "./pages/admin/AddProduct";
 import EditAdminProduct from "./pages/admin/EditAdminProduct";
 import Customers from "./pages/admin/Customers";
 import ViewCustomer from "./pages/admin/ViewCustomer";
