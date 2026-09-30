@@ -258,7 +258,7 @@ function DeliveryCard({
                       : selectedStatus ===
                           "CONFIRMED"
                         ? "border-[#08779D] bg-[#08779D] text-white"
-                        : "border-[#123047] bg-transparent text-[#123047]"
+                        : "border-[#87C9DA] bg-[#E6F5FA] text-[#123047]"
               }`}
             >
               <span>

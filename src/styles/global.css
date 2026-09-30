@@ -289,6 +289,27 @@ table {
   }
 }
 
+@keyframes orderHighlight {
+  0% {
+    background-color: #bfeaf5;
+    box-shadow: inset 4px 0 0 #08779d;
+  }
+
+  50% {
+    background-color: #eaf8fc;
+    box-shadow: inset 4px 0 0 #08779d;
+  }
+
+  100% {
+    background-color: #ffffff;
+    box-shadow: inset 0 0 0 transparent;
+  }
+}
+
+.animate-order-highlight {
+  animation: orderHighlight 2.5s ease-out;
+}
+
 @keyframes slideUpFadeSoft {
   from {
     opacity: 0;

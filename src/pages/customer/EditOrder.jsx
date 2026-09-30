@@ -26,48 +26,147 @@ const CUSTOMER = {
   ],
 };
 
+// ============================================================
+// DATE HELPERS
+// ============================================================
+
+function getTodayDate() {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(
+    today.getMonth() + 1,
+  ).padStart(2, "0");
+  const day = String(
+    today.getDate(),
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getValidDeliveryDate(date) {
+  const today = getTodayDate();
+
+  if (!date) {
+    return today;
+  }
+
+  return date < today
+    ? today
+    : date;
+}
+
 function EditOrder() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const existingOrder =
-    location.state?.order || getCurrentOrder();
+    location.state?.order ||
+    getCurrentOrder();
 
-  const products = Array.isArray(existingOrder?.products)
+  const products = Array.isArray(
+    existingOrder?.products,
+  )
     ? existingOrder.products
     : [];
 
-  const [contactNumber, setContactNumber] = useState(
-    existingOrder?.contactNumber || CUSTOMER.contactNumber,
+  // ==========================================================
+  // TODAY'S DATE
+  // ==========================================================
+
+  const todayDate = getTodayDate();
+
+  // ==========================================================
+  // CUSTOMER INFORMATION
+  // ==========================================================
+
+  const [
+    contactNumber,
+    setContactNumber,
+  ] = useState(
+    existingOrder?.contactNumber ||
+      CUSTOMER.contactNumber,
   );
 
-  const [deliveryDate, setDeliveryDate] = useState(
-    existingOrder?.deliveryDate || "",
+  // ==========================================================
+  // DELIVERY DATE
+  //
+  // If the existing order has a past date,
+  // automatically use today's date instead.
+  // ==========================================================
+
+  const [
+    deliveryDate,
+    setDeliveryDate,
+  ] = useState(
+    getValidDeliveryDate(
+      existingOrder?.deliveryDate,
+    ),
   );
 
-  const [deliveryTime, setDeliveryTime] = useState(
-    existingOrder?.deliveryTime || "",
+  const [
+    deliveryTime,
+    setDeliveryTime,
+  ] = useState(
+    existingOrder?.deliveryTime ||
+      "",
   );
 
-  const [notes, setNotes] = useState(
-    existingOrder?.notes || "",
-  );
+  const [notes, setNotes] =
+    useState(
+      existingOrder?.notes || "",
+    );
 
   // ============================================================
   // CALCULATE ORDER TOTALS
   // ============================================================
 
-  const subtotal = products.reduce(
-    (sum, product) =>
-      sum +
-      Number(product.price || 0) *
-        Number(product.quantity || 0),
-    0,
-  );
+  const subtotal =
+    products.reduce(
+      (sum, product) =>
+        sum +
+        Number(
+          product.price || 0,
+        ) *
+          Number(
+            product.quantity || 0,
+          ),
+      0,
+    );
 
-  const deliveryFee = existingOrder?.deliveryFee ?? 20;
+  const deliveryFee =
+    existingOrder?.deliveryFee ??
+    20;
 
-  const total = subtotal + deliveryFee;
+  const total =
+    subtotal + deliveryFee;
+
+  // ============================================================
+  // HANDLE DELIVERY DATE CHANGE
+  // ============================================================
+
+  const handleDeliveryDateChange =
+    (e) => {
+      const selectedDate =
+        e.target.value;
+
+      /*
+       * Prevent dates earlier than today
+       * even if the value is manually changed.
+       */
+      if (
+        selectedDate < todayDate
+      ) {
+        setDeliveryDate(
+          todayDate,
+        );
+        return;
+      }
+
+      setDeliveryDate(
+        selectedDate,
+      );
+    };
 
   // ============================================================
   // CONTINUE TO ORDER SUMMARY
@@ -75,6 +174,29 @@ function EditOrder() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // ----------------------------------------------------------
+    // Make sure a delivery date exists.
+    // ----------------------------------------------------------
+
+    const validDeliveryDate =
+      getValidDeliveryDate(
+        deliveryDate,
+      );
+
+    // ----------------------------------------------------------
+    // Extra protection against past dates.
+    // ----------------------------------------------------------
+
+    if (
+      validDeliveryDate <
+      todayDate
+    ) {
+      alert(
+        "Please select today or a future delivery date.",
+      );
+      return;
+    }
 
     const orderData = {
       ...existingOrder,
@@ -93,19 +215,23 @@ function EditOrder() {
 
       deliveryAddress:
         existingOrder?.deliveryAddress ||
-        CUSTOMER.deliveryAddress.join(", "),
+        CUSTOMER.deliveryAddress.join(
+          ", ",
+        ),
 
       deliveryAddressLines:
         existingOrder?.deliveryAddressLines ||
         CUSTOMER.deliveryAddress,
 
-      deliveryDate,
+      deliveryDate:
+        validDeliveryDate,
 
       deliveryTime,
 
-      deliverySchedule: deliveryDate
-        ? `${deliveryDate}, ${deliveryTime}`
-        : `Today, ${deliveryTime}`,
+      deliverySchedule:
+        validDeliveryDate
+          ? `${validDeliveryDate}, ${deliveryTime}`
+          : `Today, ${deliveryTime}`,
 
       notes,
 
@@ -118,17 +244,28 @@ function EditOrder() {
         "Pending",
     };
 
-    saveCurrentOrder(orderData);
+    saveCurrentOrder(
+      orderData,
+    );
 
-    navigate("/customer/order-summary", {
-      state: {
-        order: orderData,
+    navigate(
+      "/customer/order-summary",
+      {
+        state: {
+          order: orderData,
+        },
       },
-    });
+    );
   };
 
+  // ============================================================
+  // BACK
+  // ============================================================
+
   const handleBack = () => {
-    navigate("/customer/products");
+    navigate(
+      "/customer/products",
+    );
   };
 
   return (
@@ -139,6 +276,9 @@ function EditOrder() {
 
       <main className="flex w-full flex-1 overflow-y-auto pb-24">
         <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-4 py-5 sm:px-6 sm:py-7">
+          {/* =====================================================
+              PAGE HEADER
+          ====================================================== */}
 
           <div className="mb-5">
             <h1 className="text-[23px] font-bold leading-[120%] tracking-[-0.02em] text-text-accent sm:text-[26px]">
@@ -167,38 +307,65 @@ function EditOrder() {
                   No products selected.
                 </p>
               ) : (
-                products.map((product, index) => (
-                  <div
-                    key={product.id || index}
-                    className={`flex items-center justify-between gap-4 py-3 ${
-                      index < products.length - 1
-                        ? "border-b border-border-light"
-                        : ""
-                    }`}
-                  >
-                    <div className="min-w-0">
-                      <p className="break-words text-sm font-semibold text-text-primary">
-                        {product.name}
-                      </p>
+                products.map(
+                  (
+                    product,
+                    index,
+                  ) => (
+                    <div
+                      key={
+                        product.id ||
+                        index
+                      }
+                      className={`flex items-center justify-between gap-4 py-3 ${
+                        index <
+                        products.length -
+                          1
+                          ? "border-b border-border-light"
+                          : ""
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <p className="break-words text-sm font-semibold text-text-primary">
+                          {
+                            product.name
+                          }
+                        </p>
 
-                      <p className="mt-1 text-xs text-text-secondary">
-                        Quantity: {product.quantity}
-                      </p>
+                        <p className="mt-1 text-xs text-text-secondary">
+                          Quantity:{" "}
+                          {
+                            product.quantity
+                          }
+                        </p>
 
-                      <p className="text-xs text-text-secondary">
-                        ₱{Number(product.price).toFixed(2)} each
-                      </p>
+                        <p className="text-xs text-text-secondary">
+                          ₱
+                          {Number(
+                            product.price,
+                          ).toFixed(
+                            2,
+                          )}{" "}
+                          each
+                        </p>
+                      </div>
+
+                      <span className="shrink-0 text-sm font-bold text-text-primary">
+                        ₱
+                        {(
+                          Number(
+                            product.price ||
+                              0,
+                          ) *
+                          Number(
+                            product.quantity ||
+                              0,
+                          )
+                        ).toFixed(2)}
+                      </span>
                     </div>
-
-                    <span className="shrink-0 text-sm font-bold text-text-primary">
-                      ₱
-                      {(
-                        Number(product.price || 0) *
-                        Number(product.quantity || 0)
-                      ).toFixed(2)}
-                    </span>
-                  </div>
-                ))
+                  ),
+                )
               )}
             </div>
 
@@ -208,7 +375,10 @@ function EditOrder() {
               </span>
 
               <span className="text-sm font-bold text-text-accent">
-                ₱{subtotal.toFixed(2)}
+                ₱
+                {subtotal.toFixed(
+                  2,
+                )}
               </span>
             </div>
           </section>
@@ -218,7 +388,9 @@ function EditOrder() {
           ====================================================== */}
 
           <form
-            onSubmit={handleSubmit}
+            onSubmit={
+              handleSubmit
+            }
             className="flex w-full flex-col gap-5"
           >
             <section className="rounded-lg border border-border-light bg-background-card p-4 shadow-card sm:p-5">
@@ -229,7 +401,6 @@ function EditOrder() {
               </div>
 
               <div className="flex flex-col gap-4">
-
                 {/* Full Name */}
 
                 <div className="flex flex-col gap-1.5">
@@ -287,9 +458,14 @@ function EditOrder() {
                   <input
                     id="contactNumber"
                     type="tel"
-                    value={contactNumber}
+                    value={
+                      contactNumber
+                    }
                     onChange={(e) =>
-                      setContactNumber(e.target.value)
+                      setContactNumber(
+                        e.target
+                          .value,
+                      )
                     }
                     className="h-10 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-background"
                   />
@@ -313,6 +489,7 @@ function EditOrder() {
               </div>
 
               <div className="flex w-full flex-col gap-4 sm:flex-row">
+                {/* DELIVERY DATE */}
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <label
@@ -325,13 +502,22 @@ function EditOrder() {
                   <input
                     id="deliveryDate"
                     type="date"
-                    value={deliveryDate}
-                    onChange={(e) =>
-                      setDeliveryDate(e.target.value)
+                    min={todayDate}
+                    value={
+                      deliveryDate
+                    }
+                    onChange={
+                      handleDeliveryDateChange
                     }
                     className="h-10 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-background"
                   />
+
+                  <p className="text-[10px] leading-4 text-text-secondary">
+                    Available from today onward.
+                  </p>
                 </div>
+
+                {/* DELIVERY TIME */}
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <label
@@ -343,21 +529,34 @@ function EditOrder() {
 
                   <select
                     id="deliveryTime"
-                    value={deliveryTime}
+                    value={
+                      deliveryTime
+                    }
                     onChange={(e) =>
-                      setDeliveryTime(e.target.value)
+                      setDeliveryTime(
+                        e.target
+                          .value,
+                      )
                     }
                     className="h-10 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-background"
                   >
-                    <option value="" disabled>
+                    <option
+                      value=""
+                      disabled
+                    >
                       Select Time
                     </option>
 
-                    {TIME_SLOTS.map((slot) => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
+                    {TIME_SLOTS.map(
+                      (slot) => (
+                        <option
+                          key={slot}
+                          value={slot}
+                        >
+                          {slot}
+                        </option>
+                      ),
+                    )}
                   </select>
                 </div>
               </div>
@@ -380,7 +579,9 @@ function EditOrder() {
                   id="notes"
                   value={notes}
                   onChange={(e) =>
-                    setNotes(e.target.value)
+                    setNotes(
+                      e.target.value,
+                    )
                   }
                   placeholder="e.g. Leave with guard, near the gate..."
                   rows={3}
@@ -400,7 +601,10 @@ function EditOrder() {
                 </span>
 
                 <span className="text-lg font-bold text-text-accent">
-                  ₱{total.toFixed(2)}
+                  ₱
+                  {total.toFixed(
+                    2,
+                  )}
                 </span>
               </div>
             </section>
@@ -412,7 +616,9 @@ function EditOrder() {
             <div className="flex w-full flex-col gap-3 pt-1 sm:flex-row sm:justify-end sm:gap-3">
               <button
                 type="button"
-                onClick={handleBack}
+                onClick={
+                  handleBack
+                }
                 className="flex h-11 w-full items-center justify-center rounded-lg border-2 border-primary-light bg-background-card px-4 text-xs font-bold uppercase tracking-[0.6px] text-primary-light shadow-card transition-colors hover:bg-primary-light hover:text-primary-foreground sm:h-11 sm:w-auto sm:min-w-[150px] sm:px-6"
               >
                 Back
@@ -420,7 +626,10 @@ function EditOrder() {
 
               <button
                 type="submit"
-                disabled={products.length === 0}
+                disabled={
+                  products.length ===
+                  0
+                }
                 className="flex h-11 w-full items-center justify-center rounded-lg bg-button-background px-4 text-xs font-bold uppercase tracking-[0.6px] text-button-text shadow-card transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:w-auto sm:min-w-[170px] sm:px-6"
               >
                 Continue

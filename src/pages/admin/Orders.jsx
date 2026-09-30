@@ -1,4 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useSearchParams,
+} from "react-router-dom";
+
 import {
   ChevronDown,
   ChevronLeft,
@@ -25,26 +34,43 @@ const statusOptions = [
   "Cancelled",
 ];
 
-function getOrderProductName(order) {
+function getOrderProductName(
+  order,
+) {
   if (
-    Array.isArray(order?.products) &&
+    Array.isArray(
+      order?.products,
+    ) &&
     order.products.length > 0
   ) {
     return order.products
-      .map((product) => product.name)
+      .map(
+        (product) =>
+          product.name,
+      )
       .join(" + ");
   }
 
-  return order?.product || "Water Order";
+  return (
+    order?.product ||
+    "Water Order"
+  );
 }
 
-function getOrderQuantity(order) {
+function getOrderQuantity(
+  order,
+) {
   if (
-    Array.isArray(order?.products) &&
+    Array.isArray(
+      order?.products,
+    ) &&
     order.products.length > 0
   ) {
     return order.products.reduce(
-      (total, product) =>
+      (
+        total,
+        product,
+      ) =>
         total +
         Number(
           product.quantity ??
@@ -62,7 +88,9 @@ function getOrderQuantity(order) {
   );
 }
 
-function getDeliveryDate(order) {
+function getDeliveryDate(
+  order,
+) {
   return (
     order?.deliverySchedule ||
     order?.deliveryDate ||
@@ -71,30 +99,65 @@ function getDeliveryDate(order) {
 }
 
 function Orders() {
-  const [orders, setOrders] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [
+    searchParams,
+    setSearchParams,
+  ] = useSearchParams();
+
+  const [orders, setOrders] =
+    useState([]);
+
+  const [
+    searchTerm,
+    setSearchTerm,
+  ] = useState("");
+
+  const [
+    statusFilter,
+    setStatusFilter,
+  ] = useState("All");
+
+  const [
+    currentPage,
+    setCurrentPage,
+  ] = useState(1);
+
+  const [
+    highlightedOrderId,
+    setHighlightedOrderId,
+  ] = useState(null);
 
   // Show 10 orders per page
   const ordersPerPage = 10;
 
+  // ==========================================================
+  // LOAD ORDERS
+  // ==========================================================
+
   const loadOrders = () => {
-    const savedOrders = getOrders();
+    const savedOrders =
+      getOrders();
 
     setOrders(
-      Array.isArray(savedOrders)
+      Array.isArray(
+        savedOrders,
+      )
         ? savedOrders
         : [],
     );
   };
 
+  // ==========================================================
+  // ORDER LISTENERS
+  // ==========================================================
+
   useEffect(() => {
     loadOrders();
 
-    const handleOrderUpdate = () => {
-      loadOrders();
-    };
+    const handleOrderUpdate =
+      () => {
+        loadOrders();
+      };
 
     window.addEventListener(
       "storage",
@@ -111,14 +174,10 @@ function Orders() {
       handleOrderUpdate,
     );
 
-    /*
-     * Keeps the page synchronized even when
-     * customer and admin pages are open in
-     * the same browser session.
-     */
-    const interval = setInterval(() => {
-      loadOrders();
-    }, 1000);
+    const interval =
+      setInterval(() => {
+        loadOrders();
+      }, 1000);
 
     return () => {
       window.removeEventListener(
@@ -136,118 +195,341 @@ function Orders() {
         handleOrderUpdate,
       );
 
-      clearInterval(interval);
+      clearInterval(
+        interval,
+      );
     };
   }, []);
 
-  const filteredOrders = useMemo(() => {
-    const search = searchTerm
-      .toLowerCase()
-      .trim();
+  // ==========================================================
+  // GET HIGHLIGHTED ORDER
+  // ==========================================================
 
-    return orders.filter((order) => {
-      const orderId = String(
-        order?.orderNumber ||
-          order?.id ||
-          "",
-      ).toLowerCase();
-
-      const customerName = String(
-        order?.customerName ||
-          order?.customer ||
-          "",
-      ).toLowerCase();
-
-      const product = getOrderProductName(
-        order,
-      ).toLowerCase();
-
-      const deliveryDate =
-        getDeliveryDate(order).toLowerCase();
-
-      const orderStatus = String(
-        order?.status ||
-          "Pending",
-      ).trim();
-
-      const matchesSearch =
-        !search ||
-        orderId.includes(search) ||
-        customerName.includes(search) ||
-        product.includes(search) ||
-        deliveryDate.includes(search);
-
-      const matchesStatus =
-        statusFilter === "All" ||
-        orderStatus === statusFilter;
-
-      return (
-        matchesSearch &&
-        matchesStatus
+  useEffect(() => {
+    const orderToHighlight =
+      searchParams.get(
+        "highlight",
       );
-    });
-  }, [
-    orders,
-    searchTerm,
-    statusFilter,
-  ]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      filteredOrders.length /
-        ordersPerPage,
-    ),
-  );
+    if (!orderToHighlight) {
+      return;
+    }
 
-  const safePage = Math.min(
-    currentPage,
-    totalPages,
-  );
+    setHighlightedOrderId(
+      orderToHighlight,
+    );
+
+    /*
+     * Remove search/filter restrictions so
+     * the highlighted order can always be found.
+     */
+    setSearchTerm("");
+    setStatusFilter("All");
+    setCurrentPage(1);
+  }, [searchParams]);
+
+  // ==========================================================
+  // FILTER ORDERS
+  // ==========================================================
+
+  const filteredOrders =
+    useMemo(() => {
+      const search =
+        searchTerm
+          .toLowerCase()
+          .trim();
+
+      return orders.filter(
+        (order) => {
+          const orderId =
+            String(
+              order?.orderNumber ||
+                order?.id ||
+                "",
+            ).toLowerCase();
+
+          const customerName =
+            String(
+              order?.customerName ||
+                order?.customer ||
+                "",
+            ).toLowerCase();
+
+          const product =
+            getOrderProductName(
+              order,
+            ).toLowerCase();
+
+          const deliveryDate =
+            getDeliveryDate(
+              order,
+            ).toLowerCase();
+
+          const orderStatus =
+            String(
+              order?.status ||
+                "Pending",
+            ).trim();
+
+          const matchesSearch =
+            !search ||
+            orderId.includes(
+              search,
+            ) ||
+            customerName.includes(
+              search,
+            ) ||
+            product.includes(
+              search,
+            ) ||
+            deliveryDate.includes(
+              search,
+            );
+
+          const matchesStatus =
+            statusFilter ===
+              "All" ||
+            orderStatus ===
+              statusFilter;
+
+          return (
+            matchesSearch &&
+            matchesStatus
+          );
+        },
+      );
+    }, [
+      orders,
+      searchTerm,
+      statusFilter,
+    ]);
+
+  // ==========================================================
+  // TOTAL PAGES
+  // ==========================================================
+
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        filteredOrders.length /
+          ordersPerPage,
+      ),
+    );
+
+  const safePage =
+    Math.min(
+      currentPage,
+      totalPages,
+    );
+
+  // ==========================================================
+  // DISPLAYED ORDERS
+  // ==========================================================
 
   const displayedOrders =
     filteredOrders.slice(
       (safePage - 1) *
         ordersPerPage,
-      safePage * ordersPerPage,
+      safePage *
+        ordersPerPage,
     );
+
+  // ==========================================================
+  // AUTOMATICALLY MOVE TO PAGE
+  // CONTAINING HIGHLIGHTED ORDER
+  // ==========================================================
+
+  useEffect(() => {
+    if (
+      !highlightedOrderId ||
+      filteredOrders.length ===
+        0
+    ) {
+      return;
+    }
+
+    const highlightedIndex =
+      filteredOrders.findIndex(
+        (order) => {
+          const orderId =
+            order?.orderNumber ||
+            order?.id;
+
+          return (
+            String(orderId) ===
+            String(
+              highlightedOrderId,
+            )
+          );
+        },
+      );
+
+    if (
+      highlightedIndex === -1
+    ) {
+      return;
+    }
+
+    const page =
+      Math.floor(
+        highlightedIndex /
+          ordersPerPage,
+      ) + 1;
+
+    if (
+      currentPage !== page
+    ) {
+      setCurrentPage(page);
+    }
+  }, [
+    highlightedOrderId,
+    filteredOrders,
+    currentPage,
+  ]);
+
+  // ==========================================================
+  // SCROLL TO HIGHLIGHTED ORDER
+  // ==========================================================
+
+  useEffect(() => {
+    if (
+      !highlightedOrderId ||
+      displayedOrders.length ===
+        0
+    ) {
+      return;
+    }
+
+    const timer =
+      window.setTimeout(
+        () => {
+          const element =
+            document.getElementById(
+              `order-row-${CSS.escape(
+                String(
+                  highlightedOrderId,
+                ),
+              )}`,
+            );
+
+          if (element) {
+            element.scrollIntoView(
+              {
+                behavior: "smooth",
+                block: "center",
+              },
+            );
+          }
+        },
+        150,
+      );
+
+    return () => {
+      window.clearTimeout(
+        timer,
+      );
+    };
+  }, [
+    highlightedOrderId,
+    displayedOrders,
+  ]);
+
+  // ==========================================================
+  // REMOVE HIGHLIGHT AFTER ANIMATION
+  // ==========================================================
+
+  useEffect(() => {
+    if (!highlightedOrderId) {
+      return;
+    }
+
+    const timer =
+      window.setTimeout(
+        () => {
+          setHighlightedOrderId(
+            null,
+          );
+
+          setSearchParams(
+            {},
+            {
+              replace: true,
+            },
+          );
+        },
+        4000,
+      );
+
+    return () => {
+      window.clearTimeout(
+        timer,
+      );
+    };
+  }, [
+    highlightedOrderId,
+    setSearchParams,
+  ]);
+
+  // ==========================================================
+  // STATUS CHANGE
+  // ==========================================================
 
   const handleStatusChange = (
     orderId,
     newStatus,
   ) => {
-    updateOrder(orderId, {
-      status: newStatus,
-    });
+    updateOrder(
+      orderId,
+      {
+        status: newStatus,
+      },
+    );
 
-    /*
-     * Update immediately in the current page.
-     */
-    setOrders((currentOrders) =>
-      currentOrders.map((order) => {
-        const currentId =
-          order?.orderNumber ||
-          order?.id;
+    setOrders(
+      (currentOrders) =>
+        currentOrders.map(
+          (order) => {
+            const currentId =
+              order?.orderNumber ||
+              order?.id;
 
-        return String(currentId) ===
-          String(orderId)
-          ? {
-              ...order,
-              status: newStatus,
-              updatedAt:
-                new Date().toISOString(),
-            }
-          : order;
-      }),
+            return String(
+              currentId,
+            ) ===
+              String(
+                orderId,
+              )
+              ? {
+                  ...order,
+                  status:
+                    newStatus,
+                  updatedAt:
+                    new Date().toISOString(),
+                }
+              : order;
+          },
+        ),
     );
   };
 
-  const handleSearch = (event) => {
+  // ==========================================================
+  // SEARCH
+  // ==========================================================
+
+  const handleSearch = (
+    event,
+  ) => {
     setSearchTerm(
       event.target.value,
     );
+
     setCurrentPage(1);
   };
+
+  // ==========================================================
+  // FILTER
+  // ==========================================================
 
   const handleFilterChange = (
     event,
@@ -255,14 +537,23 @@ function Orders() {
     setStatusFilter(
       event.target.value,
     );
+
     setCurrentPage(1);
   };
 
-  const handlePreviousPage = () => {
-    setCurrentPage((page) =>
-      Math.max(1, page - 1),
-    );
-  };
+  // ==========================================================
+  // PAGINATION
+  // ==========================================================
+
+  const handlePreviousPage =
+    () => {
+      setCurrentPage((page) =>
+        Math.max(
+          1,
+          page - 1,
+        ),
+      );
+    };
 
   const handleNextPage = () => {
     setCurrentPage((page) =>
@@ -274,16 +565,19 @@ function Orders() {
   };
 
   const firstItem =
-    filteredOrders.length === 0
+    filteredOrders.length ===
+    0
       ? 0
       : (safePage - 1) *
           ordersPerPage +
         1;
 
-  const lastItem = Math.min(
-    safePage * ordersPerPage,
-    filteredOrders.length,
-  );
+  const lastItem =
+    Math.min(
+      safePage *
+        ordersPerPage,
+      filteredOrders.length,
+    );
 
   return (
     <div className="flex min-h-screen w-full bg-white">
@@ -296,7 +590,6 @@ function Orders() {
 
         <main className="min-w-0 flex-1 overflow-y-auto bg-white">
           <div className="mx-auto w-full max-w-[1280px] px-5 py-7 sm:px-7 sm:py-8 lg:px-9">
-
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-1">
                 <h1 className="text-[30px] font-bold leading-[1.2] tracking-[-0.02em] text-text-primary sm:text-[34px]">
@@ -315,7 +608,6 @@ function Orders() {
               </div>
 
               <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-
                 <div className="relative w-full sm:w-[255px]">
                   <Search
                     size={18}
@@ -342,7 +634,9 @@ function Orders() {
                   />
 
                   <select
-                    value={statusFilter}
+                    value={
+                      statusFilter
+                    }
                     onChange={
                       handleFilterChange
                     }
@@ -353,13 +647,21 @@ function Orders() {
                     </option>
 
                     {statusOptions.map(
-                      (status) => (
+                      (
+                        status,
+                      ) => (
                         <option
-                          key={status}
-                          value={status}
+                          key={
+                            status
+                          }
+                          value={
+                            status
+                          }
                           className="bg-white text-text-primary"
                         >
-                          {status}
+                          {
+                            status
+                          }
                         </option>
                       ),
                     )}
@@ -411,17 +713,42 @@ function Orders() {
                     {displayedOrders.length >
                     0 ? (
                       displayedOrders.map(
-                        (order) => {
+                        (
+                          order,
+                        ) => {
                           const orderId =
                             order?.orderNumber ||
                             order?.id;
 
+                          const isHighlighted =
+                            String(
+                              orderId,
+                            ) ===
+                            String(
+                              highlightedOrderId,
+                            );
+
                           return (
                             <tr
-                              key={orderId}
-                              className="border-t border-[#C8E7F0] bg-white transition-colors hover:bg-[#F8FCFD]"
+                              key={
+                                orderId
+                              }
+                              id={`order-row-${String(
+                                orderId,
+                              )}`}
+                              className={`border-t border-[#C8E7F0] bg-white transition-colors hover:bg-[#F8FCFD] ${
+                                isHighlighted
+                                  ? "animate-order-highlight relative"
+                                  : ""
+                              }`}
                             >
-                              <td className="h-[86px] px-6 text-left text-[16px] font-bold text-[#123047]">
+                              <td
+                                className={`h-[86px] px-6 text-left text-[16px] font-bold text-[#123047] ${
+                                  isHighlighted
+                                    ? "border-l-4 border-[#08779D]"
+                                    : ""
+                                }`}
+                              >
                                 {orderId}
                               </td>
 
@@ -521,7 +848,9 @@ function Orders() {
                 <span className="text-[15px] text-[#123047]">
                   Showing {firstItem}-
                   {lastItem} of{" "}
-                  {filteredOrders.length}{" "}
+                  {
+                    filteredOrders.length
+                  }{" "}
                   orders
                 </span>
 
@@ -532,7 +861,8 @@ function Orders() {
                       handlePreviousPage
                     }
                     disabled={
-                      safePage === 1
+                      safePage ===
+                      1
                     }
                     aria-label="Previous page"
                     className="flex h-[34px] w-[34px] items-center justify-center border border-[#C8E7F0] bg-[#F5FAFF] text-[#7890A0] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
