@@ -1,647 +1,425 @@
-import React, { useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Trash2, Plus } from "lucide-react";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+import CustomerFooter from "../../components/customer/CustomerFooter";
+import OrderStepper from "../../components/customer/OrderStepper";
 
 import {
   getCurrentOrder,
   saveCurrentOrder,
 } from "../../utils/orderStorage";
 
-const TIME_SLOTS = [
-  "9:00 AM - 12:00 PM",
-  "12:00 PM - 3:00 PM",
-  "3:00 PM - 6:00 PM",
-  "6:00 PM - 9:00 PM",
-];
+import slimRefillImage from "../../assets/images/slim-purified-water.png";
+import roundRefillImage from "../../assets/images/round-purified-water.png";
+import bottleImage from "../../assets/images/500ml-bottle.png";
+import increaseIcon from "../../assets/images/img_button_increase.svg";
 
-const CUSTOMER = {
-  fullName: "Maria Santos",
-  contactNumber: "0917-555-0192",
-  deliveryAddress: [
-    "Block 4, Lot 12, Phase 2",
-    "Sunnyvale Subdivision",
-    "Brgy. San Jose, Antipolo",
-  ],
+const DEFAULT_AVAILABILITY = {
+  "1": 145,
+  "2": 85,
+  "3": 50,
 };
 
-// ============================================================
-// DATE HELPERS
-// ============================================================
+const getProductImage = (productId) => {
+  if (String(productId) === "1") return slimRefillImage;
+  if (String(productId) === "2") return roundRefillImage;
+  return bottleImage;
+};
 
-function getTodayDate() {
-  const today = new Date();
-
-  const year = today.getFullYear();
-  const month = String(
-    today.getMonth() + 1,
-  ).padStart(2, "0");
-  const day = String(
-    today.getDate(),
-  ).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function getValidDeliveryDate(date) {
-  const today = getTodayDate();
-
-  if (!date) {
-    return today;
-  }
-
-  return date < today
-    ? today
-    : date;
-}
+const MinusIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 14 14"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="text-text-accent"
+    aria-hidden="true"
+  >
+    <path
+      d="M3 7H11"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </svg>
+);
 
 function EditOrder() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const existingOrder =
-    location.state?.order ||
-    getCurrentOrder();
+    location.state?.order || getCurrentOrder() || {};
 
-  const products = Array.isArray(
-    existingOrder?.products,
-  )
-    ? existingOrder.products
-    : [];
-
-  // ==========================================================
-  // TODAY'S DATE
-  // ==========================================================
-
-  const todayDate = getTodayDate();
-
-  // ==========================================================
-  // CUSTOMER INFORMATION
-  // ==========================================================
-
-  const [
-    contactNumber,
-    setContactNumber,
-  ] = useState(
-    existingOrder?.contactNumber ||
-      CUSTOMER.contactNumber,
+  const [products, setProducts] = useState(() =>
+    Array.isArray(existingOrder.products)
+      ? existingOrder.products.map((product) => ({
+          ...product,
+          quantity: Number(product.quantity) || 0,
+          price: Number(product.price) || 0,
+        }))
+      : [],
   );
 
-  // ==========================================================
-  // DELIVERY DATE
-  //
-  // If the existing order has a past date,
-  // automatically use today's date instead.
-  // ==========================================================
+  const [availableProducts, setAvailableProducts] = useState([]);
 
-  const [
-    deliveryDate,
-    setDeliveryDate,
-  ] = useState(
-    getValidDeliveryDate(
-      existingOrder?.deliveryDate,
-    ),
-  );
+  useEffect(() => {
+    const loadProducts = () => {
+      try {
+        const saved = localStorage.getItem("adminProducts");
+        const parsed = saved ? JSON.parse(saved) : [];
 
-  const [
-    deliveryTime,
-    setDeliveryTime,
-  ] = useState(
-    existingOrder?.deliveryTime ||
-      "",
-  );
+        setAvailableProducts(Array.isArray(parsed) ? parsed : []);
+      } catch (error) {
+        console.error("Failed to load product availability:", error);
+        setAvailableProducts([]);
+      }
+    };
 
-  const [notes, setNotes] =
-    useState(
-      existingOrder?.notes || "",
+    loadProducts();
+
+    window.addEventListener("storage", loadProducts);
+    window.addEventListener("productUpdated", loadProducts);
+
+    return () => {
+      window.removeEventListener("storage", loadProducts);
+      window.removeEventListener("productUpdated", loadProducts);
+    };
+  }, []);
+
+  const getAvailableQuantity = (productId) => {
+    const savedProduct = availableProducts.find(
+      (product) => String(product.id) === String(productId),
     );
 
-  // ============================================================
-  // CALCULATE ORDER TOTALS
-  // ============================================================
+    if (savedProduct) {
+      return Math.max(0, Number(savedProduct.quantity) || 0);
+    }
 
-  const subtotal =
-    products.reduce(
-      (sum, product) =>
-        sum +
-        Number(
-          product.price || 0,
-        ) *
-          Number(
-            product.quantity || 0,
-          ),
+    return DEFAULT_AVAILABILITY[String(productId)] || 0;
+  };
+
+  const subtotal = products.reduce(
+    (sum, product) =>
+      sum +
+      Number(product.price || 0) *
+        Number(product.quantity || 0),
+    0,
+  );
+
+  const deliveryFee = Number(existingOrder.deliveryFee ?? 20) || 0;
+  const total = subtotal + deliveryFee;
+
+  const updateProductQuantity = (productId, change) => {
+    setProducts((currentProducts) =>
+      currentProducts
+        .map((product) => {
+          if (String(product.id) !== String(productId)) {
+            return product;
+          }
+
+          const available = getAvailableQuantity(product.id);
+          const currentQuantity = Number(product.quantity) || 0;
+
+          const nextQuantity = Math.min(
+            available,
+            Math.max(0, currentQuantity + change),
+          );
+
+          return {
+            ...product,
+            quantity: nextQuantity,
+            total: Number(product.price || 0) * nextQuantity,
+          };
+        })
+        .filter((product) => Number(product.quantity) > 0),
+    );
+  };
+
+  const removeProduct = (productId) => {
+    setProducts((currentProducts) =>
+      currentProducts.filter(
+        (product) => String(product.id) !== String(productId),
+      ),
+    );
+  };
+
+  const buildOrder = (productList = products) => {
+    const normalizedProducts = productList.map((product) => ({
+      ...product,
+      price: Number(product.price) || 0,
+      quantity: Number(product.quantity) || 0,
+      total:
+        (Number(product.price) || 0) *
+        (Number(product.quantity) || 0),
+    }));
+
+    const updatedSubtotal = normalizedProducts.reduce(
+      (sum, product) => sum + product.total,
       0,
     );
 
-  const deliveryFee =
-    existingOrder?.deliveryFee ??
-    20;
-
-  const total =
-    subtotal + deliveryFee;
-
-  // ============================================================
-  // HANDLE DELIVERY DATE CHANGE
-  // ============================================================
-
-  const handleDeliveryDateChange =
-    (e) => {
-      const selectedDate =
-        e.target.value;
-
-      /*
-       * Prevent dates earlier than today
-       * even if the value is manually changed.
-       */
-      if (
-        selectedDate < todayDate
-      ) {
-        setDeliveryDate(
-          todayDate,
-        );
-        return;
-      }
-
-      setDeliveryDate(
-        selectedDate,
-      );
-    };
-
-  // ============================================================
-  // CONTINUE TO ORDER SUMMARY
-  // ============================================================
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    // ----------------------------------------------------------
-    // Make sure a delivery date exists.
-    // ----------------------------------------------------------
-
-    const validDeliveryDate =
-      getValidDeliveryDate(
-        deliveryDate,
-      );
-
-    // ----------------------------------------------------------
-    // Extra protection against past dates.
-    // ----------------------------------------------------------
-
-    if (
-      validDeliveryDate <
-      todayDate
-    ) {
-      alert(
-        "Please select today or a future delivery date.",
-      );
-      return;
-    }
-
-    const orderData = {
+    return {
       ...existingOrder,
-
-      id:
-        existingOrder?.id ||
-        `ORD-${Date.now()}`,
-
-      customerName:
-        existingOrder?.customerName ||
-        CUSTOMER.fullName,
-
-      contactNumber,
-
-      products,
-
-      deliveryAddress:
-        existingOrder?.deliveryAddress ||
-        CUSTOMER.deliveryAddress.join(
-          ", ",
-        ),
-
-      deliveryAddressLines:
-        existingOrder?.deliveryAddressLines ||
-        CUSTOMER.deliveryAddress,
-
-      deliveryDate:
-        validDeliveryDate,
-
-      deliveryTime,
-
-      deliverySchedule:
-        validDeliveryDate
-          ? `${validDeliveryDate}, ${deliveryTime}`
-          : `Today, ${deliveryTime}`,
-
-      notes,
-
-      subtotal,
+      id: existingOrder.id || `ORD-${Date.now()}`,
+      orderNumber:
+        existingOrder.orderNumber ||
+        `#ORD-${String(Date.now()).slice(-6)}`,
+      products: normalizedProducts,
+      subtotal: updatedSubtotal,
       deliveryFee,
-      total,
-
-      status:
-        existingOrder?.status ||
-        "Pending",
+      total: updatedSubtotal + deliveryFee,
+      updatedAt: new Date().toISOString(),
     };
-
-    saveCurrentOrder(
-      orderData,
-    );
-
-    navigate(
-      "/customer/order-summary",
-      {
-        state: {
-          order: orderData,
-        },
-      },
-    );
   };
 
-  // ============================================================
-  // BACK
-  // ============================================================
+  const handleNext = () => {
+    if (products.length === 0) return;
+
+    const order = buildOrder();
+
+    saveCurrentOrder(order);
+
+    navigate("/customer/delivery-details", {
+      state: { order },
+    });
+  };
 
   const handleBack = () => {
-    navigate(
-      "/customer/products",
-    );
+    const order = buildOrder();
+
+    saveCurrentOrder(order);
+
+    navigate("/customer/products", {
+      state: {
+        order,
+        returnToEditOrder: true,
+      },
+    });
+  };
+
+  const handleAddItem = () => {
+    const order = buildOrder();
+
+    saveCurrentOrder(order);
+
+    navigate("/customer/products", {
+      state: {
+        order,
+        returnToEditOrder: true,
+      },
+    });
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background-main">
-      <div className="w-full shrink-0">
-        <Header />
-      </div>
+    <div className="flex min-h-screen flex-col bg-background-main">
+      <Header />
 
-      <main className="flex w-full flex-1 overflow-y-auto pb-24">
-        <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-4 py-5 sm:px-6 sm:py-7">
-          {/* =====================================================
-              PAGE HEADER
-          ====================================================== */}
+      <OrderStepper currentStep={1} />
 
-          <div className="mb-5">
-            <h1 className="text-[23px] font-bold leading-[120%] tracking-[-0.02em] text-text-accent sm:text-[26px]">
+      <main className="flex-1 bg-background-main px-4 pb-24 pt-6 sm:px-6 sm:pb-28 md:px-10 md:pb-32">
+        <div className="mx-auto flex w-full max-w-[760px] flex-col gap-6">
+          <div>
+            <h1 className="text-2xl font-bold leading-8 text-text-primary sm:text-3xl">
               Edit Order
             </h1>
 
-            <p className="mt-1 text-xs leading-5 text-text-secondary sm:text-sm">
-              Update your delivery information before continuing.
+            <p className="mt-1 text-sm leading-6 text-text-secondary">
+              Review your selected products and adjust quantities before
+              continuing.
             </p>
           </div>
 
-          {/* =====================================================
-              SELECTED PRODUCTS
-          ====================================================== */}
-
-          <section className="mb-5 rounded-lg border border-border-light bg-background-card p-4 shadow-card sm:p-5">
-            <div className="mb-4">
-              <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
+          <section className="overflow-hidden rounded-xl border border-border-light bg-background-card shadow-card">
+            <div className="border-b border-border-light bg-background-accent px-5 py-4">
+              <h2 className="text-sm font-bold uppercase tracking-[0.6px] text-text-accent">
                 Selected Products
               </h2>
             </div>
 
-            <div className="flex flex-col">
+            <div className="px-5">
               {products.length === 0 ? (
-                <p className="text-sm text-text-secondary">
-                  No products selected.
-                </p>
+                <div className="py-6">
+                  <p className="text-sm text-text-secondary">
+                    No products selected.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border-light bg-background-card px-4 py-2.5 text-xs font-semibold text-text-accent shadow-sm transition-colors hover:border-primary-background hover:bg-background-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-background focus-visible:ring-offset-2"
+                  >
+                    <Plus size={15} strokeWidth={2} />
+                    Browse Products
+                  </button>
+                </div>
               ) : (
-                products.map(
-                  (
-                    product,
-                    index,
-                  ) => (
+                products.map((product, index) => {
+                  const available = getAvailableQuantity(product.id);
+
+                  return (
                     <div
-                      key={
-                        product.id ||
-                        index
-                      }
-                      className={`flex items-center justify-between gap-4 py-3 ${
-                        index <
-                        products.length -
-                          1
-                          ? "border-b border-border-light"
-                          : ""
-                      }`}
+                      key={product.id || index}
+                      className="flex flex-col gap-4 border-b border-border-light py-5 sm:flex-row sm:items-center"
                     >
-                      <div className="min-w-0">
-                        <p className="break-words text-sm font-semibold text-text-primary">
-                          {
-                            product.name
-                          }
+                      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-background-accent">
+                        <img
+                          src={getProductImage(product.id)}
+                          alt={product.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-bold leading-6 text-text-primary">
+                          {product.name}
                         </p>
 
                         <p className="mt-1 text-xs text-text-secondary">
-                          Quantity:{" "}
-                          {
-                            product.quantity
-                          }
+                          ₱{Number(product.price).toFixed(2)} each
                         </p>
 
-                        <p className="text-xs text-text-secondary">
-                          ₱
-                          {Number(
-                            product.price,
-                          ).toFixed(
-                            2,
-                          )}{" "}
-                          each
-                        </p>
+                        <div className="mt-3 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateProductQuantity(product.id, -1)
+                            }
+                            aria-label={`Decrease ${product.name}`}
+                            className="flex h-9 w-9 items-center justify-center rounded-md border border-border-light bg-background-card transition-colors hover:bg-background-accent"
+                          >
+                            <MinusIcon />
+                          </button>
+
+                          <span className="flex h-9 min-w-10 items-center justify-center rounded-md bg-background-accent px-3 text-sm font-bold text-text-primary">
+                            {product.quantity}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateProductQuantity(product.id, 1)
+                            }
+                            disabled={
+                              Number(product.quantity) >= available
+                            }
+                            aria-label={`Increase ${product.name}`}
+                            className="flex h-9 w-9 items-center justify-center rounded-md border border-border-light bg-background-card transition-colors hover:bg-background-accent disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <img
+                              src={increaseIcon}
+                              alt=""
+                              className="h-4 w-4"
+                            />
+                          </button>
+                        </div>
                       </div>
 
-                      <span className="shrink-0 text-sm font-bold text-text-primary">
-                        ₱
-                        {(
-                          Number(
-                            product.price ||
-                              0,
-                          ) *
-                          Number(
-                            product.quantity ||
-                              0,
-                          )
-                        ).toFixed(2)}
-                      </span>
+                      <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
+                        <div className="flex flex-col items-start gap-2 sm:items-end">
+                          {index === 0 && (
+                            <div className="flex flex-col items-start gap-2 sm:items-end">
+                              {index === 0 && (
+                                <button
+                                  type="button"
+                                  onClick={handleAddItem}
+                                  className="inline-flex items-center gap-2 rounded-md border border-border-light bg-background-card px-3 py-2 text-sm font-bold text-text-accent transition-colors hover:border-primary-background hover:bg-background-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-background focus-visible:ring-offset-2"
+                                >
+                                  <Plus size={16} strokeWidth={2.25} />
+                                  Add Item
+                                </button>
+                              )}
+
+                              <span className="text-sm font-bold text-text-primary">
+                                ₱
+                                {(
+                                  Number(product.price) *
+                                  Number(product.quantity)
+                                ).toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+
+                          <span className="text-sm font-bold text-text-primary">
+                            ₱
+                            {(
+                              Number(product.price) *
+                              Number(product.quantity)
+                            ).toFixed(2)}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeProduct(product.id)}
+                          aria-label={`Remove ${product.name}`}
+                          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.5px] text-red-500/80 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:ring-offset-2"
+                        >
+                          <Trash2 size={13} strokeWidth={1.8} />
+                          Remove
+                        </button>
+                      </div>
                     </div>
-                  ),
-                )
+                  );
+                })
               )}
-            </div>
 
-            <div className="mt-4 flex items-center justify-between border-t border-border-light pt-4">
-              <span className="text-sm font-semibold text-text-primary">
-                Subtotal
-              </span>
+              <div className="flex items-center justify-between py-4">
+                <span className="text-sm font-semibold text-text-primary">
+                  Subtotal
+                </span>
 
-              <span className="text-sm font-bold text-text-accent">
-                ₱
-                {subtotal.toFixed(
-                  2,
-                )}
-              </span>
+                <span className="text-base font-bold text-text-accent">
+                  ₱{subtotal.toFixed(2)}
+                </span>
+              </div>
             </div>
           </section>
 
-          {/* =====================================================
-              CUSTOMER INFORMATION
-          ====================================================== */}
+          <section className="rounded-xl border border-border-light bg-background-card p-5 shadow-card">
+            <div className="flex items-center justify-between">
+              <span className="text-base font-bold text-text-primary">
+                Total
+              </span>
 
-          <form
-            onSubmit={
-              handleSubmit
-            }
-            className="flex w-full flex-col gap-5"
-          >
-            <section className="rounded-lg border border-border-light bg-background-card p-4 shadow-card sm:p-5">
-              <div className="mb-4">
-                <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
-                  Customer Information
-                </h2>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                {/* Full Name */}
-
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="fullName"
-                    className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
-                  >
-                    Full Name
-                  </label>
-
-                  <input
-                    id="fullName"
-                    type="text"
-                    value={
-                      existingOrder?.customerName ||
-                      CUSTOMER.fullName
-                    }
-                    readOnly
-                    className="h-10 w-full rounded-md border border-border-light bg-background-main px-3 text-sm text-text-secondary outline-none"
-                  />
-                </div>
-
-                {/* Delivery Address */}
-
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="deliveryAddress"
-                    className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
-                  >
-                    Delivery Address
-                  </label>
-
-                  <textarea
-                    id="deliveryAddress"
-                    value={(
-                      existingOrder?.deliveryAddressLines ||
-                      CUSTOMER.deliveryAddress
-                    ).join("\n")}
-                    readOnly
-                    rows={3}
-                    className="w-full resize-none rounded-md border border-border-light bg-background-main px-3 py-2 text-sm leading-5 text-text-secondary outline-none"
-                  />
-                </div>
-
-                {/* Contact Number */}
-
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="contactNumber"
-                    className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
-                  >
-                    Contact Number
-                  </label>
-
-                  <input
-                    id="contactNumber"
-                    type="tel"
-                    value={
-                      contactNumber
-                    }
-                    onChange={(e) =>
-                      setContactNumber(
-                        e.target
-                          .value,
-                      )
-                    }
-                    className="h-10 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-background"
-                  />
-                </div>
-              </div>
-            </section>
-
-            {/* =====================================================
-                DELIVERY
-            ====================================================== */}
-
-            <section className="rounded-lg border border-border-light bg-background-lightBlue p-4 sm:p-5">
-              <div className="mb-4">
-                <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
-                  Preferred Delivery
-                </h2>
-
-                <p className="mt-0.5 text-[10px] leading-4 text-text-secondary">
-                  Choose when you would like your order delivered.
-                </p>
-              </div>
-
-              <div className="flex w-full flex-col gap-4 sm:flex-row">
-                {/* DELIVERY DATE */}
-
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <label
-                    htmlFor="deliveryDate"
-                    className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
-                  >
-                    Preferred Delivery Date
-                  </label>
-
-                  <input
-                    id="deliveryDate"
-                    type="date"
-                    min={todayDate}
-                    value={
-                      deliveryDate
-                    }
-                    onChange={
-                      handleDeliveryDateChange
-                    }
-                    className="h-10 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-background"
-                  />
-
-                  <p className="text-[10px] leading-4 text-text-secondary">
-                    Available from today onward.
-                  </p>
-                </div>
-
-                {/* DELIVERY TIME */}
-
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <label
-                    htmlFor="deliveryTime"
-                    className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
-                  >
-                    Preferred Delivery Time
-                  </label>
-
-                  <select
-                    id="deliveryTime"
-                    value={
-                      deliveryTime
-                    }
-                    onChange={(e) =>
-                      setDeliveryTime(
-                        e.target
-                          .value,
-                      )
-                    }
-                    className="h-10 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary-background"
-                  >
-                    <option
-                      value=""
-                      disabled
-                    >
-                      Select Time
-                    </option>
-
-                    {TIME_SLOTS.map(
-                      (slot) => (
-                        <option
-                          key={slot}
-                          value={slot}
-                        >
-                          {slot}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </div>
-              </div>
-            </section>
-
-            {/* =====================================================
-                NOTES
-            ====================================================== */}
-
-            <section className="rounded-lg border border-border-light bg-background-card p-4 shadow-card sm:p-5">
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="notes"
-                  className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
-                >
-                  Additional Notes
-                </label>
-
-                <textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) =>
-                    setNotes(
-                      e.target.value,
-                    )
-                  }
-                  placeholder="e.g. Leave with guard, near the gate..."
-                  rows={3}
-                  className="w-full resize-none rounded-md border border-border-light bg-background-card px-3 py-2 text-sm leading-5 text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-primary-background"
-                />
-              </div>
-            </section>
-
-            {/* =====================================================
-                TOTAL
-            ====================================================== */}
-
-            <section className="rounded-lg border border-border-light bg-background-card p-4 shadow-card sm:p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-text-primary">
-                  Total
-                </span>
-
-                <span className="text-lg font-bold text-text-accent">
-                  ₱
-                  {total.toFixed(
-                    2,
-                  )}
-                </span>
-              </div>
-            </section>
-
-            {/* =====================================================
-                BUTTONS
-            ====================================================== */}
-
-            <div className="flex w-full flex-col gap-3 pt-1 sm:flex-row sm:justify-end sm:gap-3">
-              <button
-                type="button"
-                onClick={
-                  handleBack
-                }
-                className="flex h-11 w-full items-center justify-center rounded-lg border-2 border-primary-light bg-background-card px-4 text-xs font-bold uppercase tracking-[0.6px] text-primary-light shadow-card transition-colors hover:bg-primary-light hover:text-primary-foreground sm:h-11 sm:w-auto sm:min-w-[150px] sm:px-6"
-              >
-                Back
-              </button>
-
-              <button
-                type="submit"
-                disabled={
-                  products.length ===
-                  0
-                }
-                className="flex h-11 w-full items-center justify-center rounded-lg bg-button-background px-4 text-xs font-bold uppercase tracking-[0.6px] text-button-text shadow-card transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:w-auto sm:min-w-[170px] sm:px-6"
-              >
-                Continue
-              </button>
+              <span className="text-xl font-bold text-text-accent">
+                ₱{total.toFixed(2)}
+              </span>
             </div>
-          </form>
+
+            <p className="mt-2 text-xs text-text-secondary">
+              Includes delivery fee of ₱{deliveryFee.toFixed(2)}.
+            </p>
+          </section>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="h-11 w-full rounded-lg border-2 border-primary-light bg-background-card px-6 text-xs font-bold uppercase tracking-[0.6px] text-primary-light transition-colors hover:bg-primary-light hover:text-white sm:w-auto sm:min-w-[150px]"
+            >
+              Back
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={products.length === 0}
+              className="h-11 w-full rounded-lg bg-button-background px-6 text-xs font-bold uppercase tracking-[0.6px] text-white shadow-sm transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[180px]"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 z-50 w-full">
-        <CustomerNavbar />
-      </div>
+      <CustomerNavbar activeTab="products" />
+      <CustomerFooter />
     </div>
   );
 }

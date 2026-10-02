@@ -16,6 +16,7 @@ import ChangePassword from "./pages/customer/ChangePassword";
 import Notifications from "./pages/customer/Notifications";
 import FAQs from "./pages/customer/FAQs";
 import ContactSupport from "./pages/customer/ContactSupport";
+import DeliveryDetails from "./pages/customer/DeliveryDetails";
 
 
 
@@ -72,7 +73,7 @@ function AppRoutes() {
         <Route path="/customer/notifications" element={<Notifications />} />
         <Route path="/customer/faqs" element={<FAQs />} /> 
         <Route path="/customer/contact-support" element={<ContactSupport />} />
-        
+        <Route path="/customer/delivery-details" element={<DeliveryDetails />} />
         
         
 

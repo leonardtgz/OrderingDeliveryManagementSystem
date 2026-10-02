@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+import CustomerFooter from "../../components/customer/CustomerFooter";
 
 import { getProfile } from "../../utils/profileStorage";
 
@@ -722,6 +723,8 @@ function Profile() {
           </div>
         </div>
       )}
+      
+    <CustomerFooter />
 
     </div>
   );

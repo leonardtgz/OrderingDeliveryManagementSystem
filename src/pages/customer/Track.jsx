@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
-
+import CustomerFooter from "../../components/customer/CustomerFooter";
 import snazzyImage from "../../assets/images/snazzy-image (1).png";
 
 import { getCurrentOrder, getOrders } from "../../utils/orderStorage";
@@ -25,6 +26,7 @@ function BackArrowIcon({ className = "" }) {
       viewBox="0 0 12 12"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
     >
       <path
         d="M2.86875 6.75L7.06875 10.95L6 12L0 6L6 0L7.06875 1.05L2.86875 5.25H12V6.75H2.86875Z"
@@ -41,6 +43,7 @@ function WaterDropIcon({ className = "" }) {
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
     >
       <path
         d="M12 2C12 2 5 10 5 15.5C5 19.6421 8.13401 22 12 22C15.866 22 19 19.6421 19 15.5C19 10 12 2 12 2Z"
@@ -63,6 +66,7 @@ function PurifiedWaterIcon({ className = "" }) {
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
     >
       <path
         d="M7 3H17V19C17 20.6569 15.6569 22 14 22H10C8.34315 22 7 20.6569 7 19V3Z"
@@ -91,6 +95,7 @@ function DeliveryWaterIcon({ className = "" }) {
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
     >
       <path d="M3 6H14V17H3V6Z" fill="currentColor" />
       <path d="M14 10H18L21 13V17H14V10Z" fill="currentColor" />
@@ -111,6 +116,7 @@ function DeliveredWaterIcon({ className = "" }) {
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
     >
       <path
         d="M12 2C12 2 5 10 5 15.5C5 19.6421 8.13401 22 12 22C15.866 22 19 19.6421 19 15.5C19 10 12 2 12 2Z"
@@ -137,67 +143,44 @@ function StepIcon({ status, index }) {
 
   const Icon = icons[index];
 
+  const styles = {
+    done: "border border-emerald-200 bg-emerald-600 text-white",
+    current: "border-2 border-blue-600 bg-blue-50 text-blue-700",
+    upcoming: "border border-slate-200 bg-slate-100 text-slate-400",
+  };
+
   return (
     <div
-      className={`
-        flex h-12 w-12 shrink-0 items-center justify-center rounded-full
-        sm:h-14 sm:w-14
-        ${
-          status === "upcoming"
-            ? "border-4 border-border-light bg-background-accent"
-            : status === "done"
-              ? "border-4 border-background-accent bg-primary-light"
-              : "border-2 border-primary-background bg-background-accent"
-        }
-      `}
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12 ${styles[status]}`}
     >
-      <Icon
-        className={`
-          h-5 w-5 sm:h-6 sm:w-6
-          ${
-            status === "upcoming"
-              ? "text-border-light"
-              : status === "done"
-                ? "text-white"
-                : "text-primary-background"
-          }
-        `}
-      />
+      <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
     </div>
   );
 }
 
 function StepLabel({ step }) {
+  const labelColor =
+    step.status === "current"
+      ? "text-blue-700"
+      : step.status === "done"
+        ? "text-slate-800"
+        : "text-slate-500";
+
+  const timeColor =
+    step.status === "current"
+      ? "text-blue-700"
+      : step.status === "done"
+        ? "text-emerald-700"
+        : "text-slate-400";
+
   return (
-    <div className="flex flex-col items-center gap-0.5 text-center">
+    <div className="flex flex-col items-center gap-1 text-center">
       <span
-        className={`
-          text-[10px] font-bold uppercase tracking-[0.4px] sm:text-[11px]
-          ${
-            step.status === "current"
-              ? "text-text-accent"
-              : "text-text-primary"
-          }
-        `}
+        className={`text-[10px] font-bold uppercase tracking-wide sm:text-xs ${labelColor}`}
       >
         {step.label}
       </span>
-
-      <span
-        className={`
-          text-xs sm:text-sm
-          ${
-            step.status === "upcoming"
-              ? "font-normal text-text-secondary"
-              : "font-bold"
-          }
-          ${
-            step.status === "done" || step.status === "current"
-              ? "text-text-accent"
-              : ""
-          }
-        `}
-      >
+      <span className={`text-xs sm:text-sm ${timeColor}`}>
         {step.time}
       </span>
     </div>
@@ -206,97 +189,83 @@ function StepLabel({ step }) {
 
 function LinearTracker({ steps }) {
   return (
-    <div className="flex flex-col gap-5 py-3 sm:gap-6 sm:py-4">
-      <div className="hidden sm:flex sm:items-start">
-        {steps.map((step, index) => (
-          <div
-            key={step.label}
-            className="flex flex-1 flex-col items-center gap-2"
-          >
-            <div className="flex w-full items-center">
-              <div
-                className={`
-                  h-0.5 flex-1
-                  ${
+    <div className="py-2">
+      {/* Desktop timeline */}
+      <div className="hidden sm:block">
+        <div className="flex items-start">
+          {steps.map((step, index) => (
+            <div
+              key={step.label}
+              className="flex min-w-0 flex-1 flex-col items-center gap-3"
+            >
+              <div className="flex w-full items-center">
+                <div
+                  className={`h-0.5 flex-1 ${
                     index === 0
                       ? "invisible"
-                      : steps[index - 1].status !== "upcoming"
-                        ? "bg-primary-light"
-                        : "bg-border-light"
-                  }
-                `}
-              />
+                      : steps[index - 1].status === "done"
+                        ? "bg-emerald-300"
+                        : "bg-slate-200"
+                  }`}
+                />
 
-              <StepIcon status={step.status} index={index} />
+                <StepIcon status={step.status} index={index} />
 
-              <div
-                className={`
-                  h-0.5 flex-1
-                  ${
+                <div
+                  className={`h-0.5 flex-1 ${
                     index === steps.length - 1
                       ? "invisible"
-                      : step.status !== "upcoming"
-                        ? "bg-primary-light"
-                        : "bg-border-light"
-                  }
-                `}
-              />
-            </div>
+                      : step.status === "done"
+                        ? "bg-emerald-300"
+                        : "bg-slate-200"
+                  }`}
+                />
+              </div>
 
-            <StepLabel step={step} />
-          </div>
-        ))}
+              <StepLabel step={step} />
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="flex flex-col sm:hidden">
+      {/* Mobile timeline */}
+      <div className="sm:hidden">
         {steps.map((step, index) => (
           <div key={step.label} className="flex gap-3">
-            <div className="flex flex-col items-center">
+            <div className="flex w-11 shrink-0 flex-col items-center">
               <StepIcon status={step.status} index={index} />
 
               {index < steps.length - 1 && (
                 <div
-                  className={`
-                    my-1 w-0.5 flex-1
-                    ${
-                      step.status !== "upcoming"
-                        ? "bg-primary-light"
-                        : "bg-border-light"
-                    }
-                  `}
+                  className={`my-1 min-h-7 w-0.5 flex-1 ${
+                    step.status === "done"
+                      ? "bg-emerald-300"
+                      : "bg-slate-200"
+                  }`}
                 />
               )}
             </div>
 
-            <div className="flex flex-col items-start gap-0.5 pb-5 pt-1 text-left">
+            <div className="flex flex-1 flex-col gap-1 pb-6 pt-1">
               <span
-                className={`
-                  text-[10px] font-bold uppercase tracking-[0.4px]
-                  ${
-                    step.status === "current"
-                      ? "text-text-accent"
-                      : "text-text-primary"
-                  }
-                `}
+                className={`text-xs font-bold uppercase tracking-wide ${
+                  step.status === "current"
+                    ? "text-blue-700"
+                    : step.status === "done"
+                      ? "text-slate-800"
+                      : "text-slate-500"
+                }`}
               >
                 {step.label}
               </span>
-
               <span
-                className={`
-                  text-xs
-                  ${
-                    step.status === "upcoming"
-                      ? "font-normal text-text-secondary"
-                      : "font-bold"
-                  }
-                  ${
-                    step.status === "done" ||
-                    step.status === "current"
-                      ? "text-text-accent"
-                      : ""
-                  }
-                `}
+                className={`text-sm ${
+                  step.status === "current"
+                    ? "font-semibold text-blue-700"
+                    : step.status === "done"
+                      ? "text-emerald-700"
+                      : "text-slate-400"
+                }`}
               >
                 {step.time}
               </span>
@@ -310,12 +279,11 @@ function LinearTracker({ steps }) {
 
 function DetailField({ label, children }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-[0.4px] text-text-secondary sm:text-xs">
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500 sm:text-xs">
         {label}
       </span>
-
-      <div className="text-sm text-text-primary sm:text-base">
+      <div className="break-words text-sm leading-6 text-slate-800 sm:text-base">
         {children}
       </div>
     </div>
@@ -324,21 +292,20 @@ function DetailField({ label, children }) {
 
 function GoogleLocationMap({ deliveryTime }) {
   return (
-    <div className="overflow-hidden rounded border border-border-light bg-white">
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div className="relative w-full">
         <img
           src={snazzyImage}
-          alt="Delivery location"
-          className="block h-[220px] w-full object-cover sm:h-[260px]"
+          alt="Delivery location map"
+          className="block h-[210px] w-full object-cover sm:h-[250px]"
         />
 
-        <div className="absolute bottom-3 right-3 rounded-md bg-white px-3 py-2 shadow-md">
-          <p className="text-[9px] font-bold uppercase tracking-wide text-text-secondary">
+        <div className="absolute bottom-3 right-3 max-w-[85%] rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-lg">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
             Estimated arrival
           </p>
-
-          <p className="text-xs font-bold text-text-primary sm:text-sm">
-            {deliveryTime || "6:00 PM - 9:00 PM"}
+          <p className="mt-1 text-sm font-bold text-slate-900 sm:text-base">
+            {deliveryTime || "To be confirmed"}
           </p>
         </div>
       </div>
@@ -346,13 +313,7 @@ function GoogleLocationMap({ deliveryTime }) {
   );
 }
 
-/*
- * Find the newest version of the SAME order.
- *
- * Router state is used only as a reference.
- * The actual displayed order always comes from goldenpr_orders.
- */
-const findLatestTrackedOrder = (referenceOrder) => {
+function findLatestTrackedOrder(referenceOrder) {
   if (!referenceOrder) {
     return null;
   }
@@ -364,84 +325,48 @@ const findLatestTrackedOrder = (referenceOrder) => {
   }
 
   const referenceId = referenceOrder.id;
-  const referenceOrderNumber =
-    referenceOrder.orderNumber;
+  const referenceOrderNumber = referenceOrder.orderNumber;
 
-  const matchingOrders = orders.filter(
-    (storedOrder) => {
-      const sameId =
-        referenceId != null &&
-        storedOrder.id != null &&
-        String(storedOrder.id) ===
-          String(referenceId);
+  const matchingOrders = orders.filter((storedOrder) => {
+    const sameId =
+      referenceId != null &&
+      storedOrder.id != null &&
+      String(storedOrder.id) === String(referenceId);
 
-      const sameOrderNumber =
-        referenceOrderNumber != null &&
-        storedOrder.orderNumber != null &&
-        String(storedOrder.orderNumber) ===
-          String(referenceOrderNumber);
+    const sameOrderNumber =
+      referenceOrderNumber != null &&
+      storedOrder.orderNumber != null &&
+      String(storedOrder.orderNumber) === String(referenceOrderNumber);
 
-      return sameId || sameOrderNumber;
-    },
-  );
+    return sameId || sameOrderNumber;
+  });
 
   if (matchingOrders.length === 0) {
     return null;
   }
 
-  /*
-   * If duplicates somehow exist, use the most recently
-   * updated version of this exact order.
-   */
-  return [...matchingOrders].sort(
-    (a, b) => {
-      const dateA = new Date(
-        a.updatedAt ||
-          a.createdAt ||
-          0,
-      ).getTime();
+  return [...matchingOrders].sort((a, b) => {
+    const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
 
-      const dateB = new Date(
-        b.updatedAt ||
-          b.createdAt ||
-          0,
-      ).getTime();
-
-      return dateB - dateA;
-    },
-  )[0];
-};
+    return dateB - dateA;
+  })[0];
+}
 
 function Track() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /*
-   * Keep only the identity of the order being tracked.
-   * Do NOT use the router order object as the source of truth.
-   */
-  const [trackedOrderReference] =
-    useState(() => {
-      return (
-        location.state?.order ||
-        getCurrentOrder()
-      );
-    });
+  const [trackedOrderReference] = useState(
+    () => location.state?.order || getCurrentOrder(),
+  );
 
-  const [order, setOrder] =
-    useState(null);
+  const [order, setOrder] = useState(null);
 
-  /*
-   * Load the latest version of the SAME order.
-   */
-  const loadTrackedOrder = () => {
-    const latestOrder =
-      findLatestTrackedOrder(
-        trackedOrderReference,
-      );
-
+  const loadTrackedOrder = useCallback(() => {
+    const latestOrder = findLatestTrackedOrder(trackedOrderReference);
     setOrder(latestOrder);
-  };
+  }, [trackedOrderReference]);
 
   useEffect(() => {
     loadTrackedOrder();
@@ -450,100 +375,44 @@ function Track() {
       loadTrackedOrder();
     };
 
-    /*
-     * Same-tab updates.
-     */
-    window.addEventListener(
-      "orderUpdated",
-      handleOrderUpdate,
-    );
+    window.addEventListener("orderUpdated", handleOrderUpdate);
+    window.addEventListener("ordersUpdated", handleOrderUpdate);
+    window.addEventListener("storage", handleOrderUpdate);
 
-    window.addEventListener(
-      "ordersUpdated",
-      handleOrderUpdate,
-    );
-
-    /*
-     * Cross-tab updates.
-     */
-    window.addEventListener(
-      "storage",
-      handleOrderUpdate,
-    );
-
-    /*
-     * Fallback synchronization.
-     * This ensures Track catches an Admin update
-     * even if an event is missed.
-     */
-    const interval = setInterval(
-      loadTrackedOrder,
-      1000,
-    );
+    // Fallback synchronization for order changes.
+    const interval = window.setInterval(loadTrackedOrder, 1000);
 
     return () => {
-      window.removeEventListener(
-        "orderUpdated",
-        handleOrderUpdate,
-      );
-
-      window.removeEventListener(
-        "ordersUpdated",
-        handleOrderUpdate,
-      );
-
-      window.removeEventListener(
-        "storage",
-        handleOrderUpdate,
-      );
-
-      clearInterval(interval);
+      window.removeEventListener("orderUpdated", handleOrderUpdate);
+      window.removeEventListener("ordersUpdated", handleOrderUpdate);
+      window.removeEventListener("storage", handleOrderUpdate);
+      window.clearInterval(interval);
     };
-  }, [trackedOrderReference]);
+  }, [loadTrackedOrder]);
 
   const normalizedOrder = useMemo(() => {
     if (!order) {
       return null;
     }
 
-    const products =
-      Array.isArray(order.products)
-        ? order.products.map(
-            (product) => {
-              const quantity =
-                Number(
-                  product.quantity,
-                ) || 0;
+    const products = Array.isArray(order.products)
+      ? order.products.map((product) => {
+          const quantity = Number(product.quantity) || 0;
+          const price = Number(product.price) || 0;
 
-              const price =
-                Number(
-                  product.price,
-                ) || 0;
+          return {
+            ...product,
+            quantity,
+            price,
+            total: quantity * price,
+          };
+        })
+      : [];
 
-              return {
-                ...product,
-                quantity,
-                price,
-                total:
-                  quantity * price,
-              };
-            },
-          )
-        : [];
-
-    /*
-     * Use the actual stored subtotal when available.
-     * Otherwise calculate it from products.
-     */
-    const calculatedSubtotal =
-      products.reduce(
-        (sum, product) =>
-          sum +
-          Number(
-            product.total || 0,
-          ),
-        0,
-      );
+    const calculatedSubtotal = products.reduce(
+      (sum, product) => sum + Number(product.total || 0),
+      0,
+    );
 
     const subtotal =
       order.subtotal != null
@@ -555,10 +424,6 @@ function Track() {
         ? Number(order.deliveryFee)
         : 20;
 
-    /*
-     * Prefer the stored total from the order.
-     * This keeps Track consistent with Order Summary.
-     */
     const total =
       order.total != null
         ? Number(order.total)
@@ -573,176 +438,76 @@ function Track() {
     };
   }, [order]);
 
-  const currentStatus = String(
-    normalizedOrder?.status ||
-      "Pending",
-  )
+  const currentStatus = String(normalizedOrder?.status || "Pending")
     .trim()
     .toLowerCase();
 
   const isDelivered =
-    currentStatus === "delivered" ||
-    currentStatus === "completed";
+    currentStatus === "delivered" || currentStatus === "completed";
 
   const isCancelled =
-    currentStatus === "cancelled" ||
-    currentStatus === "canceled";
+    currentStatus === "cancelled" || currentStatus === "canceled";
 
-  const getSteps = () => {
-    /*
-     * DELIVERY FINISHED
-     *
-     * Everything is completed.
-     */
+  const steps = useMemo(() => {
     if (isDelivered) {
       return [
-        {
-          label: "Pending",
-          time: "Completed",
-          status: "done",
-        },
-        {
-          label: "Purifying",
-          time: "Completed",
-          status: "done",
-        },
-        {
-          label: "Out for Delivery",
-          time: "Completed",
-          status: "done",
-        },
+        { label: "Pending", time: "Completed", status: "done" },
+        { label: "Purifying", time: "Completed", status: "done" },
+        { label: "Out for Delivery", time: "Completed", status: "done" },
         {
           label: "Delivered",
-          time:
-            normalizedOrder?.deliveryTime ||
-            "Completed",
+          time: normalizedOrder?.deliveryTime || "Completed",
           status: "done",
         },
       ];
     }
 
-    /*
-     * CANCELLED
-     */
     if (isCancelled) {
       return [
-        {
-          label: "Pending",
-          time: "Cancelled",
-          status: "done",
-        },
-        {
-          label: "Purifying",
-          time: "--:--",
-          status: "upcoming",
-        },
-        {
-          label: "Out for Delivery",
-          time: "--:--",
-          status: "upcoming",
-        },
-        {
-          label: "Delivered",
-          time: "--:--",
-          status: "upcoming",
-        },
+        { label: "Pending", time: "Cancelled", status: "done" },
+        { label: "Purifying", time: "--:--", status: "upcoming" },
+        { label: "Out for Delivery", time: "--:--", status: "upcoming" },
+        { label: "Delivered", time: "--:--", status: "upcoming" },
       ];
     }
 
-    /*
-     * OUT FOR DELIVERY
-     */
     if (
       currentStatus === "out for delivery" ||
       currentStatus === "in transit" ||
       currentStatus === "delivery"
     ) {
       return [
-        {
-          label: "Pending",
-          time: "Completed",
-          status: "done",
-        },
-        {
-          label: "Purifying",
-          time: "Completed",
-          status: "done",
-        },
+        { label: "Pending", time: "Completed", status: "done" },
+        { label: "Purifying", time: "Completed", status: "done" },
         {
           label: "Out for Delivery",
-          time:
-            normalizedOrder?.deliveryTime ||
-            "In Transit",
+          time: normalizedOrder?.deliveryTime || "In Transit",
           status: "current",
         },
-        {
-          label: "Delivered",
-          time: "--:--",
-          status: "upcoming",
-        },
+        { label: "Delivered", time: "--:--", status: "upcoming" },
       ];
     }
 
-    /*
-     * CONFIRMED / PURIFYING
-     */
     if (
       currentStatus === "confirmed" ||
       currentStatus === "purifying" ||
       currentStatus === "processing"
     ) {
       return [
-        {
-          label: "Pending",
-          time: "Completed",
-          status: "done",
-        },
-        {
-          label: "Purifying",
-          time: "Preparing",
-          status: "current",
-        },
-        {
-          label: "Out for Delivery",
-          time: "--:--",
-          status: "upcoming",
-        },
-        {
-          label: "Delivered",
-          time: "--:--",
-          status: "upcoming",
-        },
+        { label: "Pending", time: "Completed", status: "done" },
+        { label: "Purifying", time: "Preparing", status: "current" },
+        { label: "Out for Delivery", time: "--:--", status: "upcoming" },
+        { label: "Delivered", time: "--:--", status: "upcoming" },
       ];
     }
 
-    /*
-     * PENDING
-     */
     return [
-      {
-        label: "Pending",
-        time: "Order Received",
-        status: "current",
-      },
-      {
-        label: "Purifying",
-        time: "--:--",
-        status: "upcoming",
-      },
-      {
-        label: "Out for Delivery",
-        time: "--:--",
-        status: "upcoming",
-      },
-      {
-        label: "Delivered",
-        time: "--:--",
-        status: "upcoming",
-      },
+      { label: "Pending", time: "Order Received", status: "current" },
+      { label: "Purifying", time: "--:--", status: "upcoming" },
+      { label: "Out for Delivery", time: "--:--", status: "upcoming" },
+      { label: "Delivered", time: "--:--", status: "upcoming" },
     ];
-  };
-
-  const steps = getSteps();
+  }, [currentStatus, isCancelled, isDelivered, normalizedOrder]);
 
   const handleBackToOrders = () => {
     navigate("/customer/orders");
@@ -750,29 +515,29 @@ function Track() {
 
   if (!normalizedOrder) {
     return (
-      <div className="flex min-h-screen flex-col bg-background-main">
+      <div className="flex min-h-screen flex-col bg-slate-50">
         <div className="w-full shrink-0">
           <Header />
         </div>
 
-        <main className="flex flex-1 items-center justify-center bg-background-card px-4 pb-[120px]">
-          <div className="w-full max-w-md rounded-lg border border-border-light bg-background-accent p-8 text-center">
-            <h1 className="text-lg font-bold text-text-primary">
+        <main className="flex flex-1 items-center justify-center px-4 pb-[120px]">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+              <WaterDropIcon className="h-7 w-7" />
+            </div>
+
+            <h1 className="mt-4 text-xl font-bold text-slate-900">
               No Order to Track
             </h1>
 
-            <p className="mt-2 text-sm text-text-secondary">
+            <p className="mt-2 text-sm leading-6 text-slate-600">
               Place an order first to view its tracking information.
             </p>
 
             <button
               type="button"
-              onClick={() =>
-                navigate(
-                  "/customer/products",
-                )
-              }
-              className="mt-5 rounded-md bg-primary-background px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-primary-foreground"
+              onClick={() => navigate("/customer/products")}
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               Browse Products
             </button>
@@ -786,242 +551,309 @@ function Track() {
     );
   }
 
-  const deliveryAddress =
-    Array.isArray(
-      normalizedOrder.deliveryAddressLines,
-    )
-      ? normalizedOrder.deliveryAddressLines
-      : Array.isArray(
-          normalizedOrder.deliveryAddress,
-        )
-        ? normalizedOrder.deliveryAddress
+  const deliveryAddress = Array.isArray(
+    normalizedOrder.deliveryAddressLines,
+  )
+    ? normalizedOrder.deliveryAddressLines
+    : Array.isArray(normalizedOrder.deliveryAddress)
+      ? normalizedOrder.deliveryAddress
+      : typeof normalizedOrder.deliveryAddress === "string" &&
+          normalizedOrder.deliveryAddress.trim()
+        ? [normalizedOrder.deliveryAddress]
         : customer.address;
 
-  const deliveryTime =
-    normalizedOrder.deliveryTime ||
-    "--:--";
+  const deliveryTime = normalizedOrder.deliveryTime || "--:--";
 
   const deliverySchedule =
     normalizedOrder.deliverySchedule ||
     `${normalizedOrder.deliveryDate || "Today"}, ${deliveryTime}`;
 
+  const statusBadgeClass = isDelivered
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    : isCancelled
+      ? "border-red-200 bg-red-50 text-red-700"
+      : "border-blue-200 bg-blue-50 text-blue-700";
+
   return (
-    <div className="flex min-h-screen flex-col bg-background-main">
+    <div className="flex min-h-screen flex-col bg-slate-50">
       <div className="w-full shrink-0">
         <Header />
       </div>
 
-      <main className="flex-1 overflow-y-auto bg-background-card pb-[120px]">
-        <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-6 p-4 sm:p-6">
+      <main className="flex-1 overflow-y-auto pb-[120px]">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 p-4 sm:gap-7 sm:p-6 lg:p-8">
+          {/* Page heading */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-xl font-bold tracking-[-0.2px] text-text-primary sm:text-2xl sm:tracking-[-0.32px]">
-              Order Tracking
-            </h1>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                Customer account
+              </p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Order Tracking
+              </h1>
+              <p className="mt-1 text-sm text-slate-600">
+                Follow your order from preparation to delivery.
+              </p>
+            </div>
 
             <button
               type="button"
-              onClick={
-                handleBackToOrders
-              }
-              className="flex min-h-10 w-fit items-center gap-1 rounded border border-border-light bg-background-main px-3 py-2.5 text-[10px] font-bold tracking-[0.4px] text-text-primary transition-colors hover:bg-background-accent sm:min-h-12 sm:px-4 sm:py-3.5 sm:text-xs sm:tracking-[0.6px]"
+              onClick={handleBackToOrders}
+              className="inline-flex min-h-10 w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold tracking-wide text-slate-700 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:text-sm"
             >
               <BackArrowIcon className="h-3 w-3" />
               BACK TO ORDERS
             </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <section className="flex flex-col gap-6 rounded border border-border-light bg-background-accent p-4 sm:gap-8 sm:p-6 lg:col-span-2">
-              <div className="flex flex-col gap-3 border-b border-border-light pb-4 sm:flex-row sm:items-center sm:justify-between">
-                <DetailField label="Order Number">
-                  <span className="text-base font-semibold sm:text-lg">
+          {/* Main content grid */}
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+            {/* Tracking and map */}
+            <section className="flex min-w-0 flex-col gap-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:col-span-2">
+              {/* Order overview */}
+              <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Order Number
+                  </p>
+                  <p className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
                     #
                     {String(
-                      normalizedOrder.orderNumber ||
-                        normalizedOrder.id ||
-                        "",
+                      normalizedOrder.orderNumber || normalizedOrder.id || "",
                     ).replace(/^#/, "")}
-                  </span>
-                </DetailField>
+                  </p>
+                </div>
 
                 <div className="sm:text-right">
-                  <DetailField label="Expected Delivery">
-                    <span className="text-sm font-bold sm:text-base">
-                      {deliverySchedule}
-                    </span>
-                  </DetailField>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Expected Delivery
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-slate-900 sm:text-lg">
+                    {deliverySchedule}
+                  </p>
                 </div>
               </div>
 
-              <LinearTracker
-                steps={steps}
-              />
+              {/* Current status */}
+              <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-medium text-slate-500">
+                    Current order status
+                  </p>
+                  <p className="mt-1 text-lg font-bold capitalize text-slate-900">
+                    {normalizedOrder.status || "Pending"}
+                  </p>
+                </div>
 
-              <div className="border-t border-border-light pt-5">
-                <div className="mb-3 flex items-center justify-between">
+                <span
+                  className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${statusBadgeClass}`}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      isDelivered
+                        ? "bg-emerald-600"
+                        : isCancelled
+                          ? "bg-red-600"
+                          : "bg-blue-600"
+                    }`}
+                  />
+                  {isDelivered
+                    ? "DELIVERED"
+                    : isCancelled
+                      ? "CANCELLED"
+                      : "IN PROGRESS"}
+                </span>
+              </div>
+
+              {/* Timeline */}
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Delivery Progress
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {isDelivered
+                      ? "Your order has been delivered."
+                      : isCancelled
+                        ? "This order has been cancelled."
+                        : "Here are the steps in your order's journey."}
+                  </p>
+                </div>
+
+                <LinearTracker steps={steps} />
+              </div>
+
+              {/* Delivery location */}
+              <div className="border-t border-slate-200 pt-5">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h2 className="text-base font-semibold text-text-primary sm:text-lg">
+                    <h2 className="text-lg font-bold text-slate-900">
                       Delivery Location
                     </h2>
-
-                    <p className="mt-1 text-xs text-text-secondary sm:text-sm">
+                    <p className="mt-1 text-sm leading-6 text-slate-600">
                       {isDelivered
-                        ? "Your order has been delivered."
+                        ? "Your order has arrived at its destination."
                         : isCancelled
-                          ? "This order has been cancelled."
-                          : "Your order is being prepared for delivery."}
+                          ? "Tracking is unavailable for a cancelled order."
+                          : "Your delivery details are shown below."}
                     </p>
                   </div>
 
-                  {!isDelivered &&
-                    !isCancelled && (
-                      <span className="rounded-full bg-background-accent px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-text-accent sm:text-xs">
-                        LIVE
-                      </span>
-                    )}
+                  {!isDelivered && !isCancelled && (
+                    <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold tracking-wide text-emerald-700 sm:text-xs">
+                      <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                      TRACKING
+                    </span>
+                  )}
                 </div>
 
                 <GoogleLocationMap
                   deliveryTime={
                     isDelivered
-                      ? normalizedOrder.deliveryTime ||
-                        "Delivered"
+                      ? normalizedOrder.deliveryTime || "Delivered"
                       : deliveryTime
                   }
                 />
               </div>
             </section>
 
-            <section className="flex flex-col gap-5 lg:col-span-1">
-              <div className="flex flex-col gap-4 rounded border border-border-light bg-background-accent p-4">
-                <h2 className="border-b border-border-light pb-2 text-base font-semibold text-text-primary sm:text-lg">
-                  Delivery Details
-                </h2>
+            {/* Order details sidebar */}
+            <section className="flex min-w-0 flex-col gap-5">
+              {/* Delivery details */}
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-5 border-b border-slate-200 pb-3">
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Delivery Details
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Recipient and destination
+                  </p>
+                </div>
 
-                <DetailField label="Customer">
-                  <div className="flex flex-col gap-1">
-                    <span>
-                      {normalizedOrder.customerName ||
-                        customer.name}
+                <div className="flex flex-col gap-5">
+                  <DetailField label="Customer">
+                    <span className="font-medium text-slate-900">
+                      {normalizedOrder.customerName || customer.name}
                     </span>
-
-                    <span className="text-xs text-text-secondary sm:text-sm">
-                      {normalizedOrder.contactNumber ||
-                        customer.contactNumber}
-                    </span>
-                  </div>
-                </DetailField>
-
-                <DetailField label="Address">
-                  <div className="flex flex-col text-sm sm:text-base">
-                    {deliveryAddress.map(
-                      (line, index) => (
-                        <span
-                          key={`${line}-${index}`}
-                        >
-                          {line}
-                        </span>
-                      ),
-                    )}
-                  </div>
-                </DetailField>
-              </div>
-
-              <div className="flex flex-col gap-4 rounded border border-border-light bg-background-accent p-4">
-                <h2 className="border-b border-border-light pb-2 text-base font-semibold text-text-primary sm:text-lg">
-                  Order Summary
-                </h2>
-
-                {normalizedOrder.products.map(
-                  (product) => (
-                    <div
-                      key={
-                        product.id ||
-                        product.name
-                      }
-                      className="flex items-start justify-between gap-4 border-b border-border-light py-2"
-                    >
-                      <div className="flex min-w-0 flex-col">
-                        <span className="text-sm text-text-primary sm:text-base">
-                          {product.name}
-                        </span>
-
-                        <span className="text-[10px] text-text-secondary sm:text-xs">
-                          Qty:{" "}
-                          {product.quantity}
-                        </span>
-                      </div>
-
-                      <span className="shrink-0 text-[11px] font-bold text-text-primary sm:text-xs">
-                        PHP{" "}
-                        {Number(
-                          product.total ||
-                            0,
-                        ).toFixed(2)}
-                      </span>
-                    </div>
-                  ),
-                )}
-
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs text-text-secondary">
-                    Subtotal
-                  </span>
-
-                  <span className="text-xs font-semibold text-text-primary">
-                    PHP{" "}
-                    {normalizedOrder.subtotal.toFixed(
-                      2,
-                    )}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-text-secondary">
-                    Delivery Fee
-                  </span>
-
-                  <span className="text-xs font-semibold text-text-primary">
-                    PHP{" "}
-                    {normalizedOrder.deliveryFee.toFixed(
-                      2,
-                    )}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-border-light pt-2">
-                  <span className="text-base font-semibold text-text-primary sm:text-lg">
-                    Total
-                  </span>
-
-                  <span className="text-base font-semibold text-text-primary sm:text-lg">
-                    PHP{" "}
-                    {normalizedOrder.total.toFixed(
-                      2,
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4 rounded border border-border-light bg-background-accent p-4">
-                <h2 className="border-b border-border-light pb-2 text-base font-semibold text-text-primary sm:text-lg">
-                  Order Information
-                </h2>
-
-                <DetailField label="Status">
-                  <span className="font-semibold text-text-accent">
-                    {normalizedOrder.status ||
-                      "Pending"}
-                  </span>
-                </DetailField>
-
-                {normalizedOrder.notes && (
-                  <DetailField label="Notes">
-                    <span>
-                      {normalizedOrder.notes}
+                    <span className="block text-sm text-slate-600">
+                      {normalizedOrder.contactNumber || customer.contactNumber}
                     </span>
                   </DetailField>
+
+                  <DetailField label="Address">
+                    <div className="flex flex-col">
+                      {deliveryAddress.map((line, index) => (
+                        <span key={`${line}-${index}`}>{line}</span>
+                      ))}
+                    </div>
+                  </DetailField>
+                </div>
+              </div>
+
+              {/* Order summary */}
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 border-b border-slate-200 pb-3">
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Order Summary
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Items included in this order
+                  </p>
+                </div>
+
+                {normalizedOrder.products.length > 0 ? (
+                  <div className="flex flex-col">
+                    {normalizedOrder.products.map((product, index) => (
+                      <div
+                        key={product.id || `${product.name}-${index}`}
+                        className="flex items-start justify-between gap-3 border-b border-slate-100 py-3 last:border-b-0"
+                      >
+                        <div className="min-w-0">
+                          <p className="break-words text-sm font-medium text-slate-800">
+                            {product.name || "Water product"}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Qty: {product.quantity}
+                          </p>
+                        </div>
+
+                        <span className="shrink-0 text-sm font-semibold text-slate-800">
+                          PHP {Number(product.total || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="py-3 text-sm text-slate-500">
+                    No product details are available for this order.
+                  </p>
                 )}
+
+                <div className="mt-3 flex flex-col gap-3 border-t border-slate-200 pt-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-slate-600">Subtotal</span>
+                    <span className="text-sm font-medium text-slate-800">
+                      PHP {normalizedOrder.subtotal.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-slate-600">Delivery Fee</span>
+                    <span className="text-sm font-medium text-slate-800">
+                      PHP {normalizedOrder.deliveryFee.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
+                    <span className="text-base font-bold text-slate-900">
+                      Total
+                    </span>
+                    <span className="text-lg font-bold text-slate-900">
+                      PHP {normalizedOrder.total.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order information */}
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 border-b border-slate-200 pb-3">
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Order Information
+                  </h2>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <DetailField label="Status">
+                    <span
+                      className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${statusBadgeClass}`}
+                    >
+                      {normalizedOrder.status || "Pending"}
+                    </span>
+                  </DetailField>
+
+                  {normalizedOrder.notes && (
+                    <DetailField label="Notes">
+                      <span className="whitespace-pre-wrap">
+                        {normalizedOrder.notes}
+                      </span>
+                    </DetailField>
+                  )}
+
+                  <DetailField label="Date Ordered">
+                    <span>
+                      {normalizedOrder.createdAt
+                        ? new Date(
+                            normalizedOrder.createdAt,
+                          ).toLocaleDateString("en-PH", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "Not available"}
+                    </span>
+                  </DetailField>
+                </div>
               </div>
             </section>
           </div>
@@ -1031,6 +863,7 @@ function Track() {
       <div className="fixed bottom-0 left-0 z-50 w-full">
         <CustomerNavbar activeTab="track" />
       </div>
+      <CustomerFooter />
     </div>
   );
 }

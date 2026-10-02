@@ -8,6 +8,7 @@ import {
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+import CustomerFooter from "../../components/customer/CustomerFooter";
 
 import { getCurrentOrder } from "../../utils/orderStorage";
 
@@ -365,6 +366,7 @@ function OrderSuccessful() {
       <div className="fixed bottom-0 left-0 z-50 w-full">
         <CustomerNavbar />
       </div>
+      <CustomerFooter />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+import CustomerFooter from "../../components/customer/CustomerFooter";
 
 import { getProfile } from "../../utils/profileStorage";
 
@@ -358,6 +359,8 @@ function ContactSupport() {
       <div className="fixed bottom-0 left-0 z-50 w-full">
         <CustomerNavbar />
       </div>
+      <CustomerFooter />
+
 
     </div>
   );

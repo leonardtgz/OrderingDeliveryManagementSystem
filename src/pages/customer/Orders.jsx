@@ -1,8 +1,10 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+import CustomerFooter from "../../components/customer/CustomerFooter";
 
 import roundPurifiedWater from "../../assets/images/round-purified-water.png";
 import slimPurifiedWater from "../../assets/images/slim-purified-water.png";
@@ -50,7 +52,6 @@ const getOrderTitle = (order) => {
   return products
     .map((product) => {
       const quantity = Number(product.quantity || 0);
-
       return `${quantity}x ${product.name}`;
     })
     .join(" + ");
@@ -59,8 +60,7 @@ const getOrderTitle = (order) => {
 const getTotalQuantity = (order) => {
   if (Array.isArray(order.products)) {
     return order.products.reduce(
-      (sum, product) =>
-        sum + Number(product.quantity || 0),
+      (sum, product) => sum + Number(product.quantity || 0),
       0,
     );
   }
@@ -84,32 +84,50 @@ const getOrderDate = (order) => {
   return "Today";
 };
 
-const getStatusType = (status) => {
-  const normalizedStatus = String(status || "")
+const getStatusStyle = (status) => {
+  const normalizedStatus = String(status || "Pending")
     .trim()
     .toLowerCase();
 
-  if (
-    normalizedStatus === "completed" ||
-    normalizedStatus === "delivered"
-  ) {
-    return "completed";
+  if (["completed", "delivered"].includes(normalizedStatus)) {
+    return "bg-emerald-100 text-emerald-800";
   }
 
-  return "active";
+  if (
+    ["pending", "awaiting confirmation"].includes(normalizedStatus)
+  ) {
+    return "bg-amber-100 text-amber-800";
+  }
+
+  if (
+    ["confirmed", "processing", "purifying"].includes(normalizedStatus)
+  ) {
+    return "bg-sky-100 text-sky-800";
+  }
+
+  if (
+    ["out for delivery", "in transit", "on the way"].includes(
+      normalizedStatus,
+    )
+  ) {
+    return "bg-violet-100 text-violet-800";
+  }
+
+  if (
+    ["cancelled", "canceled", "failed"].includes(normalizedStatus)
+  ) {
+    return "bg-rose-100 text-rose-800";
+  }
+
+  return "bg-stone-100 text-stone-700";
 };
 
-function HistoryCard({
-  order,
-  onTrack,
-  onViewDetails,
-}) {
+function HistoryCard({ order, onTrack, onViewDetails }) {
   const products = Array.isArray(order.products)
     ? order.products
     : [];
 
   const firstProduct = products[0];
-
   const title = getOrderTitle(order);
   const totalQuantity = getTotalQuantity(order);
 
@@ -118,17 +136,22 @@ function HistoryCard({
   );
 
   const status = order.status || "Pending";
-
   const total = Number(order.total || 0);
 
-  const isCompleted =
-    String(status).trim().toLowerCase() === "completed" ||
-    String(status).trim().toLowerCase() === "delivered";
+  const normalizedStatus = String(status).trim().toLowerCase();
+
+  const isCompleted = [
+    "completed",
+    "delivered",
+    "cancelled",
+    "canceled",
+    "failed",
+  ].includes(normalizedStatus);
 
   return (
-    <div className="group flex w-full flex-col gap-4 rounded-lg border border-border-light bg-background-accent p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-5 md:flex-row md:items-center md:justify-between">
+    <div className="group flex w-full flex-col gap-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-5 md:flex-row md:items-center md:justify-between">
       <div className="flex min-w-0 w-full items-center gap-4 md:w-auto">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border-light bg-background-card p-1.5">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-stone-200 bg-stone-50 p-1.5">
           <img
             src={image}
             alt={title}
@@ -137,54 +160,51 @@ function HistoryCard({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
+          <span className="mb-1 text-[10px] font-bold uppercase tracking-[0.6px] text-stone-500">
             ORDER #{order.orderNumber || order.id}
           </span>
 
-          <span className="break-words text-sm font-bold leading-5 text-text-primary sm:text-base">
+          <span className="break-words text-sm font-bold leading-6 text-stone-800 sm:text-base">
             {title}
           </span>
 
-          <div className="mt-1.5 flex flex-wrap gap-2">
-            <span className="inline-flex w-fit items-center rounded-full bg-background-lightBlue px-2.5 py-1 text-[10px] font-semibold text-text-accent">
-              {totalQuantity} Item
-              {totalQuantity !== 1 ? "s" : ""}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="inline-flex w-fit items-center rounded-full border border-[#A8DCE8] bg-[#E8F8FC] px-2.5 py-1 text-[10px] font-semibold text-[#006994]">
+              {totalQuantity} Item{totalQuantity !== 1 ? "s" : ""}
             </span>
 
-            <span className="inline-flex w-fit items-center rounded-full bg-background-lightBlue px-2.5 py-1 text-[10px] font-semibold text-text-accent">
+            <span className="inline-flex w-fit items-center rounded-full border border-[#A8DCE8] bg-[#E8F8FC] px-2.5 py-1 text-[10px] font-semibold text-[#006994]">
               Refill Service
             </span>
           </div>
 
-          <span className="mt-1.5 text-xs text-text-secondary">
+          <span className="mt-2 text-xs text-stone-500">
             {getOrderDate(order)}
           </span>
         </div>
       </div>
 
-      <div className="flex w-full flex-col gap-3 border-t border-border-light pt-3 sm:pt-4 md:w-auto md:items-end md:border-0 md:pt-0">
+      <div className="flex w-full flex-col gap-3 border-t border-stone-200 pt-3 sm:pt-4 md:w-auto md:items-end md:border-0 md:pt-0">
         <div className="flex w-full items-start justify-between gap-6 md:w-auto md:justify-end">
           <div className="flex min-w-0 flex-1 flex-col md:min-w-[120px] md:flex-none">
-            <span className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
+            <span className="text-[10px] font-bold uppercase tracking-[0.6px] text-stone-500">
               Total
             </span>
 
-            <span className="mt-0.5 break-words text-sm font-bold leading-5 text-text-primary">
+            <span className="mt-1 break-words text-sm font-bold leading-5 text-stone-800">
               {formatPrice(total)}
             </span>
           </div>
 
           <div className="flex shrink-0 flex-col items-end">
-            <span className="mb-1 text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
-              STATUS
+            <span className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.6px] text-stone-500">
+              Status
             </span>
 
             <span
-              className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.6px] ${
-                getStatusType(status) === "active"
-                  ? "bg-primary-background text-primary-foreground"
-                  : "bg-background-lightBlue text-text-accent"
-              }`}
+              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.5px] ${getStatusStyle(
+                status,
+              )}`}
             >
               {status}
             </span>
@@ -195,7 +215,7 @@ function HistoryCard({
           <button
             type="button"
             onClick={onViewDetails}
-            className="min-h-9 rounded-md border border-primary-light bg-background-card px-3 py-2 text-[10px] font-bold uppercase tracking-[0.6px] text-primary-light transition-all duration-200 hover:bg-primary-light hover:text-primary-foreground sm:px-4"
+            className="min-h-9 rounded-md border border-[#A8DCE8] bg-[#E8F8FC] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.6px] text-[#006994] transition-colors hover:border-[#08779D] hover:bg-[#C8EDF5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40BFD8] focus-visible:ring-offset-2 sm:px-4"
           >
             View Details
           </button>
@@ -204,7 +224,7 @@ function HistoryCard({
             <button
               type="button"
               onClick={onTrack}
-              className="min-h-9 rounded-md bg-primary-background px-3 py-2 text-[10px] font-bold uppercase tracking-[0.6px] text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary-dark sm:px-4"
+              className="min-h-9 rounded-md border border-[#08779D] bg-[#08779D] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.6px] text-white shadow-sm transition-colors hover:border-[#006994] hover:bg-[#006994] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#40BFD8] focus-visible:ring-offset-2 sm:px-4"
             >
               Track Order
             </button>
@@ -217,17 +237,12 @@ function HistoryCard({
 
 function Orders() {
   const navigate = useNavigate();
-
   const [savedOrders, setSavedOrders] = useState([]);
 
   const loadOrders = () => {
     const orders = getOrders();
 
-    setSavedOrders(
-      Array.isArray(orders)
-        ? [...orders]
-        : [],
-    );
+    setSavedOrders(Array.isArray(orders) ? [...orders] : []);
   };
 
   useEffect(() => {
@@ -237,101 +252,63 @@ function Orders() {
       loadOrders();
     };
 
-    window.addEventListener(
-      "storage",
-      handleOrdersUpdated,
-    );
+    window.addEventListener("storage", handleOrdersUpdated);
+    window.addEventListener("orderUpdated", handleOrdersUpdated);
+    window.addEventListener("ordersUpdated", handleOrdersUpdated);
 
-    window.addEventListener(
-      "orderUpdated",
-      handleOrdersUpdated,
-    );
-
-    window.addEventListener(
-      "ordersUpdated",
-      handleOrdersUpdated,
-    );
-
-    // Extra protection when the admin page
-    // is open separately in the same browser.
-    const interval = setInterval(
-      loadOrders,
-      1000,
-    );
+    const interval = setInterval(loadOrders, 1000);
 
     return () => {
-      window.removeEventListener(
-        "storage",
-        handleOrdersUpdated,
-      );
-
-      window.removeEventListener(
-        "orderUpdated",
-        handleOrdersUpdated,
-      );
-
-      window.removeEventListener(
-        "ordersUpdated",
-        handleOrdersUpdated,
-      );
-
+      window.removeEventListener("storage", handleOrdersUpdated);
+      window.removeEventListener("orderUpdated", handleOrdersUpdated);
+      window.removeEventListener("ordersUpdated", handleOrdersUpdated);
       clearInterval(interval);
     };
   }, []);
 
-  const customerOrders = savedOrders.filter(
-    (order) => {
-      if (!order.customerName) {
-        return true;
-      }
+  const customerOrders = savedOrders.filter((order) => {
+    if (!order.customerName) {
+      return true;
+    }
 
-      return (
-        String(order.customerName)
-          .trim()
-          .toLowerCase() ===
-        customer.name
-          .trim()
-          .toLowerCase()
-      );
-    },
-  );
+    return (
+      String(order.customerName).trim().toLowerCase() ===
+      customer.name.trim().toLowerCase()
+    );
+  });
 
   const handleTrackOrder = (order) => {
     navigate("/customer/track", {
-      state: {
-        order,
-      },
+      state: { order },
     });
   };
 
   const handleViewDetails = (order) => {
     navigate("/customer/order-details", {
-      state: {
-        order,
-      },
+      state: { order },
     });
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background-main">
+    <div className="flex min-h-screen flex-col bg-stone-50">
       <div className="w-full shrink-0">
         <Header />
       </div>
 
-      <main className="flex-1 overflow-y-auto bg-background-card pb-[120px]">
+      <main className="flex-1 overflow-y-auto bg-stone-50 pb-[120px]">
         <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-7 px-4 py-6 sm:px-6 sm:py-8 md:px-8">
           <div className="flex flex-col gap-2">
-            <h1 className="break-words text-[24px] font-bold leading-[120%] tracking-[-0.02em] text-text-accent sm:text-[28px] md:text-[30px]">
+            <h1 className="break-words text-[24px] font-bold leading-[120%] tracking-[-0.02em] text-stone-800 sm:text-[28px] md:text-[30px]">
               Transaction &amp; Delivery History
             </h1>
 
-            <p className="text-xs leading-[1.5] text-text-secondary sm:text-sm">
+            <p className="text-xs leading-[1.5] text-stone-600 sm:text-sm">
               Review your past orders and confirmed delivery arrivals.
             </p>
 
-            <div className="mt-1 flex flex-col gap-1 text-xs text-text-secondary sm:text-sm">
+            <div className="mt-1 flex flex-col gap-1 text-xs text-stone-600 sm:text-sm">
               <span>
-                <span className="font-semibold text-text-primary">
+                <span className="font-semibold text-stone-800">
                   {customer.name}
                 </span>
                 {" · "}
@@ -346,23 +323,23 @@ function Orders() {
           </div>
 
           <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between border-b border-border-light pb-2">
-              <h2 className="text-base font-bold leading-5 text-text-primary sm:text-lg sm:leading-6">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+              <h2 className="text-base font-bold leading-5 text-stone-800 sm:text-lg sm:leading-6">
                 Order History
               </h2>
 
-              <span className="text-[10px] font-semibold uppercase tracking-[0.5px] text-text-secondary">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.5px] text-stone-500">
                 {customerOrders.length} Orders
               </span>
             </div>
 
             {customerOrders.length === 0 ? (
-              <div className="rounded-lg border border-border-light bg-background-accent p-8 text-center">
-                <p className="text-sm font-semibold text-text-primary">
+              <div className="rounded-xl border border-stone-200 bg-white p-8 text-center">
+                <p className="text-sm font-semibold text-stone-800">
                   No orders yet
                 </p>
 
-                <p className="mt-1 text-xs text-text-secondary">
+                <p className="mt-1 text-xs text-stone-500">
                   Your orders will appear here after you place an order.
                 </p>
               </div>
@@ -372,12 +349,8 @@ function Orders() {
                   <HistoryCard
                     key={order.id || order.orderNumber}
                     order={order}
-                    onTrack={() =>
-                      handleTrackOrder(order)
-                    }
-                    onViewDetails={() =>
-                      handleViewDetails(order)
-                    }
+                    onTrack={() => handleTrackOrder(order)}
+                    onViewDetails={() => handleViewDetails(order)}
                   />
                 ))}
               </div>
@@ -388,7 +361,9 @@ function Orders() {
 
       <div className="fixed bottom-0 left-0 z-50 w-full">
         <CustomerNavbar activeTab="orders" />
+
       </div>
+      <CustomerFooter />
     </div>
   );
 }

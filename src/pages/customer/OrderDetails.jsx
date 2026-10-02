@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+import CustomerFooter from "../../components/customer/CustomerFooter";
 
 import roundPurifiedWater from "../../assets/images/round-purified-water.png";
 import slimPurifiedWater from "../../assets/images/slim-purified-water.png";
@@ -30,7 +31,6 @@ function AddressIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-
       <circle
         cx="9"
         cy="7.5"
@@ -61,34 +61,29 @@ function DateTimeIcon() {
         stroke="currentColor"
         strokeWidth="2"
       />
-
       <path
         d="M5 1V5"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
       />
-
       <path
         d="M13 1V5"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
       />
-
       <path
         d="M1 8H17"
         stroke="currentColor"
         strokeWidth="2"
       />
-
       <path
         d="M5 12H8"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
       />
-
       <path
         d="M5 15H8"
         stroke="currentColor"
@@ -102,10 +97,7 @@ function DateTimeIcon() {
 const getProductImage = (productName = "") => {
   const name = String(productName).toLowerCase();
 
-  if (
-    name.includes("500ml") ||
-    name.includes("bottle")
-  ) {
+  if (name.includes("500ml") || name.includes("bottle")) {
     return bottle500ml;
   }
 
@@ -117,15 +109,10 @@ const getProductImage = (productName = "") => {
 };
 
 const getOrderTitle = (order) => {
-  if (
-    Array.isArray(order.products) &&
-    order.products.length > 0
-  ) {
+  if (Array.isArray(order.products) && order.products.length > 0) {
     return order.products
       .map((product) => {
-        const quantity =
-          Number(product.quantity || 0);
-
+        const quantity = Number(product.quantity || 0);
         return `${quantity}x ${product.name}`;
       })
       .join(" + ");
@@ -139,14 +126,11 @@ const getOrderDate = (order) => {
     const date = new Date(order.createdAt);
 
     if (!Number.isNaN(date.getTime())) {
-      return date.toLocaleDateString(
-        "en-PH",
-        {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        },
-      );
+      return date.toLocaleDateString("en-PH", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
     }
   }
 
@@ -186,28 +170,39 @@ const getDeliveryTime = (order) => {
     return order.deliveryTime;
   }
 
-  if (order.deliverySchedule) {
-    return order.deliverySchedule;
-  }
-
   return "Not specified";
 };
 
-const getStatusType = (status) => {
+const getStatusStyle = (status) => {
   const normalizedStatus = String(status || "")
     .trim()
     .toLowerCase();
 
   if (
     normalizedStatus === "delivered" ||
-    normalizedStatus === "completed" ||
+    normalizedStatus === "completed"
+  ) {
+    return "bg-green-100 text-green-700";
+  }
+
+  if (
     normalizedStatus === "cancelled" ||
     normalizedStatus === "canceled"
   ) {
-    return "completed";
+    return "bg-red-100 text-red-700";
   }
 
-  return "active";
+  if (
+    normalizedStatus === "pending" ||
+    normalizedStatus === "confirmed" ||
+    normalizedStatus === "out for delivery" ||
+    normalizedStatus === "in transit" ||
+    normalizedStatus === "processing"
+  ) {
+    return "bg-amber-100 text-amber-800";
+  }
+
+  return "bg-gray-100 text-gray-700";
 };
 
 function OrderDetails() {
@@ -216,40 +211,29 @@ function OrderDetails() {
 
   const passedOrder = location.state?.order;
 
-  const [order, setOrder] = useState(
-    passedOrder || null,
-  );
+  const [order, setOrder] = useState(passedOrder || null);
 
   const loadLatestOrder = () => {
     const orders = getOrders();
 
-    if (!Array.isArray(orders)) {
+    if (!Array.isArray(orders) || !passedOrder) {
       return;
     }
 
-    if (!passedOrder) {
-      return;
-    }
+    const latestOrder = orders.find((savedOrder) => {
+      const sameId =
+        String(savedOrder.id) === String(passedOrder.id);
 
-    const latestOrder = orders.find(
-      (savedOrder) => {
-        const sameId =
-          String(savedOrder.id) ===
-          String(passedOrder.id);
+      const sameOrderNumber =
+        passedOrder.orderNumber &&
+        String(savedOrder.orderNumber) ===
+          String(passedOrder.orderNumber);
 
-        const sameOrderNumber =
-          passedOrder.orderNumber &&
-          String(savedOrder.orderNumber) ===
-            String(passedOrder.orderNumber);
-
-        return sameId || sameOrderNumber;
-      },
-    );
+      return sameId || sameOrderNumber;
+    });
 
     if (latestOrder) {
-      setOrder({
-        ...latestOrder,
-      });
+      setOrder({ ...latestOrder });
     }
   };
 
@@ -260,43 +244,17 @@ function OrderDetails() {
       loadLatestOrder();
     };
 
-    window.addEventListener(
-      "storage",
-      handleOrderUpdate,
-    );
+    window.addEventListener("storage", handleOrderUpdate);
+    window.addEventListener("orderUpdated", handleOrderUpdate);
+    window.addEventListener("ordersUpdated", handleOrderUpdate);
 
-    window.addEventListener(
-      "orderUpdated",
-      handleOrderUpdate,
-    );
-
-    window.addEventListener(
-      "ordersUpdated",
-      handleOrderUpdate,
-    );
-
-    const interval = setInterval(
-      loadLatestOrder,
-      1000,
-    );
+    const interval = window.setInterval(loadLatestOrder, 1000);
 
     return () => {
-      window.removeEventListener(
-        "storage",
-        handleOrderUpdate,
-      );
-
-      window.removeEventListener(
-        "orderUpdated",
-        handleOrderUpdate,
-      );
-
-      window.removeEventListener(
-        "ordersUpdated",
-        handleOrderUpdate,
-      );
-
-      clearInterval(interval);
+      window.removeEventListener("storage", handleOrderUpdate);
+      window.removeEventListener("orderUpdated", handleOrderUpdate);
+      window.removeEventListener("ordersUpdated", handleOrderUpdate);
+      window.clearInterval(interval);
     };
   }, [passedOrder]);
 
@@ -310,29 +268,17 @@ function OrderDetails() {
     }
 
     navigate("/customer/track", {
-      state: {
-        order,
-      },
+      state: { order },
     });
   };
-
-  // ============================================================
-  // CANCEL ORDER
-  // ============================================================
 
   const handleCancelOrder = () => {
     if (!order) {
       return;
     }
 
-    /*
-     * Customers can ONLY cancel orders while
-     * the order is still Pending.
-     */
-    if (order.status !== "Pending") {
-      alert(
-        "Only pending orders can be cancelled.",
-      );
+    if (String(order.status || "").trim().toLowerCase() !== "pending") {
+      window.alert("Only pending orders can be cancelled.");
       return;
     }
 
@@ -344,30 +290,18 @@ function OrderDetails() {
       return;
     }
 
-    const orderId =
-      order.orderNumber || order.id;
+    const orderId = order.orderNumber || order.id;
 
-    /*
-     * Update the shared order storage.
-     *
-     * This automatically notifies the admin
-     * Deliveries page through the existing
-     * orderUpdated/ordersUpdated events.
-     */
     updateOrder(orderId, {
       status: "Cancelled",
     });
 
-    /*
-     * Update the current Order Details screen
-     * immediately.
-     */
     setOrder((currentOrder) => ({
       ...currentOrder,
       status: "Cancelled",
     }));
 
-    alert("Order cancelled successfully.");
+    window.alert("Order cancelled successfully.");
   };
 
   if (!order) {
@@ -406,48 +340,27 @@ function OrderDetails() {
 
   const title = getOrderTitle(order);
 
-  const status =
-    order.status || "Pending";
-
-  const statusType =
-    getStatusType(status);
+  const status = order.status || "Pending";
 
   const image = getProductImage(
-    order.products?.[0]?.name ||
-      order.product ||
-      title,
+    order.products?.[0]?.name || order.product || title,
   );
 
-  const total = Number(
-    order.total || 0,
-  );
+  const total = Number(order.total || 0);
 
   const orderNumber =
-    order.orderNumber ||
-    order.id ||
-    "Unknown";
+    order.orderNumber || order.id || "Unknown";
 
-  const deliveryAddress =
-    getAddress(order);
+  const deliveryAddress = getAddress(order);
+  const deliveryDate = getDeliveryDate(order);
+  const deliveryTime = getDeliveryTime(order);
 
-  const deliveryDate =
-    getDeliveryDate(order);
+  const isCompleted = ["delivered", "completed"].includes(
+    String(status).trim().toLowerCase(),
+  );
 
-  const deliveryTime =
-    getDeliveryTime(order);
-
-  const isCompleted =
-    statusType === "completed";
-
-  /*
-   * IMPORTANT:
-   * This is the only status that allows
-   * customer cancellation.
-   */
   const canCancel =
-    String(status)
-      .trim()
-      .toLowerCase() === "pending";
+    String(status).trim().toLowerCase() === "pending";
 
   return (
     <div className="flex min-h-screen flex-col bg-background-main">
@@ -457,7 +370,6 @@ function OrderDetails() {
 
       <main className="flex-1 overflow-y-auto bg-background-card pb-[120px]">
         <div className="mx-auto flex w-full max-w-[900px] flex-col gap-5 px-4 py-5 sm:px-6 sm:py-7">
-
           <div className="flex flex-col gap-1">
             <h1 className="text-[24px] font-bold leading-[120%] tracking-[-0.02em] text-text-accent sm:text-[28px]">
               Order Details
@@ -468,16 +380,12 @@ function OrderDetails() {
             </p>
           </div>
 
-          {/* ==================================================
-              ORDER INFORMATION
-          =================================================== */}
-
-          <section className="overflow-hidden rounded-lg bg-background-accent shadow-[0px_1px_2px_#0000000c]">
-
+          {/* Order Information */}
+          <section className="overflow-hidden rounded-lg border border-border-light bg-white shadow-sm">
             <div className="flex flex-col gap-2 border-b border-border-light px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
-                  ORDER NUMBER
+                  Order Number
                 </span>
 
                 <span className="text-sm font-bold text-text-primary sm:text-base">
@@ -486,22 +394,17 @@ function OrderDetails() {
               </div>
 
               <span
-                className={`w-fit rounded-sm px-2 py-1 text-[10px] font-bold uppercase tracking-[0.6px] ${
-                  statusType === "active"
-                    ? "bg-primary-background text-primary-foreground"
-                    : "bg-background-lightBlue text-text-accent"
-                }`}
+                className={`w-fit rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.6px] ${getStatusStyle(
+                  status,
+                )}`}
               >
                 {status}
               </span>
             </div>
 
-            {/* ==================================================
-                PRODUCT
-            =================================================== */}
-
+            {/* Product */}
             <div className="flex items-center gap-3 border-b border-border-light px-4 py-4 sm:px-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-background-card">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-50">
                 <img
                   src={image}
                   alt={title}
@@ -510,12 +413,12 @@ function OrderDetails() {
               </div>
 
               <div className="min-w-0 flex-1">
-                <span className="text-sm font-bold leading-5 text-text-primary sm:text-base">
+                <span className="block break-words text-sm font-bold leading-5 text-text-primary sm:text-base">
                   {title}
                 </span>
 
                 <div className="mt-1">
-                  <span className="inline-flex items-center rounded-sm bg-primary-lighter px-2 py-0.5 text-[10px] font-medium text-text-accent">
+                  <span className="inline-flex items-center rounded-sm bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-text-accent">
                     Refill Service
                   </span>
                 </div>
@@ -526,18 +429,14 @@ function OrderDetails() {
               </div>
             </div>
 
-            {/* ==================================================
-                DELIVERY DETAILS
-            =================================================== */}
-
+            {/* Delivery Details */}
             <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
-
               <div className="flex items-start gap-3">
                 <AddressIcon />
 
                 <div className="min-w-0 flex-1">
                   <span className="block text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
-                    DELIVERY ADDRESS
+                    Delivery Address
                   </span>
 
                   <span className="mt-1 block break-words text-sm leading-5 text-text-primary">
@@ -553,25 +452,19 @@ function OrderDetails() {
 
                 <div className="min-w-0 flex-1">
                   <span className="block text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
-                    DELIVERY DATE &amp; TIME
+                    Delivery Date &amp; Time
                   </span>
 
                   <span className="mt-1 block text-sm leading-5 text-text-primary">
-                    {deliveryDate},{" "}
-                    {deliveryTime}
+                    {deliveryDate}, {deliveryTime}
                   </span>
                 </div>
               </div>
-
             </div>
           </section>
 
-          {/* ==================================================
-              PAYMENT SUMMARY
-          =================================================== */}
-
-          <section className="flex flex-col gap-3 rounded-lg bg-background-accent p-4 shadow-[0px_1px_2px_#0000000c] sm:p-5">
-
+          {/* Payment Summary */}
+          <section className="flex flex-col gap-3 rounded-lg border border-border-light bg-white p-4 shadow-sm sm:p-5">
             <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
               Payment Summary
             </h2>
@@ -589,7 +482,7 @@ function OrderDetails() {
             <div className="h-px w-full bg-border-light" />
 
             <div className="flex items-center justify-between gap-3">
-              <span className="text-base font-bold text-text-accent">
+              <span className="text-base font-bold text-text-primary">
                 Total
               </span>
 
@@ -597,19 +490,14 @@ function OrderDetails() {
                 PHP {total.toFixed(2)}
               </span>
             </div>
-
           </section>
 
-          {/* ==================================================
-              ACTION BUTTONS
-          =================================================== */}
-
+          {/* Action Buttons */}
           <div className="flex flex-col gap-3 pb-3 pt-1 sm:flex-row sm:justify-center">
-
             <button
               type="button"
               onClick={handleBack}
-              className="flex min-h-11 flex-1 items-center justify-center rounded-lg border-2 border-primary-light bg-background-card px-3 text-xs font-bold uppercase tracking-[0.05em] text-primary-light transition-colors hover:bg-primary-light hover:text-primary-foreground"
+              className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-border-light bg-white px-3 text-xs font-bold uppercase tracking-[0.05em] text-text-primary transition-colors hover:bg-gray-50"
             >
               Back to Orders
             </button>
@@ -618,7 +506,7 @@ function OrderDetails() {
               <button
                 type="button"
                 onClick={handleCancelOrder}
-                className="flex min-h-11 flex-1 items-center justify-center rounded-lg border-2 border-red-500 bg-background-card px-3 text-xs font-bold uppercase tracking-[0.05em] text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+                className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-red-200 bg-white px-3 text-xs font-bold uppercase tracking-[0.05em] text-red-600 transition-colors hover:bg-red-50"
               >
                 Cancel Order
               </button>
@@ -628,20 +516,19 @@ function OrderDetails() {
               <button
                 type="button"
                 onClick={handleTrackOrder}
-                className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-primary-background px-3 text-xs font-bold uppercase tracking-[0.05em] text-primary-foreground shadow-[0px_1px_2px_#0000000c] transition-colors hover:opacity-90"
+                className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-primary-background px-3 text-xs font-bold uppercase tracking-[0.05em] text-primary-foreground shadow-sm transition-colors hover:opacity-90"
               >
                 Track Order
               </button>
             )}
-
           </div>
-
         </div>
       </main>
 
       <div className="fixed bottom-0 left-0 z-50 w-full">
         <CustomerNavbar activeTab="orders" />
       </div>
+      <CustomerFooter />
     </div>
   );
 }

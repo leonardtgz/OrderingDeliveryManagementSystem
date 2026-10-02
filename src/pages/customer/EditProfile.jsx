@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+import CustomerFooter from "../../components/customer/CustomerFooter";
+
 
 import {
   getProfile,
@@ -224,6 +226,7 @@ function EditProfile() {
           </div>
         </div>
       )}
+      <CustomerFooter />
     </div>
   );
 }
