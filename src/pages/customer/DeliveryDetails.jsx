@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import { MapPin, Plus } from "lucide-react";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
-import CustomerFooter from "../../components/customer/CustomerFooter";
 import OrderStepper from "../../components/customer/OrderStepper";
 
 import {
@@ -12,147 +11,19 @@ import {
   saveCurrentOrder,
 } from "../../utils/orderStorage";
 
-const BULACAN_BARANGAYS = [
-  "Caingin",
-  "Capihan",
-  "Coral na Bato",
-  "Cruz na Daan",
-  "Dagat-dagatan",
-  "Diliman I",
-  "Diliman II",
-  "Lico",
-  "Maasim",
-  "Maguinao",
-  "Mabalas-balas",
-  "Maronquillo",
-  "Pantubig",
-  "Pasong Bangkal",
-  "Pasong Callos",
-  "Pasong Intsik",
-  "Pinacpinacan",
-  "Poblacion",
-  "Pulong Bayabas",
-  "Sampaloc",
-  "San Agustin",
-  "San Roque",
-  "Talacsan",
-  "Tambubong",
-  "Tukod",
-  "Ulingao",
-];
-
-const BULACAN_MUNICIPALITIES = [
-  "San Rafael",
-  "Angat",
-  "Balagtas",
-  "Baliwag",
-  "Bocaue",
-  "Bulakan",
-  "Bustos",
-  "Calumpit",
-  "Doña Remedios Trinidad",
-  "Guiguinto",
-  "Hagonoy",
-  "Malolos",
-  "Marilao",
-  "Meycauayan",
-  "Norzagaray",
-  "Obando",
-  "Pandi",
-  "Paombong",
-  "Plaridel",
-  "Pulilan",
-  "San Ildefonso",
-  "San Jose del Monte",
-  "San Miguel",
-  "Santa Maria",
-];
-
-const BARANGAYS_BY_MUNICIPALITY = {
-  "San Rafael": BULACAN_BARANGAYS,
-  Angat: ["Banaban", "Baybay", "Marungko", "Poblacion"],
-  Balagtas: ["Borol 1st", "Borol 2nd", "Longos", "Poblacion"],
-  Baliwag: ["Bagong Nayon", "Poblacion", "Sabang", "San Jose"],
-  Bocaue: ["Batia", "Lolomboy", "Poblacion", "Taal"],
-  Bulakan: ["Bagumbayan", "Matungao", "Poblacion", "San Nicolas"],
-  Bustos: ["Bonga Menor", "Bonga Mayor", "Poblacion", "Tibagan"],
-  Calumpit: ["Balite", "Gatbuca", "Poblacion", "San Jose"],
-  "Doña Remedios Trinidad": ["Camachin", "Kabayo", "Poblacion", "Talbak"],
-  Guiguinto: ["Cutcut", "Ilang-Ilang", "Poblacion", "Tabe"],
-  Hagonoy: ["Abulalas", "Iba", "Poblacion", "San Agustin"],
-  Malolos: ["Anilao", "Atlag", "Bulihan", "Poblacion"],
-  Marilao: ["Ibayo", "Lambakin", "Poblacion", "Prenza"],
-  Meycauayan: ["Bahay Pare", "Calvario", "Poblacion", "Saluysoy"],
-  Norzagaray: ["Bigte", "Matictic", "Poblacion", "San Mateo"],
-  Obando: ["Binuangan", "Paco", "Poblacion", "Salambao"],
-  Pandi: ["Bagbaguin", "Bunsuran", "Poblacion", "Siling Bata"],
-  Paombong: ["Binakod", "Poblacion", "San Isidro", "San Roque"],
-  Plaridel: ["Agnaya", "Banga I", "Poblacion", "Tabang"],
-  Pulilan: ["Dampol", "Longos", "Poblacion", "Tibag"],
-  "San Ildefonso": ["Akle", "Anyatam", "Poblacion", "Upig"],
-  "San Jose del Monte": ["Citrus", "Graceville", "Poblacion", "Tungkong Mangga"],
-  "San Miguel": ["Bagong Silang", "Poblacion", "San Juan", "Tartaro"],
-  "Santa Maria": ["Bagbaguin", "Catmon", "Poblacion", "Pulong Buhangin"],
-};
+import {
+  getProfile,
+  formatAddress,
+} from "../../utils/profileStorage";
 
 function getTodayDate() {
   const today = new Date();
+
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, "0");
   const day = String(today.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
-}
-
-function TextField({ id, label, value, onChange, type = "text" }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        htmlFor={id}
-        className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
-      >
-        {label}
-      </label>
-
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none focus:border-primary-background"
-      />
-    </div>
-  );
-}
-
-function SelectField({ label, value, onChange, options }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary">
-        {label}
-      </label>
-
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-11 w-full appearance-none rounded-md border border-border-light bg-background-card pl-3 pr-12 text-sm text-text-primary outline-none focus:border-primary-background"
-        >
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-
-        <ChevronDown
-          size={16}
-          strokeWidth={2}
-          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary"
-        />
-      </div>
-    </div>
-  );
 }
 
 function DeliveryDetails() {
@@ -164,36 +35,18 @@ function DeliveryDetails() {
 
   const todayDate = getTodayDate();
 
+  const [profile, setProfile] = useState(() => getProfile());
+
   const [fullName, setFullName] = useState(
-    existingOrder.customerName || "Maria Santos",
+    existingOrder.customerName || profile.fullName || "Maria Santos",
   );
 
   const [phoneNumber, setPhoneNumber] = useState(
-    existingOrder.contactNumber || "0917-555-0192",
+    existingOrder.contactNumber || profile.phoneNumber || "0917-555-0192",
   );
 
-  const [region, setRegion] = useState(
-    existingOrder.region || "Central Luzon",
-  );
-
-  const [province, setProvince] = useState(
-    existingOrder.province || "Bulacan",
-  );
-
-  const [city, setCity] = useState(
-    existingOrder.city || "San Rafael",
-  );
-
-  const [barangay, setBarangay] = useState(
-    existingOrder.barangay || "Poblacion",
-  );
-
-  const [postalCode, setPostalCode] = useState(
-    existingOrder.postalCode || "3008",
-  );
-
-  const [streetAddress, setStreetAddress] = useState(
-    existingOrder.streetAddress || "",
+  const [selectedAddressId, setSelectedAddressId] = useState(
+    existingOrder.deliveryAddressId || "",
   );
 
   const [deliveryDate, setDeliveryDate] = useState(
@@ -205,6 +58,70 @@ function DeliveryDetails() {
   );
 
   const [notes, setNotes] = useState(existingOrder.notes || "");
+
+  const loadProfile = useCallback(() => {
+    const savedProfile = getProfile();
+
+    setProfile(savedProfile);
+
+    setFullName((current) =>
+      current || savedProfile.fullName || "Maria Santos",
+    );
+
+    setPhoneNumber((current) =>
+      current || savedProfile.phoneNumber || "0917-555-0192",
+    );
+
+    setSelectedAddressId((current) => {
+      const savedAddresses = Array.isArray(savedProfile.addresses)
+        ? savedProfile.addresses
+        : [];
+
+      if (
+        current &&
+        savedAddresses.some(
+          (address) => String(address.id) === String(current),
+        )
+      ) {
+        return current;
+      }
+
+      if (
+        existingOrder.deliveryAddressId &&
+        savedAddresses.some(
+          (address) =>
+            String(address.id) ===
+            String(existingOrder.deliveryAddressId),
+        )
+      ) {
+        return existingOrder.deliveryAddressId;
+      }
+
+      const defaultAddress =
+        savedAddresses.find((address) => address.isDefault) ||
+        savedAddresses[0];
+
+      return defaultAddress?.id || "";
+    });
+  }, [existingOrder.deliveryAddressId]);
+
+  useEffect(() => {
+    loadProfile();
+
+    window.addEventListener("profileUpdated", loadProfile);
+
+    return () => {
+      window.removeEventListener("profileUpdated", loadProfile);
+    };
+  }, [loadProfile]);
+
+  const addresses = Array.isArray(profile.addresses)
+    ? profile.addresses
+    : [];
+
+  const selectedAddress = addresses.find(
+    (address) => String(address.id) === String(selectedAddressId),
+  );
 
   const products = Array.isArray(existingOrder.products)
     ? existingOrder.products
@@ -220,9 +137,52 @@ function DeliveryDetails() {
   const deliveryFee = existingOrder.deliveryFee ?? 20;
   const total = subtotal + deliveryFee;
 
+  const buildOrder = () => {
+    const formattedAddress = selectedAddress
+      ? formatAddress(selectedAddress)
+      : "";
+
+    const addressLines = formattedAddress
+      ? [formattedAddress]
+      : [];
+
+    return {
+      ...existingOrder,
+      customerName: fullName.trim(),
+      contactNumber: phoneNumber.trim(),
+
+      deliveryAddressId: selectedAddress?.id || "",
+      deliveryAddressLabel: selectedAddress?.label || "",
+      deliveryAddress: formattedAddress,
+      deliveryAddressLines: addressLines,
+
+      region: selectedAddress?.region || "",
+      province: selectedAddress?.province || "",
+      city: selectedAddress?.city || "",
+      barangay: selectedAddress?.barangay || "",
+      postalCode: selectedAddress?.postalCode || "",
+      streetAddress: selectedAddress?.streetAddress || "",
+
+      deliveryDate,
+      deliveryTime,
+      deliverySchedule: `${deliveryDate}, ${deliveryTime}`,
+      notes,
+
+      subtotal,
+      deliveryFee,
+      total,
+      updatedAt: new Date().toISOString(),
+    };
+  };
+
   const handleNext = () => {
     if (!fullName.trim() || !phoneNumber.trim()) {
       window.alert("Please enter your full name and phone number.");
+      return;
+    }
+
+    if (!selectedAddress) {
+      window.alert("Please select a saved delivery address.");
       return;
     }
 
@@ -231,33 +191,7 @@ function DeliveryDetails() {
       return;
     }
 
-    const addressLines = [
-      streetAddress,
-      `Barangay ${barangay}, ${city}`,
-      `${province}, ${region} ${postalCode}`,
-    ].filter(Boolean);
-
-    const order = {
-      ...existingOrder,
-      customerName: fullName.trim(),
-      contactNumber: phoneNumber.trim(),
-      region,
-      province,
-      city,
-      barangay,
-      postalCode,
-      streetAddress,
-      deliveryAddress: addressLines.join(", "),
-      deliveryAddressLines: addressLines,
-      deliveryDate,
-      deliveryTime,
-      deliverySchedule: `${deliveryDate} ${deliveryTime}`,
-      notes,
-      subtotal,
-      deliveryFee,
-      total,
-      updatedAt: new Date().toISOString(),
-    };
+    const order = buildOrder();
 
     saveCurrentOrder(order);
 
@@ -267,23 +201,7 @@ function DeliveryDetails() {
   };
 
   const handleBack = () => {
-    const order = {
-      ...existingOrder,
-      customerName: fullName,
-      contactNumber: phoneNumber,
-      region,
-      province,
-      city,
-      barangay,
-      postalCode,
-      streetAddress,
-      deliveryDate,
-      deliveryTime,
-      notes,
-      subtotal,
-      deliveryFee,
-      total,
-    };
+    const order = buildOrder();
 
     saveCurrentOrder(order);
 
@@ -292,8 +210,18 @@ function DeliveryDetails() {
     });
   };
 
-  const availableBarangays =
-    BARANGAYS_BY_MUNICIPALITY[city] || BULACAN_BARANGAYS;
+  const handleAddAddress = () => {
+    const order = buildOrder();
+
+    saveCurrentOrder(order);
+
+    navigate("/customer/edit-profile?addAddress=1", {
+      state: {
+        returnTo: "/customer/delivery-details",
+        order,
+      },
+    });
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background-main">
@@ -301,7 +229,7 @@ function DeliveryDetails() {
 
       <OrderStepper currentStep={2} />
 
-      <main className="flex-1 bg-background-main px-4 pb-24 pt-6 sm:px-6 sm:pb-28 md:px-10 md:pb-32">
+      <main className="flex-1 bg-background-main px-4 pb-10 pt-6 sm:px-6 md:px-10">
         <div className="mx-auto flex w-full max-w-[760px] flex-col gap-6">
           <div>
             <h1 className="text-2xl font-bold leading-8 text-text-primary sm:text-3xl">
@@ -309,7 +237,8 @@ function DeliveryDetails() {
             </h1>
 
             <p className="mt-1 text-sm leading-6 text-text-secondary">
-              Enter your customer information and delivery preferences.
+              Confirm your contact details, choose a saved address, and set
+              your delivery preferences.
             </p>
           </div>
 
@@ -320,80 +249,145 @@ function DeliveryDetails() {
               </h2>
 
               <p className="mt-1 text-xs leading-5 text-text-secondary">
-                Confirm your contact details and delivery address.
+                Confirm your contact details before placing your order.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <TextField
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <label
+                  htmlFor="fullName"
+                  className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
+                >
+                  Full Name
+                </label>
+
+                <input
                   id="fullName"
-                  label="Full Name"
                   value={fullName}
-                  onChange={setFullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  className="h-11 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none focus:border-primary-background"
                 />
               </div>
 
-              <div className="sm:col-span-2">
-                <TextField
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <label
+                  htmlFor="phoneNumber"
+                  className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
+                >
+                  Phone Number
+                </label>
+
+                <input
                   id="phoneNumber"
-                  label="Phone Number"
                   type="tel"
                   value={phoneNumber}
-                  onChange={setPhoneNumber}
-                />
-              </div>
-
-              <SelectField
-                label="Region"
-                value={region}
-                onChange={setRegion}
-                options={["Central Luzon"]}
-              />
-
-              <SelectField
-                label="Province"
-                value={province}
-                onChange={setProvince}
-                options={["Bulacan"]}
-              />
-
-              <SelectField
-                label="City / Municipality"
-                value={city}
-                onChange={(value) => {
-                  setCity(value);
-                  const nextBarangays =
-                    BARANGAYS_BY_MUNICIPALITY[value] || [];
-                  setBarangay(nextBarangays[0] || "");
-                  setPostalCode(value === "San Rafael" ? "3008" : "");
-                }}
-                options={BULACAN_MUNICIPALITIES}
-              />
-
-              <SelectField
-                label="Barangay"
-                value={barangay}
-                onChange={setBarangay}
-                options={availableBarangays}
-              />
-
-              <TextField
-                id="postalCode"
-                label="Postal Code"
-                value={postalCode}
-                onChange={setPostalCode}
-              />
-
-              <div className="sm:col-span-2">
-                <TextField
-                  id="streetAddress"
-                  label="Street Name / Building / House No."
-                  value={streetAddress}
-                  onChange={setStreetAddress}
+                  onChange={(event) => setPhoneNumber(event.target.value)}
+                  className="h-11 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none focus:border-primary-background"
                 />
               </div>
             </div>
+          </section>
+
+          <section className="rounded-xl border border-border-light bg-background-card p-5 shadow-card sm:p-6">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-[0.6px] text-text-accent">
+                  Delivery Address
+                </h2>
+
+                <p className="mt-1 text-xs leading-5 text-text-secondary">
+                  Choose from the addresses saved in your Profile.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddAddress}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-primary-background px-3 py-2 text-xs font-bold uppercase tracking-[0.4px] text-primary-background transition-colors hover:bg-background-accent"
+              >
+                <Plus size={16} />
+                Add Address
+              </button>
+            </div>
+
+            {addresses.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border-light p-5 text-center">
+                <MapPin
+                  size={25}
+                  className="mx-auto mb-2 text-text-secondary"
+                />
+
+                <p className="text-sm font-semibold text-text-primary">
+                  No saved addresses yet
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-text-secondary">
+                  Add an address to your Profile before continuing.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleAddAddress}
+                  className="mt-4 rounded-lg bg-button-background px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white hover:bg-button-hover"
+                >
+                  Add Delivery Address
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {addresses.map((address) => {
+                  const isSelected =
+                    String(selectedAddressId) === String(address.id);
+
+                  return (
+                    <label
+                      key={address.id}
+                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+                        isSelected
+                          ? "border-primary-background bg-background-accent"
+                          : "border-border-light hover:bg-background-accent/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="deliveryAddress"
+                        checked={isSelected}
+                        onChange={() => setSelectedAddressId(address.id)}
+                        className="mt-1 accent-primary-background"
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-bold text-text-primary">
+                            {address.label || "Address"}
+                          </span>
+
+                          {address.isDefault && (
+                            <span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-text-accent">
+                              Default
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-1 break-words text-xs leading-5 text-text-secondary">
+                          {formatAddress(address)}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+            {selectedAddress && (
+              <p className="mt-4 text-xs leading-5 text-text-secondary">
+                Selected address:{" "}
+                <span className="font-semibold text-text-primary">
+                  {selectedAddress.label || "Address"}
+                </span>
+              </p>
+            )}
           </section>
 
           <section className="rounded-xl border border-border-light bg-background-card p-5 shadow-card sm:p-6">
@@ -417,6 +411,7 @@ function DeliveryDetails() {
                   value={deliveryDate}
                   onChange={(event) => {
                     const selectedDate = event.target.value;
+
                     setDeliveryDate(
                       selectedDate < todayDate ? todayDate : selectedDate,
                     );
@@ -433,30 +428,22 @@ function DeliveryDetails() {
                   Preferred Delivery Time
                 </label>
 
-                <div className="relative">
-                  <select
-                    id="deliveryTime"
-                    value={deliveryTime}
-                    onChange={(event) => setDeliveryTime(event.target.value)}
-                    className="h-11 w-full appearance-none rounded-md border border-border-light bg-background-card pl-3 pr-12 text-sm text-text-primary outline-none focus:border-primary-background"
-                  >
-                    <option value="09:00">9:00 AM</option>
-                    <option value="10:00">10:00 AM</option>
-                    <option value="11:00">11:00 AM</option>
-                    <option value="12:00">12:00 PM</option>
-                    <option value="13:00">1:00 PM</option>
-                    <option value="14:00">2:00 PM</option>
-                    <option value="15:00">3:00 PM</option>
-                    <option value="16:00">4:00 PM</option>
-                    <option value="17:00">5:00 PM</option>
-                  </select>
-
-                  <ChevronDown
-                    size={16}
-                    strokeWidth={2}
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary"
-                  />
-                </div>
+                <select
+                  id="deliveryTime"
+                  value={deliveryTime}
+                  onChange={(event) => setDeliveryTime(event.target.value)}
+                  className="h-11 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none focus:border-primary-background"
+                >
+                  <option value="09:00">9:00 AM</option>
+                  <option value="10:00">10:00 AM</option>
+                  <option value="11:00">11:00 AM</option>
+                  <option value="12:00">12:00 PM</option>
+                  <option value="13:00">1:00 PM</option>
+                  <option value="14:00">2:00 PM</option>
+                  <option value="15:00">3:00 PM</option>
+                  <option value="16:00">4:00 PM</option>
+                  <option value="17:00">5:00 PM</option>
+                </select>
               </div>
             </div>
           </section>
@@ -503,7 +490,8 @@ function DeliveryDetails() {
             <button
               type="button"
               onClick={handleNext}
-              className="h-11 w-full rounded-lg bg-button-background px-6 text-xs font-bold uppercase tracking-[0.6px] text-white shadow-sm transition-colors hover:bg-button-hover sm:w-auto sm:min-w-[180px]"
+              disabled={!selectedAddress}
+              className="h-11 w-full rounded-lg bg-button-background px-6 text-xs font-bold uppercase tracking-[0.6px] text-white shadow-sm transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[180px]"
             >
               Next
             </button>
@@ -512,7 +500,6 @@ function DeliveryDetails() {
       </main>
 
       <CustomerNavbar />
-      <CustomerFooter />
     </div>
   );
 }
