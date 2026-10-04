@@ -359,6 +359,7 @@ function OrderDetails() {
 
           {/* Order Information */}
           <section className="overflow-hidden rounded-lg border border-border-light bg-white shadow-sm">
+            {/* Order Header */}
             <div className="flex flex-col gap-2 border-b border-border-light px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
@@ -407,7 +408,7 @@ function OrderDetails() {
             </div>
 
             {/* Delivery Details */}
-            <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
+            <div className="px-4 py-4 sm:px-5">
               <div className="flex items-start gap-3">
                 <AddressIcon />
 
@@ -422,7 +423,8 @@ function OrderDetails() {
                 </div>
               </div>
 
-              <div className="h-px w-full bg-border-light" />
+              {/* Full-width divider */}
+              <div className="-mx-4 my-4 h-px w-[calc(100%+2rem)] bg-border-light sm:-mx-5 sm:w-[calc(100%+2.5rem)]" />
 
               <div className="flex items-start gap-3">
                 <DateTimeIcon />
@@ -441,24 +443,27 @@ function OrderDetails() {
           </section>
 
           {/* Payment Summary */}
-          <section className="flex flex-col gap-3 rounded-lg border border-border-light bg-white p-4 shadow-sm sm:p-5">
-            <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
-              Payment Summary
-            </h2>
+          <section className="overflow-hidden rounded-lg border border-border-light bg-white shadow-sm">
+            <div className="px-4 py-4 sm:px-5 sm:py-5">
+              <h2 className="text-xs font-bold uppercase tracking-[0.6px] text-text-accent">
+                Payment Summary
+              </h2>
 
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-text-secondary">
-                Order Total
-              </span>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span className="text-sm text-text-secondary">
+                  Order Total
+                </span>
 
-              <span className="text-sm font-bold text-text-primary">
-                PHP {total.toFixed(2)}
-              </span>
+                <span className="text-sm font-bold text-text-primary">
+                  PHP {total.toFixed(2)}
+                </span>
+              </div>
             </div>
 
+            {/* Full-width divider */}
             <div className="h-px w-full bg-border-light" />
 
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3 px-4 py-4 sm:px-5">
               <span className="text-base font-bold text-text-primary">
                 Total
               </span>

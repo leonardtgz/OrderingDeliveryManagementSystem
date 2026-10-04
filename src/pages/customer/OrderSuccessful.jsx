@@ -282,7 +282,7 @@ function OrderSuccessful() {
                   </div>
                 </div>
 
-                <div className="my-2 h-px w-full bg-border-light" />
+                <div className="-mx-4 my-2 h-px w-[calc(100%+2rem)] bg-border-light sm:-mx-5 sm:w-[calc(100%+2.5rem)]" />
 
                 {/* Date & Time */}
 
@@ -327,7 +327,7 @@ function OrderSuccessful() {
                 </span>
               </div>
 
-              <div className="my-3 h-px w-full bg-border-light" />
+              <div className="-mx-4 my-3 h-px w-[calc(100%+2rem)] bg-border-light sm:-mx-5 sm:w-[calc(100%+2.5rem)]" />
 
               <div className="flex items-center justify-between gap-4">
                 <span className="text-xs font-bold uppercase tracking-[0.6px] text-text-secondary">

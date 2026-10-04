@@ -1,7 +1,12 @@
-
 import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
@@ -126,6 +131,7 @@ const emptyAddress = {
   barangay: "Poblacion",
   postalCode: "3008",
   streetAddress: "",
+  isDefault: false,
 };
 
 function TextField({
@@ -136,10 +142,10 @@ function TextField({
   required = false,
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2">
       <label
         htmlFor={id}
-        className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
+        className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.5px] text-text-primary"
       >
         {label}
       </label>
@@ -150,7 +156,7 @@ function TextField({
         value={value}
         required={required}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
+        className="h-11 w-full min-w-0 rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
       />
     </div>
   );
@@ -164,10 +170,10 @@ function SelectField({
   options,
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2">
       <label
         htmlFor={id}
-        className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
+        className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
       >
         {label}
       </label>
@@ -209,6 +215,8 @@ function EditProfile() {
   const [addressForm, setAddressForm] = useState(emptyAddress);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
 
+  const [isClosingEdit, setIsClosingEdit] = useState(false);
+
   const [toast, setToast] = useState({
     show: false,
     title: "",
@@ -219,8 +227,6 @@ function EditProfile() {
   const requestedAddressId = searchParams.get("addressId");
   const shouldAddAddress = searchParams.get("addAddress") === "1";
 
-  // These values are passed when Edit Profile is opened
-  // from the Delivery Details page.
   const returnTo = location.state?.returnTo;
   const returnOrder = location.state?.order;
 
@@ -238,7 +244,10 @@ function EditProfile() {
 
     if (shouldAddAddress) {
       setSelectedAddressId("");
-      setAddressForm({ ...emptyAddress });
+      setAddressForm({
+        ...emptyAddress,
+        isDefault: savedAddresses.length === 0,
+      });
       setIsAddingAddress(true);
       return;
     }
@@ -251,10 +260,12 @@ function EditProfile() {
 
     if (addressToEdit) {
       setSelectedAddressId(addressToEdit.id);
+
       setAddressForm({
         ...emptyAddress,
         ...addressToEdit,
       });
+
       setIsAddingAddress(false);
     } else {
       setSelectedAddressId("");
@@ -289,30 +300,96 @@ function EditProfile() {
   };
 
   const selectAddressToEdit = (addressId) => {
-    setSelectedAddressId(addressId);
-
     const selectedAddress = addresses.find(
-      (address) => String(address.id) === String(addressId),
+      (address) =>
+        String(address.id) === String(addressId),
     );
 
-    if (selectedAddress) {
-      setAddressForm({
-        ...emptyAddress,
-        ...selectedAddress,
-      });
+    if (!selectedAddress) return;
 
-      setIsAddingAddress(false);
-    }
+    setSelectedAddressId(selectedAddress.id);
+
+    setAddressForm({
+      ...emptyAddress,
+      ...selectedAddress,
+    });
+
+    setIsAddingAddress(false);
+    setIsClosingEdit(false);
   };
 
   const startAddingAddress = () => {
     setSelectedAddressId("");
+
     setAddressForm({
       ...emptyAddress,
       id: "",
       label: "Home",
+      isDefault: addresses.length === 0,
     });
+
     setIsAddingAddress(true);
+    setIsClosingEdit(false);
+  };
+
+  const closeEditForm = () => {
+    setIsClosingEdit(true);
+
+    window.setTimeout(() => {
+      setSelectedAddressId("");
+      setAddressForm({ ...emptyAddress });
+      setIsAddingAddress(false);
+      setIsClosingEdit(false);
+    }, 250);
+  };
+
+  const handleSetDefaultAddress = (addressId) => {
+    const currentProfile = getProfile();
+
+    const currentAddresses = Array.isArray(
+      currentProfile.addresses,
+    )
+      ? currentProfile.addresses
+      : [];
+
+    const updatedAddresses = currentAddresses.map(
+      (address) => ({
+        ...address,
+        isDefault:
+          String(address.id) === String(addressId),
+      }),
+    );
+
+    const defaultAddress = updatedAddresses.find(
+      (address) =>
+        String(address.id) === String(addressId),
+    );
+
+    const updatedProfile = {
+      ...currentProfile,
+      addresses: updatedAddresses,
+      address: defaultAddress
+        ? formatAddress(defaultAddress)
+        : currentProfile.address || "",
+    };
+
+    saveProfile(updatedProfile);
+
+    setProfile(updatedProfile);
+    setAddresses(updatedAddresses);
+
+    setAddressForm((current) => ({
+      ...current,
+      isDefault:
+        String(current.id) === String(addressId),
+    }));
+
+    setToast({
+      show: true,
+      title: "Default Address Updated",
+      message:
+        "This address is now your default delivery address.",
+    });
   };
 
   const handleDeleteAddress = (addressId) => {
@@ -322,18 +399,57 @@ function EditProfile() {
 
     if (!confirmed) return;
 
+    const currentProfileBeforeDelete = getProfile();
+
+    const currentAddresses = Array.isArray(
+      currentProfileBeforeDelete.addresses,
+    )
+      ? currentProfileBeforeDelete.addresses
+      : [];
+
+    const deletedAddress = currentAddresses.find(
+      (address) =>
+        String(address.id) === String(addressId),
+    );
+
     deleteAddress(addressId);
 
-    const updatedAddresses = getProfileAddresses();
+    let updatedAddresses = getProfileAddresses();
+
+    if (
+      deletedAddress?.isDefault &&
+      updatedAddresses.length > 0
+    ) {
+      const nextDefaultId =
+        updatedAddresses[0].id;
+
+      updatedAddresses = updatedAddresses.map(
+        (address) => ({
+          ...address,
+          isDefault:
+            String(address.id) ===
+            String(nextDefaultId),
+        }),
+      );
+
+      updatedAddresses.forEach((address) => {
+        saveAddress(address);
+      });
+    }
+
     const currentProfile = getProfile();
+
+    const defaultAddress =
+      updatedAddresses.find(
+        (address) => address.isDefault,
+      ) || updatedAddresses[0];
 
     const updatedProfile = {
       ...currentProfile,
       addresses: updatedAddresses,
-      address:
-        updatedAddresses.length > 0
-          ? formatAddress(updatedAddresses[0])
-          : "",
+      address: defaultAddress
+        ? formatAddress(defaultAddress)
+        : "",
     };
 
     saveProfile(updatedProfile);
@@ -341,77 +457,186 @@ function EditProfile() {
     setProfile(updatedProfile);
     setAddresses(updatedAddresses);
 
-    if (String(selectedAddressId) === String(addressId)) {
-      if (updatedAddresses.length > 0) {
-        const nextAddress = updatedAddresses[0];
-
-        setSelectedAddressId(nextAddress.id);
-        setAddressForm({
-          ...emptyAddress,
-          ...nextAddress,
-        });
-        setIsAddingAddress(false);
-      } else {
-        setSelectedAddressId("");
-        setAddressForm({ ...emptyAddress });
-        setIsAddingAddress(true);
-      }
+    if (
+      String(selectedAddressId) === String(addressId)
+    ) {
+      setSelectedAddressId("");
+      setAddressForm({ ...emptyAddress });
+      setIsAddingAddress(false);
     }
 
     setToast({
       show: true,
       title: "Address Deleted",
-      message: "The saved address has been deleted.",
+      message:
+        "The saved address has been deleted.",
     });
+  };
+
+  const handleSaveAddress = () => {
+    if (
+      !addressForm.streetAddress.trim() ||
+      !addressForm.region ||
+      !addressForm.province ||
+      !addressForm.city ||
+      !addressForm.barangay ||
+      !addressForm.postalCode.trim()
+    ) {
+      window.alert(
+        "Please complete all delivery address fields.",
+      );
+
+      return false;
+    }
+
+    const isEditingExistingAddress =
+      Boolean(addressForm.id) &&
+      !isAddingAddress;
+
+    const addressToSave = {
+      ...addressForm,
+      id: isEditingExistingAddress
+        ? addressForm.id
+        : `address-${Date.now()}`,
+      label:
+        addressForm.label.trim() || "Home",
+      streetAddress:
+        addressForm.streetAddress.trim(),
+      postalCode:
+        addressForm.postalCode.trim(),
+      isDefault: Boolean(addressForm.isDefault),
+    };
+
+    let currentAddresses = getProfileAddresses();
+
+    if (addressToSave.isDefault) {
+      currentAddresses = currentAddresses.map(
+        (address) => ({
+          ...address,
+          isDefault:
+            String(address.id) ===
+            String(addressToSave.id),
+        }),
+      );
+
+      currentAddresses.forEach((address) => {
+        saveAddress(address);
+      });
+    }
+
+    const savedAddress =
+      saveAddress(addressToSave);
+
+    let updatedAddresses =
+      getProfileAddresses();
+
+    if (
+      updatedAddresses.length > 0 &&
+      !updatedAddresses.some(
+        (address) => address.isDefault,
+      )
+    ) {
+      const firstAddress =
+        updatedAddresses[0];
+
+      updatedAddresses =
+        updatedAddresses.map(
+          (address) => ({
+            ...address,
+            isDefault:
+              String(address.id) ===
+              String(firstAddress.id),
+          }),
+        );
+
+      updatedAddresses.forEach((address) => {
+        saveAddress(address);
+      });
+    }
+
+    const defaultAddress =
+      updatedAddresses.find(
+        (address) => address.isDefault,
+      ) || savedAddress;
+
+    const currentProfile = getProfile();
+
+    const updatedProfile = {
+      ...currentProfile,
+      addresses: updatedAddresses,
+      address: defaultAddress
+        ? formatAddress(defaultAddress)
+        : "",
+    };
+
+    saveProfile(updatedProfile);
+
+    setProfile(updatedProfile);
+    setAddresses(updatedAddresses);
+
+    const refreshedAddress =
+      updatedAddresses.find(
+        (address) =>
+          String(address.id) ===
+          String(savedAddress.id),
+      );
+
+    if (refreshedAddress) {
+      setAddressForm({
+        ...emptyAddress,
+        ...refreshedAddress,
+      });
+    }
+
+    setIsClosingEdit(true);
+
+    window.setTimeout(() => {
+      setSelectedAddressId("");
+      setAddressForm({ ...emptyAddress });
+      setIsAddingAddress(false);
+      setIsClosingEdit(false);
+    }, 250);
+
+    setToast({
+      show: true,
+      title: isEditingExistingAddress
+        ? "Address Updated"
+        : "Address Added",
+      message: isEditingExistingAddress
+        ? "Your delivery address has been updated successfully."
+        : "Your new delivery address has been saved successfully.",
+    });
+
+    return true;
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
 
     if (!fullName.trim() || !phoneNumber.trim()) {
-      window.alert("Please enter your full name and phone number.");
+      window.alert(
+        "Please enter your full name and phone number.",
+      );
+
       return;
     }
 
-    const updatedProfile = {
+    let updatedProfile = {
       ...profile,
       fullName: fullName.trim(),
       phoneNumber: phoneNumber.trim(),
     };
 
     if (isAddingAddress || addressForm.id) {
-      if (
-        !addressForm.streetAddress.trim() ||
-        !addressForm.region ||
-        !addressForm.province ||
-        !addressForm.city ||
-        !addressForm.barangay ||
-        !addressForm.postalCode.trim()
-      ) {
-        window.alert("Please complete all delivery address fields.");
-        return;
-      }
+      const addressSaved = handleSaveAddress();
 
-      const addressToSave = {
-        ...addressForm,
-        id: isAddingAddress
-          ? `address-${Date.now()}`
-          : addressForm.id,
-        label: addressForm.label.trim() || "Home",
-        streetAddress: addressForm.streetAddress.trim(),
-        postalCode: addressForm.postalCode.trim(),
-      };
+      if (!addressSaved) return;
 
-      const savedAddress = saveAddress(addressToSave);
-
-      updatedProfile.address = formatAddress(savedAddress);
-      updatedProfile.addresses = getProfileAddresses();
+      updatedProfile = getProfile();
     }
 
     saveProfile(updatedProfile);
 
-    // If Edit Profile was opened from Delivery Details,
-    // preserve the order and return to that step.
     if (returnTo === "/customer/delivery-details") {
       const order = {
         ...(returnOrder || {}),
@@ -447,7 +672,10 @@ function EditProfile() {
         }),
       );
     } catch (error) {
-      console.error("Could not store profile notification:", error);
+      console.error(
+        "Could not store profile notification:",
+        error,
+      );
     }
 
     navigate("/customer/profile", {
@@ -467,6 +695,7 @@ function EditProfile() {
           order: returnOrder,
         },
       });
+
       return;
     }
 
@@ -474,8 +703,9 @@ function EditProfile() {
   };
 
   const availableBarangays =
-    BARANGAYS_BY_MUNICIPALITY[addressForm.city] ||
-    BULACAN_BARANGAYS;
+    BARANGAYS_BY_MUNICIPALITY[
+      addressForm.city
+    ] || BULACAN_BARANGAYS;
 
   return (
     <div className="flex min-h-screen flex-col bg-background-main">
@@ -518,7 +748,9 @@ function EditProfile() {
                 type="tel"
                 value={phoneNumber}
                 required
-                onChange={(event) => setPhoneNumber(event.target.value)}
+                onChange={(event) =>
+                  setPhoneNumber(event.target.value)
+                }
                 className="h-11 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
               />
             </div>
@@ -547,151 +779,526 @@ function EditProfile() {
 
               {addresses.length > 0 && (
                 <div className="mt-4 flex flex-col gap-3">
-                  {addresses.map((address) => (
-                    <div
-                      key={address.id}
-                      className={`rounded-lg border p-3 ${
-                        String(selectedAddressId) === String(address.id)
-                          ? "border-primary-background bg-background-accent"
-                          : "border-border-light"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="radio"
-                          name="selectedAddress"
-                          checked={
-                            String(selectedAddressId) === String(address.id)
-                          }
-                          onChange={() => selectAddressToEdit(address.id)}
-                          className="mt-1 accent-primary-background"
-                          aria-label={`Edit ${address.label || "address"}`}
-                        />
+                  {addresses.map((address) => {
+                    const isSelected =
+                      String(selectedAddressId) ===
+                      String(address.id);
 
-                        <button
-                          type="button"
-                          onClick={() => selectAddressToEdit(address.id)}
-                          className="min-w-0 flex-1 text-left"
-                        >
-                          <span className="text-sm font-semibold text-text-primary">
-                            {address.label || "Address"}
-                          </span>
+                    const isDefault =
+                      Boolean(address.isDefault);
 
-                          <p className="mt-1 text-xs leading-5 text-text-secondary">
-                            {formatAddress(address)}
-                          </p>
-                        </button>
+                    const isEditingThisAddress =
+                      isSelected && !isAddingAddress;
 
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteAddress(address.id)}
-                          className="rounded p-1 text-red-500 transition-colors hover:bg-red-50"
-                          aria-label="Delete address"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                    return (
+                      <div
+                        key={address.id}
+                        className={`overflow-hidden rounded-lg border transition-all duration-300 ease-out ${
+                          isSelected
+                            ? "border-primary-background bg-background-accent"
+                            : "border-border-light bg-background-card"
+                        }`}
+                      >
+                        <div className="p-3">
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="radio"
+                              name="selectedAddress"
+                              checked={isSelected}
+                              onChange={() =>
+                                selectAddressToEdit(
+                                  address.id,
+                                )
+                              }
+                              className="mt-1 accent-primary-background"
+                              aria-label={`Select ${
+                                address.label ||
+                                "address"
+                              } to edit`}
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                selectAddressToEdit(
+                                  address.id,
+                                )
+                              }
+                              className="min-w-0 flex-1 text-left"
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-semibold text-text-primary">
+                                  {address.label ||
+                                    "Address"}
+                                </span>
+
+                                {isDefault && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-primary-background px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.4px] text-white">
+                                    <Check size={10} />
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="mt-1 text-xs leading-5 text-text-secondary">
+                                {formatAddress(address)}
+                              </p>
+                            </button>
+
+                            <div className="flex shrink-0 items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  selectAddressToEdit(
+                                    address.id,
+                                  )
+                                }
+                                className={`rounded-md p-1.5 transition-colors ${
+                                  isEditingThisAddress
+                                    ? "bg-primary-background text-white"
+                                    : "text-text-secondary hover:bg-background-accent hover:text-primary-background"
+                                }`}
+                                aria-label={`Edit ${
+                                  address.label ||
+                                  "address"
+                                }`}
+                              >
+                                <Pencil size={16} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleDeleteAddress(
+                                    address.id,
+                                  )
+                                }
+                                className="rounded-md p-1.5 text-red-500 transition-colors hover:bg-red-50"
+                                aria-label="Delete address"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {isEditingThisAddress && (
+                          <div
+                            className={`border-t border-primary-background/20 bg-background-card transition-all duration-250 ease-out ${
+                              isClosingEdit
+                                ? "max-h-0 translate-y-1 overflow-hidden p-0 opacity-0"
+                                : "max-h-[1000px] translate-y-0 p-4 opacity-100 sm:p-5"
+                            }`}
+                          >
+                            <div className="mb-5 flex items-start justify-between gap-4">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-background-accent text-primary-background">
+                                    <Pencil size={15} />
+                                  </div>
+
+                                  <div>
+                                    <h3 className="text-sm font-bold text-text-primary">
+                                      Edit Delivery Address
+                                    </h3>
+
+                                    <p className="mt-0.5 text-[11px] text-text-secondary">
+                                      Update your saved delivery details.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="rounded-lg border border-border-light bg-background-main p-4 sm:p-5">
+                              <div className="grid grid-cols-1 gap-5">
+                                <TextField
+                                  id={`addressLabel-${address.id}`}
+                                  label="Address Label"
+                                  value={addressForm.label}
+                                  onChange={(value) =>
+                                    updateAddressField(
+                                      "label",
+                                      value,
+                                    )
+                                  }
+                                  required
+                                />
+
+                                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                  <SelectField
+                                    id={`region-${address.id}`}
+                                    label="Region"
+                                    value={addressForm.region}
+                                    onChange={(value) =>
+                                      updateAddressField(
+                                        "region",
+                                        value,
+                                      )
+                                    }
+                                    options={[
+                                      "Central Luzon",
+                                    ]}
+                                  />
+
+                                  <SelectField
+                                    id={`province-${address.id}`}
+                                    label="Province"
+                                    value={addressForm.province}
+                                    onChange={(value) =>
+                                      updateAddressField(
+                                        "province",
+                                        value,
+                                      )
+                                    }
+                                    options={[
+                                      "Bulacan",
+                                    ]}
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                  <SelectField
+                                    id={`city-${address.id}`}
+                                    label="City / Municipality"
+                                    value={addressForm.city}
+                                    onChange={(value) => {
+                                      const nextBarangays =
+                                        BARANGAYS_BY_MUNICIPALITY[
+                                          value
+                                        ] ||
+                                        BULACAN_BARANGAYS;
+
+                                      setAddressForm(
+                                        (current) => ({
+                                          ...current,
+                                          city: value,
+                                          barangay:
+                                            nextBarangays[0] ||
+                                            "",
+                                          postalCode:
+                                            value ===
+                                            "San Rafael"
+                                              ? "3008"
+                                              : "",
+                                        }),
+                                      );
+                                    }}
+                                    options={
+                                      BULACAN_MUNICIPALITIES
+                                    }
+                                  />
+
+                                  <SelectField
+                                    id={`barangay-${address.id}`}
+                                    label="Barangay"
+                                    value={addressForm.barangay}
+                                    onChange={(value) =>
+                                      updateAddressField(
+                                        "barangay",
+                                        value,
+                                      )
+                                    }
+                                    options={
+                                      availableBarangays
+                                    }
+                                  />
+                                </div>
+
+                                {/* POSTAL CODE + STREET ADDRESS */}
+                                <div className="grid grid-cols-1 gap-5 sm:grid-cols-12 sm:items-start">
+                                  <div className="sm:col-span-4">
+                                    <TextField
+                                      id={`postalCode-${address.id}`}
+                                      label="Postal Code"
+                                      value={
+                                        addressForm.postalCode
+                                      }
+                                      onChange={(value) =>
+                                        updateAddressField(
+                                          "postalCode",
+                                          value,
+                                        )
+                                      }
+                                      required
+                                    />
+                                  </div>
+
+                                  <div className="sm:col-span-8">
+                                    <TextField
+                                      id={`streetAddress-${address.id}`}
+                                      label="Street Name / Building / House No."
+                                      value={
+                                        addressForm.streetAddress
+                                      }
+                                      onChange={(value) =>
+                                        updateAddressField(
+                                          "streetAddress",
+                                          value,
+                                        )
+                                      }
+                                      required
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* DEFAULT ADDRESS TOGGLE */}
+                                <div className="flex items-center justify-between gap-4 rounded-md border border-border-light bg-background-card px-3 py-3 sm:px-4">
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-text-primary">
+                                      Default delivery address
+                                    </p>
+
+                                    <p className="mt-0.5 text-[10px] leading-4 text-text-secondary">
+                                      Use this address automatically for delivery.
+                                    </p>
+                                  </div>
+
+                                  <label
+                                    className="relative flex h-5 w-9 shrink-0 cursor-pointer items-center"
+                                    aria-label="Set as default delivery address"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(
+                                        addressForm.isDefault,
+                                      )}
+                                      onChange={(event) =>
+                                        updateAddressField(
+                                          "isDefault",
+                                          event.target.checked,
+                                        )
+                                      }
+                                      className="sr-only"
+                                    />
+
+                                    <span
+                                      className={`relative block h-5 w-9 rounded-full transition-colors duration-200 ${
+                                        addressForm.isDefault
+                                          ? "bg-primary-background"
+                                          : "bg-stone-300"
+                                      }`}
+                                    >
+                                      <span
+                                        className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out ${
+                                          addressForm.isDefault
+                                            ? "translate-x-4"
+                                            : "translate-x-0"
+                                        }`}
+                                      />
+                                    </span>
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-5 flex gap-3">
+                              <button
+                                type="button"
+                                onClick={closeEditForm}
+                                disabled={isClosingEdit}
+                                className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-border-light bg-background-card px-4 text-[10px] font-bold uppercase tracking-[0.5px] text-text-secondary transition-colors hover:bg-background-accent hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Cancel
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={handleSaveAddress}
+                                disabled={isClosingEdit}
+                                className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-primary-background px-4 text-[10px] font-bold uppercase tracking-[0.5px] text-white shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Save Address
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
-              {(isAddingAddress || addresses.length === 0) && (
+              {/* ADD NEW ADDRESS */}
+              {isAddingAddress && (
                 <div className="mt-5 rounded-lg border border-border-light p-4 sm:p-5">
-                  <h3 className="mb-4 text-sm font-bold text-text-primary">
-                    {isAddingAddress ? "Add New Address" : "Address Details"}
-                  </h3>
+                  <div className="mb-4">
+                    <h3 className="text-sm font-bold text-text-primary">
+                      Add New Address
+                    </h3>
+                  </div>
 
                   <div className="flex flex-col gap-4">
                     <TextField
-                      id="addressLabel"
+                      id="newAddressLabel"
                       label="Address Label"
                       value={addressForm.label}
                       onChange={(value) =>
-                        updateAddressField("label", value)
+                        updateAddressField(
+                          "label",
+                          value,
+                        )
                       }
                       required
                     />
 
                     <SelectField
-                      id="region"
+                      id="newRegion"
                       label="Region"
                       value={addressForm.region}
                       onChange={(value) =>
-                        updateAddressField("region", value)
+                        updateAddressField(
+                          "region",
+                          value,
+                        )
                       }
                       options={["Central Luzon"]}
                     />
 
                     <SelectField
-                      id="province"
+                      id="newProvince"
                       label="Province"
                       value={addressForm.province}
                       onChange={(value) =>
-                        updateAddressField("province", value)
+                        updateAddressField(
+                          "province",
+                          value,
+                        )
                       }
                       options={["Bulacan"]}
                     />
 
                     <SelectField
-                      id="city"
+                      id="newCity"
                       label="City / Municipality"
                       value={addressForm.city}
                       onChange={(value) => {
                         const nextBarangays =
-                          BARANGAYS_BY_MUNICIPALITY[value] ||
+                          BARANGAYS_BY_MUNICIPALITY[
+                            value
+                          ] ||
                           BULACAN_BARANGAYS;
 
-                        setAddressForm((current) => ({
-                          ...current,
-                          city: value,
-                          barangay: nextBarangays[0] || "",
-                          postalCode:
-                            value === "San Rafael" ? "3008" : "",
-                        }));
+                        setAddressForm(
+                          (current) => ({
+                            ...current,
+                            city: value,
+                            barangay:
+                              nextBarangays[0] ||
+                              "",
+                            postalCode:
+                              value ===
+                              "San Rafael"
+                                ? "3008"
+                                : "",
+                          }),
+                        );
                       }}
-                      options={BULACAN_MUNICIPALITIES}
+                      options={
+                        BULACAN_MUNICIPALITIES
+                      }
                     />
 
                     <SelectField
-                      id="barangay"
+                      id="newBarangay"
                       label="Barangay"
                       value={addressForm.barangay}
                       onChange={(value) =>
-                        updateAddressField("barangay", value)
+                        updateAddressField(
+                          "barangay",
+                          value,
+                        )
                       }
-                      options={availableBarangays}
+                      options={
+                        availableBarangays
+                      }
                     />
 
                     <TextField
-                      id="postalCode"
+                      id="newPostalCode"
                       label="Postal Code"
                       value={addressForm.postalCode}
                       onChange={(value) =>
-                        updateAddressField("postalCode", value)
+                        updateAddressField(
+                          "postalCode",
+                          value,
+                        )
                       }
                       required
                     />
 
                     <TextField
-                      id="streetAddress"
+                      id="newStreetAddress"
                       label="Street Name / Building / House No."
-                      value={addressForm.streetAddress}
+                      value={
+                        addressForm.streetAddress
+                      }
                       onChange={(value) =>
-                        updateAddressField("streetAddress", value)
+                        updateAddressField(
+                          "streetAddress",
+                          value,
+                        )
                       }
                       required
                     />
+
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(
+                          addressForm.isDefault,
+                        )}
+                        onChange={(event) =>
+                          updateAddressField(
+                            "isDefault",
+                            event.target.checked,
+                          )
+                        }
+                        className="h-4 w-4 accent-primary-background"
+                      />
+
+                      <span className="text-xs font-semibold text-text-primary">
+                        Set as default delivery address
+                      </span>
+                    </label>
+
+                    <div className="mt-1 flex gap-3">
+                      {addresses.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={closeEditForm}
+                          disabled={isClosingEdit}
+                          className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-border-light bg-background-card px-4 text-xs font-bold uppercase tracking-[0.5px] text-text-secondary transition-colors hover:bg-background-accent hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Cancel
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={handleSaveAddress}
+                        disabled={isClosingEdit}
+                        className={`flex min-h-11 items-center justify-center rounded-lg bg-primary-background px-4 text-xs font-bold uppercase tracking-[0.6px] text-white shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 ${
+                          addresses.length > 0
+                            ? "flex-1"
+                            : "w-full"
+                        }`}
+                      >
+                        Save Address
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {!isAddingAddress && addresses.length > 0 && (
-                <p className="mt-3 text-xs leading-5 text-text-secondary">
-                  Select an address above to edit its details, or click Add
-                  Address to create another one.
-                </p>
-              )}
+              {!isAddingAddress &&
+                addresses.length > 0 && (
+                  <p className="mt-3 text-xs leading-5 text-text-secondary">
+                    Select an address above to edit its
+                    details, or click Add Address to create
+                    another one.
+                  </p>
+                )}
             </div>
 
             <div className="flex flex-col gap-3 border-t border-border-light pt-5 sm:flex-row">

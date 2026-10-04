@@ -127,6 +127,7 @@ function OrderSummary() {
     };
   };
 
+  // Edit selected products
   const handleEditOrder = () => {
     const order =
       buildOrderData();
@@ -134,6 +135,20 @@ function OrderSummary() {
     saveCurrentOrder(order);
 
     navigate("/customer/edit-order", {
+      state: {
+        order,
+      },
+    });
+  };
+
+  // Edit delivery details
+  const handleEditDeliveryDetails = () => {
+    const order =
+      buildOrderData();
+
+    saveCurrentOrder(order);
+
+    navigate("/customer/delivery-details", {
       state: {
         order,
       },
@@ -233,10 +248,19 @@ function OrderSummary() {
 
           {/* PRODUCTS */}
           <section className="overflow-hidden rounded-xl border border-border-light bg-background-card shadow-card">
-            <div className="border-b border-border-light bg-background-accent px-5 py-4">
+            <div className="flex items-center justify-between border-b border-border-light bg-background-accent px-5 py-4">
               <h2 className="text-sm font-bold uppercase tracking-[0.6px] text-text-accent">
                 Selected Products
               </h2>
+
+              <button
+                type="button"
+                onClick={handleEditOrder}
+                aria-label="Edit selected products"
+                className="flex h-9 w-9 items-center justify-center rounded-md text-text-accent transition-colors hover:bg-background-main"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
             </div>
 
             <div>
@@ -296,8 +320,8 @@ function OrderSummary() {
 
               <button
                 type="button"
-                onClick={handleEditOrder}
-                aria-label="Edit order"
+                onClick={handleEditDeliveryDetails}
+                aria-label="Edit delivery details"
                 className="flex h-9 w-9 items-center justify-center rounded-md text-text-accent transition-colors hover:bg-background-main"
               >
                 <Pencil className="h-4 w-4" />
