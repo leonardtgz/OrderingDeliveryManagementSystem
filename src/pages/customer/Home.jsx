@@ -99,7 +99,9 @@ const normalizeStatus = (status) => {
 };
 
 const getStatusType = (status) => {
-  const normalized = normalizeStatus(status);
+  const normalized = String(status || "pending")
+    .trim()
+    .toLowerCase();
 
   if (
     normalized.includes("cancel") ||
@@ -113,7 +115,7 @@ const getStatusType = (status) => {
     normalized.includes("delivered") ||
     normalized.includes("completed")
   ) {
-    return "completed";
+    return "delivered";
   }
 
   if (
@@ -125,9 +127,9 @@ const getStatusType = (status) => {
   }
 
   if (
+    normalized.includes("processing") ||
     normalized.includes("purifying") ||
-    normalized.includes("confirmed") ||
-    normalized.includes("processing")
+    normalized.includes("confirmed")
   ) {
     return "processing";
   }
@@ -137,7 +139,7 @@ const getStatusType = (status) => {
 
 const isCompletedStatus = (status) => {
   const type = getStatusType(status);
-  return type === "completed" || type === "cancelled";
+  return type === "delivered" || type === "cancelled";
 };
 
 const isActiveStatus = (status) => {
@@ -151,7 +153,7 @@ const getStatusBadgeClass = (status) => {
     pending: "border border-amber-200 bg-amber-100 text-amber-800",
     processing: "border border-blue-200 bg-blue-100 text-blue-800",
     delivery: "border border-cyan-200 bg-cyan-100 text-cyan-800",
-    completed: "border border-green-200 bg-green-100 text-green-800",
+    delivered: "border border-green-200 bg-green-100 text-green-800",
     cancelled: "border border-red-200 bg-red-100 text-red-800",
   };
 
@@ -167,7 +169,7 @@ const getStatusSteps = (status) => {
     currentStep = 1;
   } else if (type === "delivery") {
     currentStep = 2;
-  } else if (type === "completed") {
+  } else if (type === "delivered") {
     currentStep = 3;
   }
 
@@ -178,7 +180,7 @@ const getStatusSteps = (status) => {
       state: currentStep === 0 ? "current" : "completed",
     },
     {
-      label: "Purifying",
+      label: "Processing",
       value:
         currentStep === 1
           ? "Current"
@@ -239,7 +241,7 @@ const getStepClass = (state) => {
 const getEstimatedTime = (order) => {
   const type = getStatusType(order?.status);
 
-  if (type === "completed") {
+  if (type === "delivered") {
     return "Delivered";
   }
 

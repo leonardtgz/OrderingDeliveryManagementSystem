@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { MapPin, Plus } from "lucide-react";
+import { MapPin, Plus, ChevronDown } from "lucide-react";
 
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
@@ -49,13 +49,13 @@ function DeliveryDetails() {
     existingOrder.deliveryAddressId || "",
   );
 
-  const [deliveryDate, setDeliveryDate] = useState(
-    existingOrder.deliveryDate || todayDate,
-  );
+  // Intentionally empty.
+  // The customer must choose a delivery date.
+  const [deliveryDate, setDeliveryDate] = useState("");
 
-  const [deliveryTime, setDeliveryTime] = useState(
-    existingOrder.deliveryTime || "09:00",
-  );
+  // Intentionally empty.
+  // The customer must choose a delivery time.
+  const [deliveryTime, setDeliveryTime] = useState("");
 
   const [notes, setNotes] = useState(existingOrder.notes || "");
 
@@ -165,7 +165,10 @@ function DeliveryDetails() {
 
       deliveryDate,
       deliveryTime,
-      deliverySchedule: `${deliveryDate}, ${deliveryTime}`,
+      deliverySchedule:
+        deliveryDate && deliveryTime
+          ? `${deliveryDate}, ${deliveryTime}`
+          : "",
       notes,
 
       subtotal,
@@ -186,8 +189,13 @@ function DeliveryDetails() {
       return;
     }
 
-    if (!deliveryDate || !deliveryTime) {
-      window.alert("Please select a delivery date and time.");
+    if (!deliveryDate) {
+      window.alert("Please select a delivery date.");
+      return;
+    }
+
+    if (!deliveryTime) {
+      window.alert("Please select a delivery time.");
       return;
     }
 
@@ -407,6 +415,7 @@ function DeliveryDetails() {
                 <input
                   id="deliveryDate"
                   type="date"
+                  required
                   min={todayDate}
                   value={deliveryDate}
                   onChange={(event) => {
@@ -428,22 +437,36 @@ function DeliveryDetails() {
                   Preferred Delivery Time
                 </label>
 
-                <select
-                  id="deliveryTime"
-                  value={deliveryTime}
-                  onChange={(event) => setDeliveryTime(event.target.value)}
-                  className="h-11 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none focus:border-primary-background"
-                >
-                  <option value="09:00">9:00 AM</option>
-                  <option value="10:00">10:00 AM</option>
-                  <option value="11:00">11:00 AM</option>
-                  <option value="12:00">12:00 PM</option>
-                  <option value="13:00">1:00 PM</option>
-                  <option value="14:00">2:00 PM</option>
-                  <option value="15:00">3:00 PM</option>
-                  <option value="16:00">4:00 PM</option>
-                  <option value="17:00">5:00 PM</option>
-                </select>
+                <div className="relative w-full">
+                  <select
+                    id="deliveryTime"
+                    required
+                    value={deliveryTime}
+                    onChange={(event) => setDeliveryTime(event.target.value)}
+                    className="h-11 w-full appearance-none rounded-md border border-border-light bg-background-card px-3 pr-12 text-sm text-text-primary outline-none focus:border-primary-background"
+                  >
+                    <option value="" disabled>
+                      Select a time
+                    </option>
+
+                    <option value="09:00">9:00 AM</option>
+                    <option value="10:00">10:00 AM</option>
+                    <option value="11:00">11:00 AM</option>
+                    <option value="12:00">12:00 PM</option>
+                    <option value="13:00">1:00 PM</option>
+                    <option value="14:00">2:00 PM</option>
+                    <option value="15:00">3:00 PM</option>
+                    <option value="16:00">4:00 PM</option>
+                    <option value="17:00">5:00 PM</option>
+                  </select>
+
+                  <ChevronDown
+                    size={18}
+                    strokeWidth={2}
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary"
+                    aria-hidden="true"
+                  />
+                </div>
               </div>
             </div>
           </section>
@@ -490,7 +513,11 @@ function DeliveryDetails() {
             <button
               type="button"
               onClick={handleNext}
-              disabled={!selectedAddress}
+              disabled={
+                !selectedAddress ||
+                !deliveryDate ||
+                !deliveryTime
+              }
               className="h-11 w-full rounded-lg bg-button-background px-6 text-xs font-bold uppercase tracking-[0.6px] text-white shadow-sm transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[180px]"
             >
               Next

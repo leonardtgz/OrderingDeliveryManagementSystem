@@ -18,7 +18,7 @@ import {
 
 const statusOptions = [
   "PENDING",
-  "CONFIRMED",
+  "PROCESSING",
   "OUT FOR DELIVERY",
   "DELIVERED",
   "CANCELLED",
@@ -39,24 +39,22 @@ function normalizeStatus(status) {
 function convertOrderStatusToDeliveryStatus(status) {
   const normalizedStatus = normalizeStatus(status);
 
-  if (
-    normalizedStatus === "" ||
-    normalizedStatus === "pending" ||
-    normalizedStatus === "processing"
-  ) {
+  if (normalizedStatus === "pending") {
     return "PENDING";
   }
 
   if (
+    normalizedStatus === "processing" ||
     normalizedStatus === "confirmed" ||
     normalizedStatus === "purifying"
   ) {
-    return "CONFIRMED";
+    return "PROCESSING";
   }
 
   if (
     normalizedStatus === "out for delivery" ||
-    normalizedStatus === "in transit"
+    normalizedStatus === "in transit" ||
+    normalizedStatus === "on the way"
   ) {
     return "OUT FOR DELIVERY";
   }
@@ -81,7 +79,7 @@ function convertOrderStatusToDeliveryStatus(status) {
 function convertDeliveryStatusToOrderStatus(status) {
   const statusMap = {
     PENDING: "Pending",
-    CONFIRMED: "Confirmed",
+    PROCESSING: "Processing",
     "OUT FOR DELIVERY": "Out for Delivery",
     DELIVERED: "Delivered",
     CANCELLED: "Cancelled",
@@ -148,7 +146,7 @@ function DeliveryCard({
     setSelectedStatus(delivery.status);
   }, [delivery.status]);
 
-  const isDelivered =
+  const isCompleted =
     delivery.status === "DELIVERED";
 
   const isCancelled =
@@ -302,7 +300,7 @@ function DeliveryCard({
               UPDATE STATUS BUTTON
           =================================================== */}
 
-          {!isDelivered &&
+          {!isCompleted &&
             !isCancelled && (
               <button
                 type="button"
@@ -347,8 +345,12 @@ function Deliveries() {
   const loadDeliveries = () => {
     const savedOrders = getOrders();
 
+    if (!Array.isArray(savedOrders)) {
+      setDeliveries([]);
+      return;
+    }
+
     /*
-     * IMPORTANT:
      * Build one delivery card per order.
      *
      * This prevents duplicate cards from appearing when
@@ -562,8 +564,7 @@ function Deliveries() {
       () =>
         deliveries.filter(
           (delivery) =>
-            delivery.status ===
-              "DELIVERED" ||
+            delivery.status === "DELIVERED" ||
             delivery.status ===
               "CANCELLED",
         ),

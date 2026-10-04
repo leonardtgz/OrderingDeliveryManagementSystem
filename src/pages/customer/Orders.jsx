@@ -89,37 +89,37 @@ const getStatusStyle = (status) => {
     .trim()
     .toLowerCase();
 
-  if (["completed", "delivered"].includes(normalizedStatus)) {
-    return "bg-emerald-100 text-emerald-800";
+  if (
+    normalizedStatus === "delivered" ||
+    normalizedStatus === "completed"
+  ) {
+    return "border border-green-200 bg-green-100 text-green-800";
   }
 
   if (
-    ["pending", "awaiting confirmation"].includes(normalizedStatus)
+    normalizedStatus === "cancelled" ||
+    normalizedStatus === "canceled"
   ) {
-    return "bg-amber-100 text-amber-800";
+    return "border border-red-200 bg-red-100 text-red-800";
   }
 
   if (
-    ["confirmed", "processing", "purifying"].includes(normalizedStatus)
+    normalizedStatus === "out for delivery" ||
+    normalizedStatus === "in transit" ||
+    normalizedStatus === "on the way"
   ) {
-    return "bg-sky-100 text-sky-800";
+    return "border border-cyan-200 bg-cyan-100 text-cyan-800";
   }
 
   if (
-    ["out for delivery", "in transit", "on the way"].includes(
-      normalizedStatus,
-    )
+    normalizedStatus === "processing" ||
+    normalizedStatus === "purifying" ||
+    normalizedStatus === "confirmed"
   ) {
-    return "bg-violet-100 text-violet-800";
+    return "border border-blue-200 bg-blue-100 text-blue-800";
   }
 
-  if (
-    ["cancelled", "canceled", "failed"].includes(normalizedStatus)
-  ) {
-    return "bg-rose-100 text-rose-800";
-  }
-
-  return "bg-stone-100 text-stone-700";
+  return "border border-amber-200 bg-amber-100 text-amber-800";
 };
 
 function HistoryCard({ order, onTrack, onViewDetails }) {
@@ -140,8 +140,7 @@ function HistoryCard({ order, onTrack, onViewDetails }) {
 
   const normalizedStatus = String(status).trim().toLowerCase();
 
-  const isCompleted = [
-    "completed",
+  const isFinalStatus = [
     "delivered",
     "cancelled",
     "canceled",
@@ -220,7 +219,7 @@ function HistoryCard({ order, onTrack, onViewDetails }) {
             View Details
           </button>
 
-          {!isCompleted && (
+          {!isFinalStatus && (
             <button
               type="button"
               onClick={onTrack}

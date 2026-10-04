@@ -6,6 +6,7 @@ import { Activity, Clock, User } from "lucide-react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import Header from "../../components/Header/Header";
 import { getActivityLogs } from "../../utils/ActLog";
+import AdminFooter from "../../components/admin/AdminFooter";
 
 const ORDERS_KEY = "goldenpr_orders";
 const ACTIVITY_KEY = "goldenpr_activity_log";
@@ -717,6 +718,7 @@ function Dashboard() {
             </div>
           </div>
         </div>
+        <AdminFooter />
       </div>
     </main>
   );

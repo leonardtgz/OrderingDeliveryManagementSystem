@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Trash2, Plus } from "lucide-react";
@@ -323,26 +322,14 @@ function EditOrder() {
                       <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
                         <div className="flex flex-col items-start gap-2 sm:items-end">
                           {index === 0 && (
-                            <div className="flex flex-col items-start gap-2 sm:items-end">
-                              {index === 0 && (
-                                <button
-                                  type="button"
-                                  onClick={handleAddItem}
-                                  className="inline-flex items-center gap-2 rounded-md border border-border-light bg-background-card px-3 py-2 text-sm font-bold text-text-accent transition-colors hover:border-primary-background hover:bg-background-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-background focus-visible:ring-offset-2"
-                                >
-                                  <Plus size={16} strokeWidth={2.25} />
-                                  Add Item
-                                </button>
-                              )}
-
-                              <span className="text-sm font-bold text-text-primary">
-                                ₱
-                                {(
-                                  Number(product.price) *
-                                  Number(product.quantity)
-                                ).toFixed(2)}
-                              </span>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={handleAddItem}
+                              className="inline-flex items-center gap-2 rounded-md border border-border-light bg-background-card px-3 py-2 text-sm font-bold text-text-accent transition-colors hover:border-primary-background hover:bg-background-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-background focus-visible:ring-offset-2"
+                            >
+                              <Plus size={16} strokeWidth={2.25} />
+                              Add Item
+                            </button>
                           )}
 
                           <span className="text-sm font-bold text-text-primary">

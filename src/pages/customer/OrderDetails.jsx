@@ -193,12 +193,22 @@ const getStatusStyle = (status) => {
   }
 
   if (
-    normalizedStatus === "pending" ||
-    normalizedStatus === "confirmed" ||
     normalizedStatus === "out for delivery" ||
     normalizedStatus === "in transit" ||
-    normalizedStatus === "processing"
+    normalizedStatus === "on the way"
   ) {
+    return "bg-cyan-100 text-cyan-800";
+  }
+
+  if (
+    normalizedStatus === "confirmed" ||
+    normalizedStatus === "processing" ||
+    normalizedStatus === "purifying"
+  ) {
+    return "bg-blue-100 text-blue-800";
+  }
+
+  if (normalizedStatus === "pending") {
     return "bg-amber-100 text-amber-800";
   }
 
@@ -209,53 +219,20 @@ function OrderDetails() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // This is the EXACT order selected from the Orders page.
   const passedOrder = location.state?.order;
 
   const [order, setOrder] = useState(passedOrder || null);
 
-  const loadLatestOrder = () => {
-    const orders = getOrders();
-
-    if (!Array.isArray(orders) || !passedOrder) {
-      return;
-    }
-
-    const latestOrder = orders.find((savedOrder) => {
-      const sameId =
-        String(savedOrder.id) === String(passedOrder.id);
-
-      const sameOrderNumber =
-        passedOrder.orderNumber &&
-        String(savedOrder.orderNumber) ===
-          String(passedOrder.orderNumber);
-
-      return sameId || sameOrderNumber;
-    });
-
-    if (latestOrder) {
-      setOrder({ ...latestOrder });
-    }
-  };
-
+  // Use the exact order passed through navigation.
+  // Do NOT search getOrders() for another order because that can
+  // cause the details page to display a different order.
   useEffect(() => {
-    loadLatestOrder();
-
-    const handleOrderUpdate = () => {
-      loadLatestOrder();
-    };
-
-    window.addEventListener("storage", handleOrderUpdate);
-    window.addEventListener("orderUpdated", handleOrderUpdate);
-    window.addEventListener("ordersUpdated", handleOrderUpdate);
-
-    const interval = window.setInterval(loadLatestOrder, 1000);
-
-    return () => {
-      window.removeEventListener("storage", handleOrderUpdate);
-      window.removeEventListener("orderUpdated", handleOrderUpdate);
-      window.removeEventListener("ordersUpdated", handleOrderUpdate);
-      window.clearInterval(interval);
-    };
+    if (passedOrder) {
+      setOrder(passedOrder);
+    } else {
+      setOrder(null);
+    }
   }, [passedOrder]);
 
   const handleBack = () => {
@@ -528,6 +505,7 @@ function OrderDetails() {
       <div className="fixed bottom-0 left-0 z-50 w-full">
         <CustomerNavbar activeTab="orders" />
       </div>
+
       <CustomerFooter />
     </div>
   );

@@ -158,14 +158,25 @@ function OrderSummary() {
         new Date().toISOString(),
     };
 
-    saveCurrentOrder(order);
-    addOrder(order);
+    /*
+     * addOrder() creates a NEW unique ID
+     * and NEW unique order number.
+     *
+     * We use the returned order so the
+     * success page, Orders page, Details
+     * page, Track page, and Deliveries
+     * page all reference the same newly
+     * created order.
+     */
+    const savedOrder = addOrder(order);
+
+    saveCurrentOrder(savedOrder);
 
     navigate(
       "/customer/order-successful",
       {
         state: {
-          order,
+          order: savedOrder,
         },
       },
     );

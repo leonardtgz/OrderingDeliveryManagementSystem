@@ -3,8 +3,7 @@ const CURRENT_ORDER_KEY = "goldenpr_current_order";
 
 export const getOrders = () => {
   try {
-    const savedOrders =
-      localStorage.getItem(ORDERS_KEY);
+    const savedOrders = localStorage.getItem(ORDERS_KEY);
 
     if (!savedOrders) {
       return [];
@@ -12,15 +11,9 @@ export const getOrders = () => {
 
     const orders = JSON.parse(savedOrders);
 
-    return Array.isArray(orders)
-      ? orders
-      : [];
+    return Array.isArray(orders) ? orders : [];
   } catch (error) {
-    console.error(
-      "Failed to load orders:",
-      error,
-    );
-
+    console.error("Failed to load orders:", error);
     return [];
   }
 };
@@ -31,7 +24,6 @@ export const saveOrders = (orders) => {
     JSON.stringify(orders),
   );
 
-  // Notify all pages in the same application.
   window.dispatchEvent(
     new Event("ordersUpdated"),
   );
@@ -43,18 +35,41 @@ export const saveOrders = (orders) => {
 
 export const addOrder = (order) => {
   const orders = getOrders();
+  const now = new Date().toISOString();
 
-  const now =
-    new Date().toISOString();
+  // Always create a completely new internal ID
+  // for every newly confirmed order.
+  const uniqueId = `order-${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 8)}`;
+
+  // Generate a unique customer-facing order number.
+  let orderNumber;
+
+  do {
+    orderNumber = `ORD-${Math.floor(
+      100000 + Math.random() * 900000,
+    )}`;
+  } while (
+    orders.some(
+      (existingOrder) =>
+        String(existingOrder.orderNumber) ===
+        String(orderNumber),
+    )
+  );
 
   const newOrder = {
     ...order,
 
+    // Do NOT reuse the ID/order number from
+    // the previous/current order.
+    id: uniqueId,
+    orderNumber,
+
     createdAt:
       order.createdAt || now,
 
-    updatedAt:
-      order.updatedAt || now,
+    updatedAt: now,
   };
 
   const updatedOrders = [
@@ -64,7 +79,7 @@ export const addOrder = (order) => {
 
   saveOrders(updatedOrders);
 
-  return updatedOrders;
+  return newOrder;
 };
 
 export const updateOrder = (
@@ -73,8 +88,8 @@ export const updateOrder = (
 ) => {
   const orders = getOrders();
 
-  const updatedOrders =
-    orders.map((order) => {
+  const updatedOrders = orders.map(
+    (order) => {
       const matchesId =
         String(order.id) ===
         String(orderId);
@@ -96,7 +111,8 @@ export const updateOrder = (
       }
 
       return order;
-    });
+    },
+  );
 
   saveOrders(updatedOrders);
 

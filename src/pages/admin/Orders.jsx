@@ -27,9 +27,7 @@ import {
 const statusOptions = [
   "Pending",
   "Processing",
-  "Confirmed",
   "Out for Delivery",
-  "Completed",
   "Delivered",
   "Cancelled",
 ];
