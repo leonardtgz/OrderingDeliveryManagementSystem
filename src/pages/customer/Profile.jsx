@@ -15,17 +15,25 @@ import {
   MapPinned,
   Phone,
   CheckCircle2,
+  Edit3,
+  LockKeyhole,
 } from "lucide-react";
 
 import Header from "../../components/Header/Header";
+
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+
 import CustomerFooter from "../../components/customer/CustomerFooter";
+
 import { getProfile, formatAddress } from "../../utils/profileStorage";
 
 function Profile() {
   const navigate = useNavigate();
+
   const [profile, setProfile] = useState(() => getProfile());
+
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   const [showTermsModal, setShowTermsModal] = useState(false);
 
   useEffect(() => {
@@ -36,10 +44,12 @@ function Profile() {
     loadProfile();
 
     window.addEventListener("profileUpdated", loadProfile);
+
     window.addEventListener("storage", loadProfile);
 
     return () => {
       window.removeEventListener("profileUpdated", loadProfile);
+
       window.removeEventListener("storage", loadProfile);
     };
   }, []);
@@ -48,6 +58,7 @@ function Profile() {
     const handleEscape = (event) => {
       if (event.key === "Escape") {
         setShowLogoutModal(false);
+
         setShowTermsModal(false);
       }
     };
@@ -65,6 +76,7 @@ function Profile() {
 
   const confirmLogout = () => {
     setShowLogoutModal(false);
+
     navigate("/login");
   };
 
@@ -86,6 +98,7 @@ function Profile() {
 
   const getAddressText = (address) => {
     const formatted = formatAddress(address);
+
     return formatted || "No address details provided.";
   };
 
@@ -102,6 +115,7 @@ function Profile() {
             <h1 className="text-2xl font-bold leading-tight tracking-tight text-text-accent sm:text-[28px]">
               Profile
             </h1>
+
             <p className="mt-1 text-sm leading-5 text-text-secondary">
               Manage your account information and preferences.
             </p>
@@ -129,6 +143,7 @@ function Profile() {
 
                 <div className="mt-1 flex items-center justify-center gap-1.5 text-sm text-text-secondary sm:justify-start">
                   <Phone size={14} />
+
                   <span>
                     {profile.phoneNumber || "No contact number added"}
                   </span>
@@ -136,10 +151,10 @@ function Profile() {
 
                 {/* Account Status */}
                 <span
-                  className={`mt-3 inline-flex rounded-full px-3 py-1 text-[9px] font-bold uppercase tracking-[0.5px] ${
+                  className={`mt-3 inline-flex items-center rounded-full border px-3 py-1 text-[9px] font-bold uppercase tracking-[0.5px] ${
                     profile.status === "Active"
-                      ? "bg-background-lightBlue text-text-accent"
-                      : "bg-background-accent text-text-secondary"
+                      ? "border-green-200 bg-green-50 text-green-700"
+                      : "border-gray-200 bg-gray-100 text-gray-600"
                   }`}
                 >
                   {profile.status === "Offline" ? "Offline" : "Active"}
@@ -153,6 +168,7 @@ function Profile() {
                 <span className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
                   Name
                 </span>
+
                 <p className="mt-1 text-sm font-semibold text-text-primary">
                   {profile.fullName || "Not provided"}
                 </p>
@@ -162,6 +178,7 @@ function Profile() {
                 <span className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
                   Contact Number
                 </span>
+
                 <p className="mt-1 text-sm font-semibold text-text-primary">
                   {profile.phoneNumber || "Not provided"}
                 </p>
@@ -174,6 +191,7 @@ function Profile() {
                     <h3 className="text-sm font-bold text-text-primary">
                       Saved Addresses
                     </h3>
+
                     <p className="mt-1 text-xs leading-5 text-text-secondary">
                       Manage the locations where you receive deliveries.
                     </p>
@@ -327,13 +345,20 @@ function Profile() {
               onClick={() => navigate("/customer/edit-profile")}
               className="flex w-full items-center justify-between border-b border-border-light px-5 py-4 text-left transition-colors hover:bg-background-accent sm:px-6"
             >
-              <div>
-                <p className="text-sm font-semibold text-text-primary">
-                  Edit Profile
-                </p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  Update your personal information
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background-lightBlue text-primary-background transition-colors duration-200">
+                  <Edit3 className="h-4 w-4" />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">
+                    Edit Profile
+                  </p>
+
+                  <p className="mt-1 text-xs text-text-secondary">
+                    Update your personal information
+                  </p>
+                </div>
               </div>
 
               <ChevronRight
@@ -347,13 +372,20 @@ function Profile() {
               onClick={() => navigate("/customer/change-password")}
               className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-background-accent sm:px-6"
             >
-              <div>
-                <p className="text-sm font-semibold text-text-primary">
-                  Change Password
-                </p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  Update your account password
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background-lightBlue text-primary-background transition-colors duration-200">
+                  <LockKeyhole className="h-4 w-4" />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">
+                    Change Password
+                  </p>
+
+                  <p className="mt-1 text-xs text-text-secondary">
+                    Update your account password
+                  </p>
+                </div>
               </div>
 
               <ChevronRight
@@ -385,6 +417,7 @@ function Profile() {
                 <p className="text-sm font-semibold text-text-primary">
                   FAQs
                 </p>
+
                 <p className="mt-1 text-xs text-text-secondary">
                   Find answers to frequently asked questions
                 </p>
@@ -410,6 +443,7 @@ function Profile() {
                 <p className="text-sm font-semibold text-text-primary">
                   Contact Support
                 </p>
+
                 <p className="mt-1 text-xs text-text-secondary">
                   Get help with your account or orders
                 </p>
@@ -439,6 +473,7 @@ function Profile() {
                 <p className="text-sm font-semibold text-text-primary">
                   Terms &amp; Conditions
                 </p>
+
                 <p className="mt-1 text-xs text-text-secondary">
                   Review the terms and conditions for using GoldenPR
                 </p>
@@ -563,6 +598,7 @@ function Profile() {
                   <h3 className="font-bold text-text-primary">
                     1. Acceptance of Terms
                   </h3>
+
                   <p className="mt-1.5">
                     By using the GoldenPR water delivery service, you agree
                     to comply with these Terms &amp; Conditions. If you do
@@ -574,6 +610,7 @@ function Profile() {
                   <h3 className="font-bold text-text-primary">
                     2. Account Information
                   </h3>
+
                   <p className="mt-1.5">
                     Customers are responsible for providing accurate and
                     updated account information, including their name,
@@ -585,6 +622,7 @@ function Profile() {
                   <h3 className="font-bold text-text-primary">
                     3. Orders and Delivery
                   </h3>
+
                   <p className="mt-1.5">
                     Customers are responsible for reviewing their order
                     details before confirming an order. Delivery schedules
@@ -597,6 +635,7 @@ function Profile() {
                   <h3 className="font-bold text-text-primary">
                     4. Payments
                   </h3>
+
                   <p className="mt-1.5">
                     Customers are responsible for paying the applicable
                     amount for their confirmed orders. Prices and delivery
@@ -608,6 +647,7 @@ function Profile() {
                   <h3 className="font-bold text-text-primary">
                     5. Cancellations
                   </h3>
+
                   <p className="mt-1.5">
                     Customers may cancel orders subject to the applicable
                     order status and GoldenPR&apos;s cancellation procedures.
@@ -618,6 +658,7 @@ function Profile() {
                   <h3 className="font-bold text-text-primary">
                     6. Customer Responsibilities
                   </h3>
+
                   <p className="mt-1.5">
                     Customers agree to use the GoldenPR system responsibly
                     and provide information that is truthful and accurate.
@@ -630,6 +671,7 @@ function Profile() {
                   <h3 className="font-bold text-text-primary">
                     7. Privacy
                   </h3>
+
                   <p className="mt-1.5">
                     GoldenPR handles customer information in accordance
                     with its Privacy Notice and applicable Philippine data
@@ -641,6 +683,7 @@ function Profile() {
                   <h3 className="font-bold text-text-primary">
                     8. Changes to These Terms
                   </h3>
+
                   <p className="mt-1.5">
                     GoldenPR may update these Terms &amp; Conditions when
                     necessary. Updated terms will be made available to
@@ -652,6 +695,7 @@ function Profile() {
                   <h3 className="font-bold text-text-primary">
                     9. Contact
                   </h3>
+
                   <p className="mt-1.5">
                     If you have questions about these Terms &amp; Conditions,
                     you may contact GoldenPR through the Contact Support

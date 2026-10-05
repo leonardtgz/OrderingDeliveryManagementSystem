@@ -1,19 +1,22 @@
 import React, { useEffect, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
+
 import {
   ArrowLeft,
   ChevronRight,
   Edit3,
   LockKeyhole,
-  LogOut,
   Mail,
   MapPin,
   Phone,
   User,
-  X,
 } from "lucide-react";
+
 import Header from "../../components/Header/Header";
+
 import AdminSidebar from "../../components/admin/AdminSidebar";
+
 import AdminFooter from "../../components/admin/AdminFooter";
 
 const DEFAULT_PROFILE = {
@@ -55,8 +58,8 @@ function getCurrentUser() {
 
 function Profile() {
   const navigate = useNavigate();
+
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const loadProfile = () => {
     const currentUser = getCurrentUser();
@@ -100,26 +103,6 @@ function Profile() {
       window.removeEventListener("userUpdated", handleProfileUpdate);
     };
   }, []);
-
-  const handleLogout = () => {
-    const possibleKeys = [
-      "currentUser",
-      "authenticatedUser",
-      "loggedInUser",
-      "user",
-    ];
-
-    possibleKeys.forEach((key) => {
-      localStorage.removeItem(key);
-    });
-
-    navigate("/login");
-  };
-
-  const handleLogoutConfirm = () => {
-    setShowLogoutModal(false);
-    handleLogout();
-  };
 
   return (
     <div className="min-h-screen bg-background-main">
@@ -176,8 +159,8 @@ function Profile() {
                     <span
                       className={`mt-3 rounded-full px-3 py-1 text-[9px] font-bold uppercase tracking-[0.5px] ${
                         profile.status === "Active"
-                          ? "bg-background-lightBlue text-text-accent"
-                          : "bg-background-accent text-text-secondary"
+                          ? "border border-green-200 bg-green-100 text-green-700"
+                          : "border border-gray-200 bg-gray-100 text-gray-600"
                       }`}
                     >
                       {profile.status}
@@ -348,16 +331,6 @@ function Profile() {
                       </button>
                     </div>
                   </div>
-
-                  {/* Log Out */}
-                  <button
-                    type="button"
-                    onClick={() => setShowLogoutModal(true)}
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-3 text-[11px] font-bold uppercase tracking-[0.5px] text-red-600 transition-colors duration-200 hover:border-red-300 hover:bg-red-50"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    LOG OUT
-                  </button>
                 </div>
               </section>
             </div>
@@ -366,62 +339,6 @@ function Profile() {
           <AdminFooter />
         </div>
       </div>
-
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/25 px-4"
-          onClick={() => setShowLogoutModal(false)}
-        >
-          <div
-            className="w-full max-w-[420px] overflow-hidden rounded-xl border border-red-200 bg-background-card shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex justify-end px-6 pt-5 sm:px-8">
-              <button
-                type="button"
-                onClick={() => setShowLogoutModal(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-background-main hover:text-text-primary"
-                aria-label="Close logout modal"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="px-7 pb-7 pt-2 text-center sm:px-8">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-600">
-                <LogOut className="h-7 w-7" />
-              </div>
-
-              <h2 className="mt-5 text-lg font-bold text-text-primary">
-                Log Out?
-              </h2>
-
-              <p className="mx-auto mt-2 max-w-[300px] text-sm leading-5 text-text-secondary">
-                Are you sure you want to log out of your administrator account?
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:px-8">
-              <button
-                type="button"
-                onClick={() => setShowLogoutModal(false)}
-                className="min-h-10 flex-1 rounded-full border border-border-light bg-background-card px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.5px] text-text-secondary transition-colors hover:bg-background-main hover:text-text-primary"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLogoutConfirm}
-                className="min-h-10 flex-1 rounded-full bg-red-600 px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.5px] text-white transition-colors hover:bg-red-700"
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
