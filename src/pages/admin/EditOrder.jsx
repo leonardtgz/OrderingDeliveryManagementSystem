@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import AdminFooter from "../../components/admin/AdminFooter";
 import Header from "../../components/Header/Header";
 
 import {
@@ -811,6 +812,8 @@ function EditOrder() {
               Loading order...
             </span>
           </main>
+
+          <AdminFooter />
         </div>
       </div>
     );
@@ -843,6 +846,8 @@ function EditOrder() {
               </button>
             </div>
           </main>
+
+          <AdminFooter />
         </div>
       </div>
     );
@@ -856,8 +861,7 @@ function EditOrder() {
         <Header />
 
         <main className="min-w-0 flex-1 overflow-y-auto bg-white">
-          <div className="mx-auto w-full max-w-[900px] px-5 py-7 sm:px-7 sm:py-8 lg:px-9">
-
+          <div className="mx-auto w-full max-w-[900px] px-5 py-7 pb-20 sm:px-7 sm:py-8 sm:pb-20 lg:px-9 lg:pb-20">
             {/* HEADER */}
             <div className="mb-6 flex items-center gap-3">
               <button
@@ -906,7 +910,6 @@ function EditOrder() {
               </div>
 
               <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-
                 {/* CUSTOMER */}
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-text-primary">
@@ -1080,6 +1083,8 @@ function EditOrder() {
             </form>
           </div>
         </main>
+
+        <AdminFooter />
       </div>
 
       {/* EDIT CONFIRMATION MODAL */}

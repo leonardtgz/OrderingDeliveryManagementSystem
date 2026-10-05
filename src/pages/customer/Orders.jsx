@@ -496,134 +496,8 @@ function Orders() {
             </div>
           </div>
 
-          {/* Standard Management Control Bar */}
-          <div className="flex w-full flex-col gap-3 border-b border-[#D7E8ED] pb-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:w-[360px]">
-              <Search
-                size={18}
-                strokeWidth={1.8}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7D9AAA]"
-              />
-
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search orders..."
-                className="h-[42px] w-full rounded-lg border border-[#D7E8ED] bg-white pl-10 pr-4 text-sm text-slate-700 outline-none transition-colors placeholder:text-[#7D9AAA] hover:border-[#B8D7E1] focus:border-[#08779D] focus:ring-2 focus:ring-[#40BFD8]/20"
-              />
-            </div>
-
-            <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
-              {/* Filters */}
-              <div ref={filterRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsFilterOpen((current) => !current);
-                    setIsSortOpen(false);
-                  }}
-                  className="flex h-[42px] items-center justify-center gap-2 rounded-lg border border-slate-100 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-[#D7E8ED] hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#40BFD8]/20"
-                >
-                  <SlidersHorizontal
-                    size={16}
-                    strokeWidth={1.8}
-                    className="text-slate-700"
-                  />
-
-                  <span>Filters</span>
-
-                  <ChevronDown
-                    size={15}
-                    strokeWidth={2}
-                    className={`ml-0.5 transition-transform duration-200 ${
-                      isFilterOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {isFilterOpen && (
-                  <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[190px] overflow-hidden rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
-                    {[
-                      "All",
-                      "Pending",
-                      "Processing",
-                      "Out for Delivery",
-                      "Delivered",
-                      "Cancelled",
-                    ].map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => handleFilterChange(option)}
-                        className={`flex w-full items-center rounded-md px-3 py-2.5 text-left text-xs font-semibold transition-colors ${
-                          statusFilter === option
-                            ? "bg-[#E8F8FC] text-[#006994]"
-                            : "text-slate-600 hover:bg-slate-50 hover:text-[#006994]"
-                        }`}
-                      >
-                        {option === "All" ? "All Status" : option}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Sort */}
-              <div ref={sortRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSortOpen((current) => !current);
-                    setIsFilterOpen(false);
-                  }}
-                  className="flex h-[42px] items-center justify-center gap-2 rounded-lg border border-slate-100 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-[#D7E8ED] hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#40BFD8]/20"
-                >
-                  <ArrowUpDown
-                    size={16}
-                    strokeWidth={1.8}
-                    className="text-slate-700"
-                  />
-
-                  <span>Sort</span>
-
-                  <ChevronDown
-                    size={15}
-                    strokeWidth={2}
-                    className={`ml-0.5 transition-transform duration-200 ${
-                      isSortOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {isSortOpen && (
-                  <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[180px] overflow-hidden rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
-                    {[
-                      "Newest",
-                      "Oldest",
-                      "Highest Total",
-                      "Lowest Total",
-                    ].map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => handleSortChange(option)}
-                        className={`flex w-full items-center rounded-md px-3 py-2.5 text-left text-xs font-semibold transition-colors ${
-                          sortOption === option
-                            ? "bg-[#E8F8FC] text-[#006994]"
-                            : "text-slate-600 hover:bg-slate-50 hover:text-[#006994]"
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
           <section className="flex flex-col gap-4">
+            {/* Order History heading stays above the controls */}
             <div className="flex items-center justify-between border-b border-stone-200 pb-2">
               <h2 className="text-base font-bold leading-5 text-stone-800 sm:text-lg sm:leading-6">
                 Order History
@@ -632,6 +506,133 @@ function Orders() {
               <span className="text-[10px] font-semibold uppercase tracking-[0.5px] text-stone-500">
                 {filteredAndSortedOrders.length} Orders
               </span>
+            </div>
+
+            {/* Standard Management Control Bar */}
+            <div className="flex w-full flex-col gap-3 border-b border-[#D7E8ED] pb-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full sm:w-[360px]">
+                <Search
+                  size={18}
+                  strokeWidth={1.8}
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7D9AAA]"
+                />
+
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search orders..."
+                  className="h-[42px] w-full rounded-lg border border-[#D7E8ED] bg-white pl-10 pr-4 text-sm text-slate-700 outline-none transition-colors placeholder:text-[#7D9AAA] hover:border-[#B8D7E1] focus:border-[#08779D] focus:ring-2 focus:ring-[#40BFD8]/20"
+                />
+              </div>
+
+              <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+                {/* Filters */}
+                <div ref={filterRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFilterOpen((current) => !current);
+                      setIsSortOpen(false);
+                    }}
+                    className="flex h-[42px] items-center justify-center gap-2 rounded-lg border border-slate-100 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-[#D7E8ED] hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#40BFD8]/20"
+                  >
+                    <SlidersHorizontal
+                      size={16}
+                      strokeWidth={1.8}
+                      className="text-slate-700"
+                    />
+
+                    <span>Filters</span>
+
+                    <ChevronDown
+                      size={15}
+                      strokeWidth={2}
+                      className={`ml-0.5 transition-transform duration-200 ${
+                        isFilterOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isFilterOpen && (
+                    <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[190px] overflow-hidden rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
+                      {[
+                        "All",
+                        "Pending",
+                        "Processing",
+                        "Out for Delivery",
+                        "Delivered",
+                        "Cancelled",
+                      ].map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => handleFilterChange(option)}
+                          className={`flex w-full items-center rounded-md px-3 py-2.5 text-left text-xs font-semibold transition-colors ${
+                            statusFilter === option
+                              ? "bg-[#E8F8FC] text-[#006994]"
+                              : "text-slate-600 hover:bg-slate-50 hover:text-[#006994]"
+                          }`}
+                        >
+                          {option === "All" ? "All Status" : option}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Sort */}
+                <div ref={sortRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSortOpen((current) => !current);
+                      setIsFilterOpen(false);
+                    }}
+                    className="flex h-[42px] items-center justify-center gap-2 rounded-lg border border-slate-100 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-[#D7E8ED] hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#40BFD8]/20"
+                  >
+                    <ArrowUpDown
+                      size={16}
+                      strokeWidth={1.8}
+                      className="text-slate-700"
+                    />
+
+                    <span>Sort</span>
+
+                    <ChevronDown
+                      size={15}
+                      strokeWidth={2}
+                      className={`ml-0.5 transition-transform duration-200 ${
+                        isSortOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isSortOpen && (
+                    <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[180px] overflow-hidden rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
+                      {[
+                        "Newest",
+                        "Oldest",
+                        "Highest Total",
+                        "Lowest Total",
+                      ].map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => handleSortChange(option)}
+                          className={`flex w-full items-center rounded-md px-3 py-2.5 text-left text-xs font-semibold transition-colors ${
+                            sortOption === option
+                              ? "bg-[#E8F8FC] text-[#006994]"
+                              : "text-slate-600 hover:bg-slate-50 hover:text-[#006994]"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {customerOrders.length === 0 ? (

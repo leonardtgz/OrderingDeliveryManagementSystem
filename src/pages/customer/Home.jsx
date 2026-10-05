@@ -1,13 +1,23 @@
 import { useEffect, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
+
 import lightBlueIcon from "../../assets/images/img_icon_light_blue_900.svg";
+
 import icon from "../../assets/images/img_icon.svg";
+
 import roundPurifiedWaterImage from "../../assets/images/round-purified-water.png";
+
 import slimPurifiedWaterImage from "../../assets/images/slim-purified-water.png";
+
 import bottleImage from "../../assets/images/500ml-bottle.png";
+
 import Header from "../../components/Header/Header";
+
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+
 import CustomerFooter from "../../components/customer/CustomerFooter";
+
 import { getOrders } from "../../utils/orderStorage";
 
 const customer = {
@@ -46,6 +56,7 @@ const getOrderTitle = (order) => {
       })
       .join(" + ");
   }
+
   return order.title || "Order";
 };
 
@@ -56,12 +67,14 @@ const getTotalQuantity = (order) => {
       0,
     );
   }
+
   return Number(order.qty || 0);
 };
 
 const getOrderDate = (order) => {
   if (order.createdAt) {
     const date = new Date(order.createdAt);
+
     if (!Number.isNaN(date.getTime())) {
       return date.toLocaleDateString("en-PH", {
         year: "numeric",
@@ -156,6 +169,7 @@ const getStatusBadgeClass = (status) => {
 
 const getStatusSteps = (status) => {
   const type = getStatusType(status);
+
   let currentStep = 0;
 
   if (type === "processing") {
@@ -257,12 +271,14 @@ const sortOrdersNewestFirst = (orders) => {
   return [...orders].sort((a, b) => {
     const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
     const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+
     return dateB - dateA;
   });
 };
 
 function Home() {
   const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("home");
   const [customerOrders, setCustomerOrders] = useState([]);
 
@@ -412,7 +428,7 @@ function Home() {
             <button
               type="button"
               onClick={handleTrackOrder}
-              className="w-full cursor-pointer rounded-md bg-background-accent p-4 text-left transition-transform hover:scale-[1.01]"
+              className="w-full cursor-pointer rounded-md border border-[#D7EEF5] bg-white p-4 text-left shadow-[0_4px_14px_rgba(15,23,42,0.12)] transition-shadow duration-200 hover:border-[#9DDCED] hover:shadow-[0_6px_18px_rgba(15,23,42,0.16)]"
             >
               <div className="mb-5 flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -474,7 +490,7 @@ function Home() {
               </div>
             </button>
           ) : (
-            <div className="w-full rounded-md bg-background-accent p-6 text-center">
+            <div className="w-full rounded-md border border-[#D7EEF5] bg-white p-6 text-center shadow-[0_4px_14px_rgba(15,23,42,0.12)]">
               <h4 className="text-sm font-bold text-text-primary">
                 No Active Order
               </h4>
@@ -595,7 +611,7 @@ function Home() {
           </button>
 
           {orderHistory.length === 0 ? (
-            <div className="w-full rounded-md bg-background-accent p-6 text-center">
+            <div className="w-full rounded-md border border-[#D7EEF5] bg-white p-6 text-center shadow-[0_4px_14px_rgba(15,23,42,0.12)]">
               <p className="text-sm font-bold text-text-primary">
                 No orders yet
               </p>
@@ -608,7 +624,7 @@ function Home() {
             <button
               type="button"
               onClick={handleRecentHistory}
-              className="w-full cursor-pointer overflow-hidden rounded-md bg-background-accent text-left transition-transform hover:scale-[1.01]"
+              className="w-full cursor-pointer overflow-hidden rounded-md border border-[#D7EEF5] bg-white text-left shadow-[0_4px_14px_rgba(15,23,42,0.12)] transition-shadow duration-200 hover:border-[#9DDCED] hover:shadow-[0_6px_18px_rgba(15,23,42,0.16)]"
             >
               {orderHistory.map((order, index) => {
                 const title = getOrderTitle(order);
@@ -667,6 +683,7 @@ function Home() {
       </main>
 
       <CustomerNavbar activeTab={activeTab} onNavigate={handleNavigate} />
+
       <CustomerFooter />
     </div>
   );

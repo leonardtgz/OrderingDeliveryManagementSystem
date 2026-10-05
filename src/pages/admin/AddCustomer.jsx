@@ -1,8 +1,12 @@
 import React, { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
+
 import { ChevronDown } from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import AdminFooter from "../../components/admin/AdminFooter";
+
 import Header from "../../components/Header/Header";
 
 const CUSTOMER_TOAST_KEY = "adminCustomerToast";
@@ -239,7 +243,6 @@ function AddCustomer() {
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [email, setEmail] = useState("");
-
   const [region, setRegion] = useState("");
   const [province, setProvince] = useState("");
   const [city, setCity] = useState("");
@@ -273,7 +276,9 @@ function AddCustomer() {
       BARANGAYS_BY_MUNICIPALITY[value] || [];
 
     setCity(value);
-    setBarangay(nextBarangays[0] || "");
+    setBarangay(
+      nextBarangays[0] || "",
+    );
   };
 
   const handleSubmit = (event) => {
@@ -288,7 +293,8 @@ function AddCustomer() {
       postalCode,
     ].filter(Boolean);
 
-    const address = addressParts.join(", ");
+    const address =
+      addressParts.join(", ");
 
     const newCustomer = {
       id: crypto.randomUUID(),
@@ -305,13 +311,19 @@ function AddCustomer() {
       orders: 0,
     };
 
-    const savedCustomers = localStorage.getItem("adminCustomers");
+    const savedCustomers =
+      localStorage.getItem(
+        "adminCustomers",
+      );
 
     let customers = [];
 
     if (savedCustomers) {
       try {
-        customers = JSON.parse(savedCustomers);
+        customers =
+          JSON.parse(
+            savedCustomers,
+          );
       } catch {
         customers = [];
       }
@@ -319,7 +331,10 @@ function AddCustomer() {
 
     localStorage.setItem(
       "adminCustomers",
-      JSON.stringify([...customers, newCustomer]),
+      JSON.stringify([
+        ...customers,
+        newCustomer,
+      ]),
     );
 
     // Store success message for the Customers page
@@ -349,7 +364,7 @@ function AddCustomer() {
         <Header />
 
         <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="w-full px-6 py-8 lg:px-12">
+          <div className="w-full px-6 py-8 pb-20 lg:px-12 lg:pb-20">
             {/* Page Header */}
             <div className="mb-6">
               <button
@@ -385,7 +400,9 @@ function AddCustomer() {
                     type="text"
                     value={name}
                     onChange={(event) =>
-                      setName(event.target.value)
+                      setName(
+                        event.target.value,
+                      )
                     }
                     placeholder="e.g. John Doe"
                     required
@@ -407,7 +424,9 @@ function AddCustomer() {
                     type="tel"
                     value={contact}
                     onChange={(event) =>
-                      setContact(event.target.value)
+                      setContact(
+                        event.target.value,
+                      )
                     }
                     placeholder="e.g. 0917-123-4567"
                     required
@@ -429,7 +448,9 @@ function AddCustomer() {
                     type="email"
                     value={email}
                     onChange={(event) =>
-                      setEmail(event.target.value)
+                      setEmail(
+                        event.target.value,
+                      )
                     }
                     placeholder="e.g. john.doe@email.com"
                     required
@@ -456,7 +477,9 @@ function AddCustomer() {
                       <select
                         id="region"
                         value={region}
-                        onChange={handleRegionChange}
+                        onChange={
+                          handleRegionChange
+                        }
                         required
                         className="box-border w-full appearance-none rounded-lg border border-border-secondary bg-background-card py-2.5 pl-3 pr-12 text-sm text-text-primary outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
                       >
@@ -464,11 +487,16 @@ function AddCustomer() {
                           Select Region
                         </option>
 
-                        {REGIONS.map((item) => (
-                          <option key={item} value={item}>
-                            {item}
-                          </option>
-                        ))}
+                        {REGIONS.map(
+                          (item) => (
+                            <option
+                              key={item}
+                              value={item}
+                            >
+                              {item}
+                            </option>
+                          ),
+                        )}
                       </select>
 
                       <ChevronDown
@@ -492,7 +520,9 @@ function AddCustomer() {
                       <select
                         id="province"
                         value={province}
-                        onChange={handleProvinceChange}
+                        onChange={
+                          handleProvinceChange
+                        }
                         required
                         disabled={!region}
                         className="box-border w-full appearance-none rounded-lg border border-border-secondary bg-background-card py-2.5 pl-3 pr-12 text-sm text-text-primary outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-background-accent"
@@ -501,9 +531,16 @@ function AddCustomer() {
                           Select Province
                         </option>
 
-                        {(PROVINCES_BY_REGION[region] || []).map(
+                        {(
+                          PROVINCES_BY_REGION[
+                            region
+                          ] || []
+                        ).map(
                           (item) => (
-                            <option key={item} value={item}>
+                            <option
+                              key={item}
+                              value={item}
+                            >
                               {item}
                             </option>
                           ),
@@ -531,7 +568,9 @@ function AddCustomer() {
                       <select
                         id="city"
                         value={city}
-                        onChange={handleCityChange}
+                        onChange={
+                          handleCityChange
+                        }
                         required
                         disabled={!province}
                         className="box-border w-full appearance-none rounded-lg border border-border-secondary bg-background-card py-2.5 pl-3 pr-12 text-sm text-text-primary outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-background-accent"
@@ -540,9 +579,16 @@ function AddCustomer() {
                           Select City / Municipality
                         </option>
 
-                        {(CITIES_BY_PROVINCE[province] || []).map(
+                        {(
+                          CITIES_BY_PROVINCE[
+                            province
+                          ] || []
+                        ).map(
                           (item) => (
-                            <option key={item} value={item}>
+                            <option
+                              key={item}
+                              value={item}
+                            >
                               {item}
                             </option>
                           ),
@@ -571,7 +617,9 @@ function AddCustomer() {
                         id="barangay"
                         value={barangay}
                         onChange={(event) =>
-                          setBarangay(event.target.value)
+                          setBarangay(
+                            event.target.value,
+                          )
                         }
                         required
                         disabled={!city}
@@ -581,11 +629,16 @@ function AddCustomer() {
                           Select Barangay
                         </option>
 
-                        {availableBarangays.map((item) => (
-                          <option key={item} value={item}>
-                            {item}
-                          </option>
-                        ))}
+                        {availableBarangays.map(
+                          (item) => (
+                            <option
+                              key={item}
+                              value={item}
+                            >
+                              {item}
+                            </option>
+                          ),
+                        )}
                       </select>
 
                       <ChevronDown
@@ -610,7 +663,9 @@ function AddCustomer() {
                       type="text"
                       value={postalCode}
                       onChange={(event) =>
-                        setPostalCode(event.target.value)
+                        setPostalCode(
+                          event.target.value,
+                        )
                       }
                       placeholder="e.g. 3000"
                       required
@@ -632,7 +687,9 @@ function AddCustomer() {
                       type="text"
                       value={streetAddress}
                       onChange={(event) =>
-                        setStreetAddress(event.target.value)
+                        setStreetAddress(
+                          event.target.value,
+                        )
                       }
                       placeholder="House/Unit No., Street Name"
                       required
@@ -662,6 +719,8 @@ function AddCustomer() {
             </form>
           </div>
         </main>
+
+        <AdminFooter />
       </div>
     </div>
   );

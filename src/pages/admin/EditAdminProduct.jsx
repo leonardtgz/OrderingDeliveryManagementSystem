@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
+
 import { useNavigate, useParams } from "react-router-dom";
+
 import { ArrowLeft, Upload } from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
+
+import AdminFooter from "../../components/admin/AdminFooter";
+
 import Header from "../../components/Header/Header";
+
 import WarningModal from "../../components/admin/WarningModal";
 
 const PRODUCTS_KEY = "adminProducts";
+
 const PRODUCT_TOAST_KEY = "adminProductToast";
+
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const EditAdminProduct = () => {
@@ -15,16 +23,13 @@ const EditAdminProduct = () => {
   const { id } = useParams();
 
   const [product, setProduct] = useState(null);
-
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
   const [status, setStatus] = useState("");
-
   const [image, setImage] = useState("");
   const [imageError, setImageError] = useState("");
-
   const [saving, setSaving] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
 
@@ -42,8 +47,7 @@ const EditAdminProduct = () => {
 
   useEffect(() => {
     try {
-      const savedProducts =
-        localStorage.getItem(PRODUCTS_KEY);
+      const savedProducts = localStorage.getItem(PRODUCTS_KEY);
 
       if (!savedProducts) {
         navigate("/admin/products");
@@ -58,8 +62,7 @@ const EditAdminProduct = () => {
       }
 
       const foundProduct = products.find(
-        (item) =>
-          String(item.id) === String(id),
+        (item) => String(item.id) === String(id),
       );
 
       if (!foundProduct) {
@@ -68,38 +71,24 @@ const EditAdminProduct = () => {
       }
 
       setProduct(foundProduct);
-
       setName(foundProduct.name || "");
-      setDescription(
-        foundProduct.description || "",
-      );
+      setDescription(foundProduct.description || "");
 
-      const refillProduct = isRefillProduct(
-        foundProduct.name,
-      );
+      const refillProduct = isRefillProduct(foundProduct.name);
 
       // Refill products should have empty quantity/status
       if (refillProduct) {
         setQuantity("");
         setStatus("");
       } else {
-        setQuantity(
-          foundProduct.quantity ?? "",
-        );
-
-        setStatus(
-          foundProduct.status || "In Stock",
-        );
+        setQuantity(foundProduct.quantity ?? "");
+        setStatus(foundProduct.status || "In Stock");
       }
 
       setPrice(foundProduct.price ?? 0);
       setImage(foundProduct.image || "");
     } catch (error) {
-      console.error(
-        "Failed to load product:",
-        error,
-      );
-
+      console.error("Failed to load product:", error);
       navigate("/admin/products");
     }
   }, [id, navigate]);
@@ -114,19 +103,13 @@ const EditAdminProduct = () => {
     setImageError("");
 
     if (!file.type.startsWith("image/")) {
-      setImageError(
-        "Please select a valid image file.",
-      );
-
+      setImageError("Please select a valid image file.");
       event.target.value = "";
       return;
     }
 
     if (file.size > MAX_IMAGE_SIZE) {
-      setImageError(
-        "Image must be 5MB or below.",
-      );
-
+      setImageError("Image must be 5MB or below.");
       event.target.value = "";
       return;
     }
@@ -148,8 +131,7 @@ const EditAdminProduct = () => {
     if (
       !name.trim() ||
       !description.trim() ||
-      (!refillProduct &&
-        (quantity === "" || price === ""))
+      (!refillProduct && (quantity === "" || price === ""))
     ) {
       return;
     }
@@ -173,43 +155,30 @@ const EditAdminProduct = () => {
     setSaving(true);
 
     try {
-      const savedProducts =
-        localStorage.getItem(PRODUCTS_KEY);
+      const savedProducts = localStorage.getItem(PRODUCTS_KEY);
 
       if (!savedProducts) {
-        alert(
-          "Product data could not be found.",
-        );
-
+        alert("Product data could not be found.");
         setSaving(false);
         setShowWarning(false);
         return;
       }
 
-      const products = JSON.parse(
-        savedProducts,
-      );
+      const products = JSON.parse(savedProducts);
 
       if (!Array.isArray(products)) {
-        alert(
-          "Product data is invalid.",
-        );
-
+        alert("Product data is invalid.");
         setSaving(false);
         setShowWarning(false);
         return;
       }
 
       const productExists = products.some(
-        (item) =>
-          String(item.id) === String(id),
+        (item) => String(item.id) === String(id),
       );
 
       if (!productExists) {
-        alert(
-          "The product could not be found.",
-        );
-
+        alert("The product could not be found.");
         setSaving(false);
         setShowWarning(false);
         return;
@@ -217,45 +186,30 @@ const EditAdminProduct = () => {
 
       const refillProduct = isRefillProduct(name);
 
-      const updatedProducts =
-        products.map((item) => {
-          if (
-            String(item.id) !== String(id)
-          ) {
-            return item;
-          }
+      const updatedProducts = products.map((item) => {
+        if (String(item.id) !== String(id)) {
+          return item;
+        }
 
-          return {
-            ...item,
-            name: name.trim(),
-            description: description.trim(),
+        return {
+          ...item,
+          name: name.trim(),
+          description: description.trim(),
 
-            // Refill products do not have quantity/status
-            quantity: refillProduct
-              ? ""
-              : Number(quantity),
-
-            price: Number(price),
-
-            status: refillProduct
-              ? ""
-              : status,
-
-            image:
-              image ||
-              item.image ||
-              "",
-          };
-        });
+          // Refill products do not have quantity/status
+          quantity: refillProduct ? "" : Number(quantity),
+          price: Number(price),
+          status: refillProduct ? "" : status,
+          image: image || item.image || "",
+        };
+      });
 
       localStorage.setItem(
         PRODUCTS_KEY,
         JSON.stringify(updatedProducts),
       );
 
-      window.dispatchEvent(
-        new Event("productUpdated"),
-      );
+      window.dispatchEvent(new Event("productUpdated"));
 
       localStorage.setItem(
         PRODUCT_TOAST_KEY,
@@ -263,18 +217,10 @@ const EditAdminProduct = () => {
       );
 
       setShowWarning(false);
-
       navigate("/admin/products");
     } catch (error) {
-      console.error(
-        "Failed to update product:",
-        error,
-      );
-
-      alert(
-        "Failed to save the product changes.",
-      );
-
+      console.error("Failed to update product:", error);
+      alert("Failed to save the product changes.");
       setSaving(false);
       setShowWarning(false);
     }
@@ -293,16 +239,13 @@ const EditAdminProduct = () => {
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
 
-        <main className="flex-1 overflow-y-auto p-4 pb-10 sm:p-6 md:p-8">
+        <main className="flex-1 overflow-y-auto p-4 pb-16 sm:p-6 sm:pb-16 md:p-8 md:pb-16">
           <div className="mx-auto w-full max-w-[1000px]">
-
             {/* Page Header */}
             <div className="mb-6 flex items-center gap-3">
               <button
                 type="button"
-                onClick={() =>
-                  navigate("/admin/products")
-                }
+                onClick={() => navigate("/admin/products")}
                 className="flex h-10 w-10 items-center justify-center rounded-lg border border-border-light bg-background-card text-text-secondary transition-colors hover:bg-background-accent"
                 aria-label="Back to Products"
               >
@@ -326,7 +269,6 @@ const EditAdminProduct = () => {
               className="rounded-xl border border-border-light bg-background-card p-5 shadow-sm sm:p-6"
             >
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-
                 {/* Product Name */}
                 <div className="flex flex-col gap-2">
                   <label
@@ -340,9 +282,7 @@ const EditAdminProduct = () => {
                     id="product-name"
                     type="text"
                     value={name}
-                    onChange={(event) =>
-                      setName(event.target.value)
-                    }
+                    onChange={(event) => setName(event.target.value)}
                     className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
                   />
                 </div>
@@ -361,9 +301,7 @@ const EditAdminProduct = () => {
                     type="text"
                     value={description}
                     onChange={(event) =>
-                      setDescription(
-                        event.target.value,
-                      )
+                      setDescription(event.target.value)
                     }
                     className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
                   />
@@ -385,14 +323,10 @@ const EditAdminProduct = () => {
                     value={quantity}
                     disabled={refillProduct}
                     onChange={(event) =>
-                      setQuantity(
-                        event.target.value,
-                      )
+                      setQuantity(event.target.value)
                     }
                     placeholder={
-                      refillProduct
-                        ? "Not applicable"
-                        : ""
+                      refillProduct ? "Not applicable" : ""
                     }
                     className={`h-11 rounded-lg border border-border-secondary px-3 text-sm outline-none transition ${
                       refillProduct
@@ -418,9 +352,7 @@ const EditAdminProduct = () => {
                     step="0.01"
                     value={price}
                     onChange={(event) =>
-                      setPrice(
-                        event.target.value,
-                      )
+                      setPrice(event.target.value)
                     }
                     className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
                   />
@@ -435,43 +367,24 @@ const EditAdminProduct = () => {
                     Status
                   </label>
 
-                  <select
-                    id="product-status"
-                    value={status}
-                    disabled={refillProduct}
-                    onChange={(event) =>
-                      setStatus(
-                        event.target.value,
-                      )
-                    }
-                    className={`h-11 rounded-lg border border-border-secondary px-3 text-sm outline-none transition ${
-                      refillProduct
-                        ? "cursor-not-allowed bg-gray-100 text-text-secondary"
-                        : "bg-background-main text-text-primary focus:border-primary-background"
-                    }`}
-                  >
-                    {!refillProduct && (
-                      <>
-                        <option value="In Stock">
-                          In Stock
-                        </option>
-
-                        <option value="Low Stock">
-                          Low Stock
-                        </option>
-
-                        <option value="Out of Stock">
-                          Out of Stock
-                        </option>
-                      </>
-                    )}
-
-                    {refillProduct && (
-                      <option value="">
-                        Not applicable
-                      </option>
-                    )}
-                  </select>
+                  {refillProduct ? (
+                    <div className="flex h-11 items-center rounded-lg border border-border-secondary bg-gray-100 px-3 text-sm text-text-secondary">
+                      Not applicable
+                    </div>
+                  ) : (
+                    <select
+                      id="product-status"
+                      value={status}
+                      onChange={(event) =>
+                        setStatus(event.target.value)
+                      }
+                      className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
+                    >
+                      <option value="In Stock">In Stock</option>
+                      <option value="Low Stock">Low Stock</option>
+                      <option value="Out of Stock">Out of Stock</option>
+                    </select>
+                  )}
                 </div>
 
                 {/* Image */}
@@ -529,9 +442,7 @@ const EditAdminProduct = () => {
               <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() =>
-                    navigate("/admin/products")
-                  }
+                  onClick={() => navigate("/admin/products")}
                   className="rounded-lg border border-border-secondary px-5 py-3 text-sm font-semibold text-text-primary transition-colors hover:bg-background-accent"
                 >
                   Cancel
@@ -542,14 +453,14 @@ const EditAdminProduct = () => {
                   disabled={saving}
                   className="rounded-lg bg-button-background px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {saving
-                    ? "Saving..."
-                    : "Save Changes"}
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
           </div>
         </main>
+
+        <AdminFooter />
       </div>
 
       {/* Warning Modal */}
@@ -560,9 +471,7 @@ const EditAdminProduct = () => {
           ...product,
           name: name.trim(),
         }}
-        onCancel={() =>
-          setShowWarning(false)
-        }
+        onCancel={() => setShowWarning(false)}
         onConfirm={handleSave}
       />
     </div>

@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
+
 import { useNavigate, useParams } from "react-router-dom";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
+
 import Header from "../../components/Header/Header";
+
+import AdminFooter from "../../components/admin/AdminFooter";
 
 const defaultCustomers = [
   {
@@ -52,7 +56,6 @@ const orderHistory = {
       status: "COMPLETED",
     },
   ],
-
   "2": [
     {
       id: "TRX-7854",
@@ -62,7 +65,6 @@ const orderHistory = {
       status: "COMPLETED",
     },
   ],
-
   "3": [
     {
       id: "ORD-2023-104",
@@ -137,19 +139,14 @@ const getOrderStatusClass = (status) => {
   switch (normalizedStatus) {
     case "PENDING":
       return "border border-amber-200 bg-amber-100 text-amber-800";
-
     case "PROCESSING":
       return "border border-blue-200 bg-blue-100 text-blue-800";
-
     case "OUT FOR DELIVERY":
       return "border border-cyan-200 bg-cyan-100 text-cyan-800";
-
     case "DELIVERED":
       return "border border-green-200 bg-green-100 text-green-800";
-
     case "CANCELLED":
       return "border border-red-200 bg-red-100 text-red-800";
-
     default:
       return "border border-gray-200 bg-gray-100 text-gray-700";
   }
@@ -263,11 +260,13 @@ function ViewCustomer() {
 
   // Load customers from localStorage
   useEffect(() => {
-    const savedCustomers = localStorage.getItem("adminCustomers");
+    const savedCustomers =
+      localStorage.getItem("adminCustomers");
 
     if (savedCustomers) {
       try {
-        const parsedCustomers = JSON.parse(savedCustomers);
+        const parsedCustomers =
+          JSON.parse(savedCustomers);
 
         if (Array.isArray(parsedCustomers)) {
           setCustomers(parsedCustomers);
@@ -284,14 +283,19 @@ function ViewCustomer() {
 
   // Find the selected customer using the URL id
   const customer = useMemo(() => {
-    return customers.find((item) => String(item.id) === String(id));
+    return customers.find(
+      (item) =>
+        String(item.id) === String(id),
+    );
   }, [customers, id]);
 
   // Get existing order history for default customers
-  const existingOrderHistory = orderHistory[String(id)] || [];
+  const existingOrderHistory =
+    orderHistory[String(id)] || [];
 
   // For newly added customers, there will normally be no history yet
-  const customerOrders = existingOrderHistory;
+  const customerOrders =
+    existingOrderHistory;
 
   const addressFields = useMemo(() => {
     if (!customer) {
@@ -314,7 +318,7 @@ function ViewCustomer() {
           <Header />
 
           <main className="min-w-0 flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-[1100px] px-5 py-8 sm:px-7">
+            <div className="mx-auto w-full max-w-[1100px] px-5 py-8 pb-16 sm:px-7 sm:pb-16">
               <button
                 type="button"
                 onClick={handleBack}
@@ -339,11 +343,12 @@ function ViewCustomer() {
     );
   }
 
-  const completedOrders = customerOrders.filter(
-    (order) =>
-      normalizeOrderStatus(order.status) ===
-      "DELIVERED",
-  ).length;
+  const completedOrders =
+    customerOrders.filter(
+      (order) =>
+        normalizeOrderStatus(order.status) ===
+        "DELIVERED",
+    ).length;
 
   return (
     <div className="flex min-h-screen w-full bg-background-main">
@@ -353,7 +358,7 @@ function ViewCustomer() {
         <Header />
 
         <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[1100px] px-5 py-8 sm:px-7">
+          <div className="mx-auto w-full max-w-[1100px] px-5 py-8 pb-16 sm:px-7 sm:pb-16">
             {/* Page Header */}
             <div className="mb-6">
               <button
@@ -444,7 +449,6 @@ function ViewCustomer() {
                   </p>
 
                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-
                     {/* Address Label */}
                     {addressFields.addressLabel && (
                       <div>
@@ -535,7 +539,6 @@ function ViewCustomer() {
                         </p>
                       </div>
                     )}
-
                   </div>
                 </div>
               </div>
@@ -619,44 +622,46 @@ function ViewCustomer() {
                     </thead>
 
                     <tbody className="bg-card-background">
-                      {customerOrders.map((order, index) => (
-                        <tr
-                          key={order.id}
-                          className={
-                            index > 0
-                              ? "border-t border-table-border"
-                              : ""
-                          }
-                        >
-                          <td className="p-5 text-sm font-bold text-text-primary">
-                            #{order.id}
-                          </td>
+                      {customerOrders.map(
+                        (order, index) => (
+                          <tr
+                            key={order.id}
+                            className={
+                              index > 0
+                                ? "border-t border-table-border"
+                                : ""
+                            }
+                          >
+                            <td className="p-5 text-sm font-bold text-text-primary">
+                              #{order.id}
+                            </td>
 
-                          <td className="p-5 text-sm text-text-primary">
-                            {order.date}
-                          </td>
+                            <td className="p-5 text-sm text-text-primary">
+                              {order.date}
+                            </td>
 
-                          <td className="p-5 text-sm text-text-secondary">
-                            {order.items}
-                          </td>
+                            <td className="p-5 text-sm text-text-secondary">
+                              {order.items}
+                            </td>
 
-                          <td className="p-5 text-right text-sm font-semibold text-text-primary">
-                            {order.amount}
-                          </td>
+                            <td className="p-5 text-right text-sm font-semibold text-text-primary">
+                              {order.amount}
+                            </td>
 
-                          <td className="p-5 text-center">
-                            <span
-                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] ${getOrderStatusClass(
-                                order.status,
-                              )}`}
-                            >
-                              {normalizeOrderStatus(
-                                order.status,
-                              )}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                            <td className="p-5 text-center">
+                              <span
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] ${getOrderStatusClass(
+                                  order.status,
+                                )}`}
+                              >
+                                {normalizeOrderStatus(
+                                  order.status,
+                                )}
+                              </span>
+                            </td>
+                          </tr>
+                        ),
+                      )}
                     </tbody>
                   </table>
                 ) : (
@@ -668,6 +673,8 @@ function ViewCustomer() {
             </section>
           </div>
         </main>
+
+        <AdminFooter />
       </div>
     </div>
   );
