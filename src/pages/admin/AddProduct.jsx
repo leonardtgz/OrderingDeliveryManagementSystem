@@ -11,6 +11,7 @@ import roundPurifiedWater from "../../assets/images/round-purified-water.png";
 import bottle500ml from "../../assets/images/500ml-bottle.png";
 
 const PRODUCTS_KEY = "adminProducts";
+const PRODUCT_TOAST_KEY = "adminProductToast";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const defaultProducts = [
@@ -152,6 +153,12 @@ const AddProduct = () => {
 
       window.dispatchEvent(
         new Event("productUpdated"),
+      );
+
+      // Set toast message before returning to Products
+      localStorage.setItem(
+        PRODUCT_TOAST_KEY,
+        "Product added successfully.",
       );
 
       setShowWarning(false);

@@ -81,6 +81,180 @@ const orderHistory = {
   ],
 };
 
+/*
+ * Normalize order statuses so the badge colors match
+ * the rest of the system.
+ */
+const normalizeOrderStatus = (status) => {
+  const normalized = String(status || "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized === "pending") {
+    return "PENDING";
+  }
+
+  if (
+    normalized === "processing" ||
+    normalized === "confirmed" ||
+    normalized === "purifying"
+  ) {
+    return "PROCESSING";
+  }
+
+  if (
+    normalized === "out for delivery" ||
+    normalized === "in transit" ||
+    normalized === "delivery"
+  ) {
+    return "OUT FOR DELIVERY";
+  }
+
+  if (
+    normalized === "delivered" ||
+    normalized === "completed"
+  ) {
+    return "DELIVERED";
+  }
+
+  if (
+    normalized === "cancelled" ||
+    normalized === "canceled"
+  ) {
+    return "CANCELLED";
+  }
+
+  return String(status || "").toUpperCase();
+};
+
+/*
+ * Status badge colors used throughout the system.
+ */
+const getOrderStatusClass = (status) => {
+  const normalizedStatus =
+    normalizeOrderStatus(status);
+
+  switch (normalizedStatus) {
+    case "PENDING":
+      return "border border-amber-200 bg-amber-100 text-amber-800";
+
+    case "PROCESSING":
+      return "border border-blue-200 bg-blue-100 text-blue-800";
+
+    case "OUT FOR DELIVERY":
+      return "border border-cyan-200 bg-cyan-100 text-cyan-800";
+
+    case "DELIVERED":
+      return "border border-green-200 bg-green-100 text-green-800";
+
+    case "CANCELLED":
+      return "border border-red-200 bg-red-100 text-red-800";
+
+    default:
+      return "border border-gray-200 bg-gray-100 text-gray-700";
+  }
+};
+
+/*
+ * Customer status uses the same green/red visual language
+ * as the rest of the system.
+ */
+const getCustomerStatusClass = (status) => {
+  const normalizedStatus = String(status || "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    normalizedStatus === "inactive" ||
+    normalizedStatus === "cancelled" ||
+    normalizedStatus === "canceled"
+  ) {
+    return "border border-red-200 bg-red-100 text-red-800";
+  }
+
+  return "border border-green-200 bg-green-100 text-green-800";
+};
+
+/*
+ * Address helper.
+ *
+ * New customer records use separate fields.
+ * Older records may only have the original address string,
+ * so that value is kept as a fallback.
+ */
+const getAddressFields = (customer) => {
+  const hasSeparateAddress =
+    customer.addressLabel ||
+    customer.region ||
+    customer.province ||
+    customer.city ||
+    customer.barangay ||
+    customer.postalCode ||
+    customer.streetAddress;
+
+  if (hasSeparateAddress) {
+    return {
+      addressLabel: customer.addressLabel || "",
+      region: customer.region || "",
+      province: customer.province || "",
+      city: customer.city || "",
+      barangay: customer.barangay || "",
+      postalCode: customer.postalCode || "",
+      streetAddress: customer.streetAddress || "",
+    };
+  }
+
+  /*
+   * Fallback for older customer records that only have
+   * one address string.
+   */
+  const addressParts = String(
+    customer.address || "",
+  )
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  let streetAddress = "";
+  let barangay = "";
+  let city = "";
+  let province = "";
+
+  if (addressParts.length > 0) {
+    streetAddress = addressParts[0];
+  }
+
+  const barangayIndex = addressParts.findIndex(
+    (part) =>
+      part.toLowerCase().startsWith("brgy.") ||
+      part.toLowerCase().startsWith("barangay"),
+  );
+
+  if (barangayIndex !== -1) {
+    barangay = addressParts[barangayIndex];
+
+    if (barangayIndex + 1 < addressParts.length) {
+      city = addressParts[barangayIndex + 1];
+    }
+
+    if (barangayIndex + 2 < addressParts.length) {
+      province = addressParts[barangayIndex + 2];
+    }
+  } else if (addressParts.length > 1) {
+    city = addressParts[addressParts.length - 1];
+  }
+
+  return {
+    addressLabel: "",
+    region: "",
+    province,
+    city,
+    barangay,
+    postalCode: "",
+    streetAddress,
+  };
+};
+
 function ViewCustomer() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -118,6 +292,14 @@ function ViewCustomer() {
 
   // For newly added customers, there will normally be no history yet
   const customerOrders = existingOrderHistory;
+
+  const addressFields = useMemo(() => {
+    if (!customer) {
+      return null;
+    }
+
+    return getAddressFields(customer);
+  }, [customer]);
 
   const handleBack = () => {
     navigate("/admin/customers");
@@ -158,7 +340,9 @@ function ViewCustomer() {
   }
 
   const completedOrders = customerOrders.filter(
-    (order) => order.status === "COMPLETED",
+    (order) =>
+      normalizeOrderStatus(order.status) ===
+      "DELIVERED",
   ).length;
 
   return (
@@ -191,7 +375,12 @@ function ViewCustomer() {
                   </p>
                 </div>
 
-                <span className="rounded-full border border-secondary-medium bg-background-lightBlue px-4 py-2 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                {/* Customer Status */}
+                <span
+                  className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.7px] ${getCustomerStatusClass(
+                    customer.status,
+                  )}`}
+                >
                   {customer.status || "Active"}
                 </span>
               </div>
@@ -250,13 +439,104 @@ function ViewCustomer() {
 
                 {/* Address */}
                 <div className="sm:col-span-2">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
                     Address
                   </p>
 
-                  <p className="text-base leading-7 text-text-primary">
-                    {customer.address}
-                  </p>
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+                    {/* Address Label */}
+                    {addressFields.addressLabel && (
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Address Label
+                        </p>
+
+                        <p className="text-base text-text-primary">
+                          {addressFields.addressLabel}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Region */}
+                    {addressFields.region && (
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Region
+                        </p>
+
+                        <p className="text-base text-text-primary">
+                          {addressFields.region}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Province */}
+                    {addressFields.province && (
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Province
+                        </p>
+
+                        <p className="text-base text-text-primary">
+                          {addressFields.province}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* City / Municipality */}
+                    {addressFields.city && (
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          City / Municipality
+                        </p>
+
+                        <p className="text-base text-text-primary">
+                          {addressFields.city}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Barangay */}
+                    {addressFields.barangay && (
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Barangay
+                        </p>
+
+                        <p className="text-base text-text-primary">
+                          {addressFields.barangay}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Postal Code */}
+                    {addressFields.postalCode && (
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Postal Code
+                        </p>
+
+                        <p className="text-base text-text-primary">
+                          {addressFields.postalCode}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Street Name / Building / House No. */}
+                    {addressFields.streetAddress && (
+                      <div className="sm:col-span-2">
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                          Street Name / Building / House No.
+                        </p>
+
+                        <p className="text-base leading-7 text-text-primary">
+                          {addressFields.streetAddress}
+                        </p>
+                      </div>
+                    )}
+
+                  </div>
                 </div>
               </div>
             </section>
@@ -366,13 +646,13 @@ function ViewCustomer() {
 
                           <td className="p-5 text-center">
                             <span
-                              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] ${
-                                order.status === "PROCESSING"
-                                  ? "border-secondary-medium bg-background-lightBlue text-text-accent"
-                                  : "border-secondary-medium bg-background-lightBlue text-text-secondary"
-                              }`}
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] ${getOrderStatusClass(
+                                order.status,
+                              )}`}
                             >
-                              {order.status}
+                              {normalizeOrderStatus(
+                                order.status,
+                              )}
                             </span>
                           </td>
                         </tr>

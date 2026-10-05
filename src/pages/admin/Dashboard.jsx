@@ -1,74 +1,24 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Activity, Clock, User } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Package,
+  Truck,
+  Users,
+} from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import Header from "../../components/Header/Header";
-import { getActivityLogs } from "../../utils/ActLog";
 import AdminFooter from "../../components/admin/AdminFooter";
 
 const ORDERS_KEY = "goldenpr_orders";
-const ACTIVITY_KEY = "goldenpr_activity_log";
 
-const fakeActivityLogs = [
-  {
-    id: "fake-1",
-    role: "Customer",
-    userName: "Maria Santos",
-    action: "Placed a new water delivery order #ORD-992-04X",
-    timestamp: "2026-09-19T11:45:00",
-  },
-  {
-    id: "fake-2",
-    role: "Admin",
-    userName: "Admin User",
-    action: "Updated order #ORD-992-04X status to Out for Delivery",
-    timestamp: "2026-09-19T11:30:00",
-  },
-  {
-    id: "fake-3",
-    role: "Customer",
-    userName: "Juan Dela Cruz",
-    action: "Updated delivery address",
-    timestamp: "2026-09-19T10:52:00",
-  },
-  {
-    id: "fake-4",
-    role: "Admin",
-    userName: "Admin User",
-    action: "Added a new product: 500ml Bottle (Case of 24)",
-    timestamp: "2026-09-19T10:20:00",
-  },
-  {
-    id: "fake-5",
-    role: "Customer",
-    userName: "Angela Reyes",
-    action: "Cancelled order #ORD-775-01B",
-    timestamp: "2026-09-19T09:48:00",
-  },
-  {
-    id: "fake-6",
-    role: "Admin",
-    userName: "Admin User",
-    action: "Updated product inventory",
-    timestamp: "2026-09-19T09:25:00",
-  },
-  {
-    id: "fake-7",
-    role: "Customer",
-    userName: "Carlos Mendoza",
-    action: "Submitted a support request",
-    timestamp: "2026-09-19T08:55:00",
-  },
-  {
-    id: "fake-8",
-    role: "Admin",
-    userName: "Admin User",
-    action: "Marked order #ORD-662-09C as Delivered",
-    timestamp: "2026-09-19T08:30:00",
-  },
-];
+/* ============================================================
+   ORDER STORAGE
+============================================================ */
 
 function getOrders() {
   try {
@@ -82,19 +32,29 @@ function getOrders() {
   }
 }
 
-function normalizeStatus(status) {
-  const normalized = String(status || "").trim().toLowerCase();
+/* ============================================================
+   STATUS HELPERS
+============================================================ */
 
-  if (["pending", "processing"].includes(normalized)) {
+function normalizeStatus(status) {
+  const normalized = String(status || "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized === "pending") {
     return "PENDING";
   }
 
-  if (["confirmed", "purifying"].includes(normalized)) {
-    return "CONFIRMED";
+  if (
+    ["processing", "confirmed", "purifying"].includes(normalized)
+  ) {
+    return "PROCESSING";
   }
 
   if (
-    ["out for delivery", "in transit", "delivery"].includes(normalized)
+    ["out for delivery", "in transit", "delivery"].includes(
+      normalized
+    )
   ) {
     return "OUT FOR DELIVERY";
   }
@@ -107,7 +67,7 @@ function normalizeStatus(status) {
     return "CANCELLED";
   }
 
-  return String(status || "PENDING").toUpperCase();
+  return "PENDING";
 }
 
 function getCustomerName(order) {
@@ -154,7 +114,10 @@ function getFiveGallonQuantity(order) {
 }
 
 function getAmount(order) {
-  const amount = Number(order.total ?? order.subtotal ?? 0);
+  const amount = Number(
+    order.total ?? order.subtotal ?? 0
+  );
+
   return `₱ ${amount.toFixed(2)}`;
 }
 
@@ -166,29 +129,15 @@ function getOrderTimestamp(order) {
   }
 
   const parsed = new Date(timestamp).getTime();
+
   return Number.isNaN(parsed) ? 0 : parsed;
-}
-
-function formatDateTime(timestamp) {
-  const date = new Date(timestamp);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Date unavailable";
-  }
-
-  return date.toLocaleString("en-PH", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
 }
 
 function formatDeliveryDate(order) {
   const dateValue =
-    order.deliveryDate || order.updatedAt || order.createdAt;
+    order.deliveryDate ||
+    order.updatedAt ||
+    order.createdAt;
 
   if (!dateValue) {
     return "Recent";
@@ -212,7 +161,8 @@ function formatDeliveryTime(order) {
     return order.deliveryTime;
   }
 
-  const dateValue = order.updatedAt || order.createdAt;
+  const dateValue =
+    order.updatedAt || order.createdAt;
 
   if (!dateValue) {
     return "";
@@ -230,217 +180,333 @@ function formatDeliveryTime(order) {
   });
 }
 
+/* ============================================================
+   SYSTEM STATUS COLORS
+============================================================ */
+
+const STATUS_CONFIG = {
+  PENDING: {
+    label: "Pending",
+    badge: "border-amber-200 bg-amber-50 text-amber-700",
+    soft: "bg-amber-50",
+    icon: "bg-amber-50 text-amber-600",
+    dot: "#f59e0b",
+  },
+
+  PROCESSING: {
+    label: "Processing",
+    badge: "border-blue-200 bg-blue-50 text-blue-700",
+    soft: "bg-blue-50",
+    icon: "bg-blue-50 text-blue-600",
+    dot: "#3b82f6",
+  },
+
+  "OUT FOR DELIVERY": {
+    label: "Out for Delivery",
+    badge: "border-cyan-200 bg-cyan-50 text-cyan-700",
+    soft: "bg-cyan-50",
+    icon: "bg-cyan-50 text-cyan-600",
+    dot: "#06b6d4",
+  },
+
+  DELIVERED: {
+    label: "Delivered",
+    badge: "border-green-200 bg-green-50 text-green-700",
+    soft: "bg-green-50",
+    icon: "bg-green-50 text-green-600",
+    dot: "#22c55e",
+  },
+
+  CANCELLED: {
+    label: "Cancelled",
+    badge: "border-red-200 bg-red-50 text-red-700",
+    soft: "bg-red-50",
+    icon: "bg-red-50 text-red-600",
+    dot: "#ef4444",
+  },
+};
+
 function getStatusStyle(status) {
-  switch (status) {
-    case "DELIVERED":
-      return "bg-green-100 text-green-800";
-    case "OUT FOR DELIVERY":
-      return "bg-blue-100 text-blue-800";
-    case "CONFIRMED":
-      return "bg-cyan-100 text-cyan-800";
-    case "CANCELLED":
-      return "bg-red-100 text-red-800";
-    case "PENDING":
-    default:
-      return "bg-amber-100 text-amber-800";
-  }
+  return (
+    STATUS_CONFIG[status] ||
+    STATUS_CONFIG.PENDING
+  );
 }
 
-function loadActivityLogs() {
-  try {
-    const savedLogs = getActivityLogs();
-
-    if (Array.isArray(savedLogs) && savedLogs.length > 0) {
-      return savedLogs;
-    }
-
-    return fakeActivityLogs;
-  } catch (error) {
-    console.error("Failed to load activity logs:", error);
-    return fakeActivityLogs;
-  }
-}
+/* ============================================================
+   STATISTICS CARDS
+============================================================ */
 
 function StatisticsGrid({ orders }) {
   const pending = orders.filter(
-    (order) => normalizeStatus(order.status) === "PENDING"
+    (order) =>
+      normalizeStatus(order.status) === "PENDING"
+  ).length;
+
+  const processing = orders.filter(
+    (order) =>
+      normalizeStatus(order.status) === "PROCESSING"
   ).length;
 
   const forDelivery = orders.filter(
-    (order) => normalizeStatus(order.status) === "OUT FOR DELIVERY"
+    (order) =>
+      normalizeStatus(order.status) === "OUT FOR DELIVERY"
   ).length;
 
-  const completed = orders.filter(
-    (order) => normalizeStatus(order.status) === "DELIVERED"
+  const delivered = orders.filter(
+    (order) =>
+      normalizeStatus(order.status) === "DELIVERED"
   ).length;
 
   const customerNames = new Set(
     orders
-      .map((order) => getCustomerName(order).trim().toLowerCase())
-      .filter((name) => name && name !== "customer")
+      .map((order) =>
+        getCustomerName(order)
+          .trim()
+          .toLowerCase()
+      )
+      .filter(
+        (name) =>
+          name && name !== "customer"
+      )
   );
 
   const stats = [
-    { title: "PENDING ORDERS", value: pending, label: "[PENDING]" },
     {
-      title: "FOR DELIVERY",
-      value: forDelivery,
-      label: "[OUT FOR DELIVERY]",
+      title: "Pending Orders",
+      value: pending,
+      status: "PENDING",
+      icon: Clock3,
     },
-    { title: "TOTAL ORDERS", value: orders.length },
-    { title: "COMPLETED", value: completed, label: "[DELIVERED]" },
-    { title: "TOTAL CUSTOMERS", value: customerNames.size },
+    {
+      title: "Processing",
+      value: processing,
+      status: "PROCESSING",
+      icon: Package,
+    },
+    {
+      title: "For Delivery",
+      value: forDelivery,
+      status: "OUT FOR DELIVERY",
+      icon: Truck,
+    },
+    {
+      title: "Delivered",
+      value: delivered,
+      status: "DELIVERED",
+      icon: CheckCircle2,
+    },
+    {
+      title: "Total Customers",
+      value: customerNames.size,
+      status: null,
+      icon: Users,
+    },
   ];
 
   return (
-    <section className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {stats.slice(0, 3).map((stat) => (
+    <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      {stats.map((stat) => {
+        const styles = stat.status
+          ? getStatusStyle(stat.status)
+          : {
+              soft: "bg-cyan-50",
+              icon: "bg-cyan-50 text-cyan-600",
+            };
+
+        const Icon = stat.icon;
+
+        return (
           <div
             key={stat.title}
-            className="rounded-md border border-border-light bg-background-lightBlue p-6 shadow-sm sm:p-8"
+            className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white px-4 py-4 shadow-[0_4px_20px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-[0_8px_28px_rgba(6,182,212,0.10)]"
           >
-            <h3 className="text-xs font-semibold uppercase text-text-secondary">
-              {stat.title}
-            </h3>
+            <div
+              className={`absolute -right-10 -top-10 h-24 w-24 rounded-full opacity-60 blur-2xl ${styles.soft}`}
+            />
 
-            <div className="mt-4 flex flex-wrap items-end gap-3">
-              <span className="text-3xl font-bold text-text-secondary sm:text-4xl">
-                {stat.value}
-              </span>
+            <div className="relative">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.9px] text-slate-400">
+                    {stat.title}
+                  </p>
 
-              {stat.label && (
-                <span className="mb-1 text-xs font-semibold text-text-brand">
-                  {stat.label}
-                </span>
-              )}
+                  <p className="mt-2.5 text-[27px] font-bold leading-none tracking-tight text-slate-800">
+                    {stat.value}
+                  </p>
+                </div>
+
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${styles.icon}`}
+                >
+                  <Icon className="h-[17px] w-[17px]" />
+                </div>
+              </div>
+
+              <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className={`h-full w-2/5 rounded-full ${
+                    stat.status === "PENDING"
+                      ? "bg-amber-400"
+                      : stat.status === "PROCESSING"
+                      ? "bg-blue-500"
+                      : stat.status === "OUT FOR DELIVERY"
+                      ? "bg-cyan-500"
+                      : stat.status === "DELIVERED"
+                      ? "bg-green-500"
+                      : stat.status === "CANCELLED"
+                      ? "bg-red-500"
+                      : "bg-cyan-500"
+                  }`}
+                />
+              </div>
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:w-2/3">
-        {stats.slice(3).map((stat) => (
-          <div
-            key={stat.title}
-            className="rounded-md border border-border-light bg-background-lightBlue p-6 shadow-sm sm:p-8"
-          >
-            <h3 className="text-xs font-semibold uppercase text-text-secondary">
-              {stat.title}
-            </h3>
-
-            <div className="mt-4 flex flex-wrap items-end gap-3">
-              <span className="text-3xl font-bold text-text-secondary sm:text-4xl">
-                {stat.value}
-              </span>
-
-              {stat.label && (
-                <span className="mb-1 text-xs font-semibold text-text-brand">
-                  {stat.label}
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+        );
+      })}
     </section>
   );
 }
 
-function RecentOrders({ orders, onOpenOrders }) {
+/* ============================================================
+   NEW ORDERS
+============================================================ */
+
+function RecentOrders({
+  orders,
+  onOpenOrders,
+}) {
   const navigate = useNavigate();
 
-  const recentOrders = [...orders]
-    .sort((a, b) => getOrderTimestamp(b) - getOrderTimestamp(a))
+  const newOrders = [...orders]
+    .sort(
+      (a, b) =>
+        getOrderTimestamp(b) -
+        getOrderTimestamp(a)
+    )
     .slice(0, 5);
 
   function handleOrderClick(order) {
-    const orderId = order.orderNumber || order.id;
+    const orderId =
+      order.orderNumber || order.id;
 
     if (!orderId) {
       return;
     }
 
     navigate(
-      `/admin/orders?highlight=${encodeURIComponent(orderId)}`
+      `/admin/orders?highlight=${encodeURIComponent(
+        orderId
+      )}`
     );
   }
 
   return (
-    <section className="min-w-0 flex-1 rounded-md border border-border-light bg-background-card shadow-sm">
-      <div className="flex flex-col items-start justify-between gap-4 border-b border-border-light px-4 py-6 sm:flex-row sm:items-center sm:px-6">
-        <h3 className="text-lg font-semibold text-text-secondary">
-          Recent Orders
-        </h3>
+    <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_4px_22px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-50">
+              <Package className="h-3.5 w-3.5 text-cyan-600" />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">
+                New Orders
+              </h3>
+
+              <p className="mt-0.5 text-[10px] text-slate-400">
+                Latest customer orders
+              </p>
+            </div>
+          </div>
+        </div>
 
         <button
           type="button"
           onClick={onOpenOrders}
-          className="rounded border border-primary-background px-4 py-2 text-xs font-semibold uppercase text-text-brand transition-colors hover:bg-primary-background hover:text-white"
+          className="group flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.6px] text-slate-500 transition-all hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
         >
           View All
+          <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
 
-      <div className="overflow-x-auto p-3 sm:p-4">
-        <table className="w-full min-w-[600px]">
-          <thead className="border-b border-border-light bg-background-main">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[650px]">
+          <thead className="bg-slate-50/70">
             <tr>
-              {["ORDER ID", "CUSTOMER", "QTY", "STATUS", "AMOUNT"].map(
-                (heading) => (
-                  <th
-                    key={heading}
-                    className="px-3 py-4 text-left text-xs font-semibold uppercase text-text-secondary"
-                  >
-                    {heading}
-                  </th>
-                )
-              )}
+              {[
+                "Order ID",
+                "Customer",
+                "Qty",
+                "Status",
+                "Amount",
+              ].map((heading) => (
+                <th
+                  key={heading}
+                  className="border-b border-slate-100 px-5 py-3 text-left text-[9px] font-bold uppercase tracking-[0.8px] text-slate-400"
+                >
+                  {heading}
+                </th>
+              ))}
             </tr>
           </thead>
 
           <tbody>
-            {recentOrders.length > 0 ? (
-              recentOrders.map((order) => {
-                const status = normalizeStatus(order.status);
+            {newOrders.length > 0 ? (
+              newOrders.map((order) => {
+                const status =
+                  normalizeStatus(order.status);
+
+                const styles =
+                  getStatusStyle(status);
 
                 return (
                   <tr
-                    key={order.id || order.orderNumber}
-                    onClick={() => handleOrderClick(order)}
+                    key={
+                      order.id ||
+                      order.orderNumber
+                    }
+                    onClick={() =>
+                      handleOrderClick(order)
+                    }
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
+                      if (
+                        event.key === "Enter" ||
+                        event.key === " "
+                      ) {
                         event.preventDefault();
                         handleOrderClick(order);
                       }
                     }}
                     role="button"
                     tabIndex={0}
-                    className="cursor-pointer border-b border-border-light transition-colors hover:bg-secondary-light"
+                    className="cursor-pointer border-b border-slate-100 transition-colors last:border-b-0 hover:bg-cyan-50/30"
                   >
-                    <td className="px-3 py-5 text-sm text-text-primary">
+                    <td className="whitespace-nowrap px-5 py-3.5 text-[11px] font-bold text-slate-700">
                       {getOrderNumber(order)}
                     </td>
 
-                    <td className="whitespace-nowrap px-3 py-5 text-sm text-text-primary">
+                    <td className="max-w-[190px] truncate px-5 py-3.5 text-[11px] text-slate-600">
                       {getCustomerName(order)}
                     </td>
 
-                    <td className="px-3 py-5 text-sm text-text-primary">
-                      {getFiveGallonQuantity(order) || getOrderQuantity(order)}
+                    <td className="px-5 py-3.5 text-[11px] font-medium text-slate-600">
+                      {getFiveGallonQuantity(order) ||
+                        getOrderQuantity(order)}
                     </td>
 
-                    <td className="px-3 py-5">
+                    <td className="px-5 py-3.5">
                       <span
-                        className={`inline-block whitespace-nowrap rounded px-2 py-1 text-xs font-semibold ${getStatusStyle(
-                          status
-                        )}`}
+                        className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.4px] ${styles.badge}`}
                       >
-                        {status}
+                        {styles.label}
                       </span>
                     </td>
 
-                    <td className="whitespace-nowrap px-3 py-5 text-sm text-text-primary">
+                    <td className="whitespace-nowrap px-5 py-3.5 text-[11px] font-bold text-slate-700">
                       {getAmount(order)}
                     </td>
                   </tr>
@@ -448,11 +514,19 @@ function RecentOrders({ orders, onOpenOrders }) {
               })
             ) : (
               <tr>
-                <td colSpan={5} className="px-3 py-10 text-center">
-                  <p className="text-sm font-semibold text-text-secondary">
-                    No recent orders
+                <td
+                  colSpan={5}
+                  className="px-5 py-12 text-center"
+                >
+                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-cyan-50">
+                    <Package className="h-4 w-4 text-cyan-600" />
+                  </div>
+
+                  <p className="mt-3 text-xs font-semibold text-slate-600">
+                    No new orders
                   </p>
-                  <p className="mt-1 text-xs text-text-accent">
+
+                  <p className="mt-1 text-[10px] text-slate-400">
                     New customer orders will appear here.
                   </p>
                 </td>
@@ -465,192 +539,480 @@ function RecentOrders({ orders, onOpenOrders }) {
   );
 }
 
-function DeliverySchedule({ orders, onOpenDeliveries }) {
+/* ============================================================
+   RECENT DELIVERIES
+============================================================ */
+
+function DeliverySchedule({
+  orders,
+  onOpenDeliveries,
+}) {
   const deliveries = [...orders]
-    .filter((order) => normalizeStatus(order.status) === "DELIVERED")
-    .sort((a, b) => getOrderTimestamp(b) - getOrderTimestamp(a))
+    .filter(
+      (order) =>
+        normalizeStatus(order.status) === "DELIVERED"
+    )
+    .sort(
+      (a, b) =>
+        getOrderTimestamp(b) -
+        getOrderTimestamp(a)
+    )
     .slice(0, 3);
 
   return (
-    <section className="flex w-full flex-col rounded-md border border-border-light bg-background-card shadow-sm lg:w-1/3">
-      <div className="border-b border-border-light px-4 py-6 sm:px-6">
-        <h3 className="text-lg font-semibold text-text-secondary">
-          Recent Deliveries
-        </h3>
+    <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_4px_22px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-50">
+            <Truck className="h-3.5 w-3.5 text-green-600" />
+          </div>
 
-        <p className="mt-2 text-sm text-text-accent">
-          Latest completed orders
-        </p>
+          <div>
+            <h3 className="text-sm font-bold text-slate-800">
+              Recent Deliveries
+            </h3>
+
+            <p className="mt-0.5 text-[10px] text-slate-400">
+              Latest completed orders
+            </p>
+          </div>
+        </div>
 
         <button
           type="button"
           onClick={onOpenDeliveries}
-          className="mt-3 text-left text-xs font-semibold uppercase text-text-brand hover:underline"
+          className="group flex shrink-0 items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.6px] text-cyan-600 transition-colors hover:text-cyan-700"
         >
-          View Delivery History
+          View All
+          <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
 
-      <div className="flex-1 p-4 sm:p-6">
-        <div className="flex flex-col gap-4">
-          {deliveries.length > 0 ? (
-            deliveries.map((order) => {
-              const quantity = getOrderQuantity(order);
-              const total = Number(order.total || 0);
+      <div className="p-5">
+        {deliveries.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {deliveries.map((order) => {
+              const quantity =
+                getOrderQuantity(order);
+
+              const total = Number(
+                order.total || 0
+              );
 
               return (
                 <div
-                  key={order.id || order.orderNumber}
-                  className="rounded border-l-4 border-primary-background bg-background-lightBlue p-4"
+                  key={
+                    order.id ||
+                    order.orderNumber
+                  }
+                  className="group rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-white hover:shadow-[0_6px_20px_rgba(6,182,212,0.08)]"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <span className="block text-xs font-semibold text-text-secondary">
+                      <span className="block truncate text-[9px] font-bold uppercase tracking-[0.6px] text-slate-400">
                         {getOrderNumber(order)}
                       </span>
 
-                      <span className="mt-1 block truncate text-sm font-semibold text-text-primary">
+                      <span className="mt-1.5 block truncate text-xs font-semibold text-slate-700">
                         {getCustomerName(order)}
                       </span>
                     </div>
 
-                    <span className="shrink-0 text-right text-sm text-text-accent">
+                    <span className="shrink-0 rounded-md bg-white px-2 py-1 text-[9px] font-medium text-slate-400">
                       {formatDeliveryTime(order)}
                     </span>
                   </div>
 
-                  <p className="mt-2 text-sm text-text-secondary">
-                    Delivered: {formatDeliveryDate(order)}
-                  </p>
+                  <div className="mt-4 flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-slate-400">
+                      {formatDeliveryDate(order)}
+                    </span>
 
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <p className="text-sm text-text-accent">
-                      {quantity > 0 ? `${quantity} items` : "Delivery completed"}
-                    </p>
-
-                    <span className="rounded bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                      DELIVERED
+                    <span className="rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.4px] text-green-700">
+                      Delivered
                     </span>
                   </div>
 
-                  {total > 0 && (
-                    <p className="mt-2 text-xs font-semibold text-text-secondary">
-                      Total: ₱{total.toFixed(2)}
-                    </p>
-                  )}
+                  <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
+                    <span className="text-[10px] text-slate-400">
+                      {quantity > 0
+                        ? `${quantity} items`
+                        : "Delivery completed"}
+                    </span>
+
+                    {total > 0 && (
+                      <span className="text-[10px] font-bold text-slate-700">
+                        ₱{total.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
-            })
-          ) : (
-            <div className="py-10 text-center">
-              <p className="text-sm font-semibold text-text-secondary">
-                No recent deliveries
-              </p>
-              <p className="mt-1 text-xs text-text-accent">
-                Completed deliveries will appear here.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="border-t border-border-light p-4 sm:p-6">
-        <button
-          type="button"
-          onClick={onOpenDeliveries}
-          className="w-full rounded bg-primary-background px-4 py-3 text-xs font-semibold uppercase text-white transition-colors hover:opacity-90"
-        >
-          Go to Deliveries
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function ActivityLog() {
-  const [logs, setLogs] = useState([]);
-
-  useEffect(() => {
-    const refreshLogs = () => {
-      setLogs(loadActivityLogs());
-    };
-
-    refreshLogs();
-
-    const handleStorage = (event) => {
-      if (event.key === ACTIVITY_KEY) {
-        refreshLogs();
-      }
-    };
-
-    window.addEventListener("activityLogUpdated", refreshLogs);
-    window.addEventListener("storage", handleStorage);
-
-    return () => {
-      window.removeEventListener("activityLogUpdated", refreshLogs);
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, []);
-
-  return (
-    <section className="flex w-full flex-col rounded-lg border border-border-light bg-background-card">
-      <div className="flex items-center gap-3 border-b border-border-light px-5 py-4 sm:px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-background-lightBlue text-primary-background">
-          <Activity className="h-5 w-5" />
-        </div>
-
-        <div>
-          <h2 className="text-base font-bold text-text-primary sm:text-lg">
-            Activity Log
-          </h2>
-          <p className="text-xs text-text-secondary sm:text-sm">
-            Recent customer and admin activities
-          </p>
-        </div>
-      </div>
-
-      <div className="max-h-[420px] overflow-y-auto">
-        {logs.length > 0 ? (
-          logs.map((log, index) => (
-            <div
-              key={log.id || `${log.timestamp}-${index}`}
-              className="flex items-start gap-4 border-b border-border-light px-5 py-4 last:border-b-0 sm:px-6"
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background-main text-text-secondary">
-                <User className="h-4 w-4" />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-bold text-text-primary">
-                    {log.userName || log.user || "User"}
-                  </span>
-
-                  <span className="rounded bg-background-lightBlue px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-background">
-                    {log.role || "User"}
-                  </span>
-                </div>
-
-                <p className="mt-1 text-sm text-text-secondary">
-                  {log.action || log.activity || "Activity recorded"}
-                </p>
-
-                <div className="mt-2 flex items-center gap-1.5 text-xs text-text-secondary">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>{formatDateTime(log.timestamp || log.createdAt)}</span>
-                </div>
-              </div>
-            </div>
-          ))
+            })}
+          </div>
         ) : (
-          <p className="px-5 py-10 text-center text-sm text-text-secondary">
-            No activities recorded yet.
-          </p>
+          <div className="py-8 text-center">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-green-50">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            </div>
+
+            <p className="mt-3 text-xs font-semibold text-slate-600">
+              No recent deliveries
+            </p>
+
+            <p className="mt-1 text-[10px] text-slate-400">
+              Completed deliveries will appear here.
+            </p>
+          </div>
         )}
       </div>
     </section>
   );
 }
+
+/* ============================================================
+   PIE CHART HELPERS
+============================================================ */
+
+function polarToCartesian(
+  centerX,
+  centerY,
+  radius,
+  angleInDegrees
+) {
+  const angleInRadians =
+    ((angleInDegrees - 90) * Math.PI) / 180;
+
+  return {
+    x:
+      centerX +
+      radius * Math.cos(angleInRadians),
+
+    y:
+      centerY +
+      radius * Math.sin(angleInRadians),
+  };
+}
+
+function describePieSlice(
+  centerX,
+  centerY,
+  radius,
+  startAngle,
+  endAngle
+) {
+  const start = polarToCartesian(
+    centerX,
+    centerY,
+    radius,
+    endAngle
+  );
+
+  const end = polarToCartesian(
+    centerX,
+    centerY,
+    radius,
+    startAngle
+  );
+
+  const largeArcFlag =
+    endAngle - startAngle <= 180
+      ? "0"
+      : "1";
+
+  return [
+    `M ${centerX} ${centerY}`,
+    `L ${start.x} ${start.y}`,
+    `A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`,
+    "Z",
+  ].join(" ");
+}
+
+/* ============================================================
+   ORDER STATUS OVERVIEW
+============================================================ */
+
+function OrderStatusOverview({ orders }) {
+  const statuses = [
+    "PENDING",
+    "PROCESSING",
+    "OUT FOR DELIVERY",
+    "DELIVERED",
+    "CANCELLED",
+  ];
+
+  const data = statuses.map((status) => ({
+    status,
+    count: orders.filter(
+      (order) =>
+        normalizeStatus(order.status) === status
+    ).length,
+  }));
+
+  const total = data.reduce(
+    (sum, item) => sum + item.count,
+    0
+  );
+
+  let accumulatedAngle = 0;
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_4px_22px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-50">
+            <Package className="h-3.5 w-3.5 text-cyan-600" />
+          </div>
+
+          <div>
+            <h3 className="text-sm font-bold text-slate-800">
+              Order Status Overview
+            </h3>
+
+            <p className="mt-0.5 text-[10px] text-slate-400">
+              Current distribution of all orders
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-cyan-50 px-3 py-2 text-right">
+          <p className="text-[8px] font-bold uppercase tracking-[0.7px] text-cyan-600">
+            Total Orders
+          </p>
+
+          <p className="mt-0.5 text-base font-bold leading-none text-cyan-800">
+            {total}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 items-center gap-7 p-5 sm:grid-cols-[230px_1fr] lg:grid-cols-[260px_1fr]">
+        {/* TRUE PIE CHART */}
+
+        <div className="relative mx-auto flex h-[210px] w-[210px] items-center justify-center">
+          {total > 0 ? (
+            <>
+              <svg
+                viewBox="0 0 190 190"
+                className="h-full w-full"
+              >
+                {data.map((item) => {
+                  if (item.count === 0) {
+                    return null;
+                  }
+
+                  const percentage =
+                    item.count / total;
+
+                  const startAngle =
+                    accumulatedAngle;
+
+                  const endAngle =
+                    accumulatedAngle +
+                    percentage * 360;
+
+                  accumulatedAngle = endAngle;
+
+                  return (
+                    <path
+                      key={item.status}
+                      d={describePieSlice(
+                        95,
+                        95,
+                        78,
+                        startAngle,
+                        endAngle
+                      )}
+                      fill={
+                        getStatusStyle(
+                          item.status
+                        ).dot
+                      }
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                      className="transition-opacity duration-200 hover:opacity-80"
+                    />
+                  );
+                })}
+              </svg>
+
+              {/* Center */}
+
+              <div className="absolute flex h-[88px] w-[88px] flex-col items-center justify-center rounded-full bg-white shadow-[0_2px_12px_rgba(15,23,42,0.06)]">
+                <span className="text-[8px] font-bold uppercase tracking-[0.7px] text-slate-400">
+                  Total
+                </span>
+
+                <span className="mt-1 text-2xl font-bold leading-none text-slate-800">
+                  {total}
+                </span>
+
+                <span className="mt-1 text-[9px] text-slate-400">
+                  Orders
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="flex h-[170px] w-[170px] items-center justify-center rounded-full border-[22px] border-slate-100">
+              <div className="text-center">
+                <span className="block text-2xl font-bold text-slate-700">
+                  0
+                </span>
+
+                <span className="text-[9px] text-slate-400">
+                  Orders
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* LEGEND */}
+
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          {data.map((item) => {
+            const styles =
+              getStatusStyle(item.status);
+
+            const percentage =
+              total > 0
+                ? Math.round(
+                    (item.count / total) * 100
+                  )
+                : 0;
+
+            return (
+              <div
+                key={item.status}
+                className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-3 transition-all hover:border-cyan-200 hover:bg-cyan-50/40"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor:
+                        styles.dot,
+                    }}
+                  />
+
+                  <span className="truncate text-[11px] font-semibold text-slate-700">
+                    {styles.label}
+                  </span>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2.5">
+                  <span className="text-xs font-bold text-slate-700">
+                    {item.count}
+                  </span>
+
+                  <span className="min-w-[34px] text-right text-[9px] font-medium text-slate-400">
+                    {percentage}%
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
+   DASHBOARD SUMMARY
+============================================================ */
+
+function DashboardSummary({ orders }) {
+  const summary = useMemo(() => {
+    const active = orders.filter((order) => {
+      const status =
+        normalizeStatus(order.status);
+
+      return (
+        status !== "DELIVERED" &&
+        status !== "CANCELLED"
+      );
+    }).length;
+
+    const delivered = orders.filter(
+      (order) =>
+        normalizeStatus(order.status) ===
+        "DELIVERED"
+    ).length;
+
+    const cancelled = orders.filter(
+      (order) =>
+        normalizeStatus(order.status) ===
+        "CANCELLED"
+    ).length;
+
+    return {
+      active,
+      delivered,
+      cancelled,
+    };
+  }, [orders]);
+
+  const items = [
+    {
+      label: "Active Orders",
+      value: summary.active,
+      icon: Package,
+      className: "bg-cyan-50 text-cyan-600",
+    },
+    {
+      label: "Delivered",
+      value: summary.delivered,
+      icon: CheckCircle2,
+      className: "bg-green-50 text-green-600",
+    },
+    {
+      label: "Cancelled",
+      value: summary.cancelled,
+      icon: AlertCircle,
+      className: "bg-red-50 text-red-600",
+    },
+  ];
+
+  return (
+    <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {items.map((item) => {
+        const Icon = item.icon;
+
+        return (
+          <div
+            key={item.label}
+            className="group flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white px-4 py-3.5 shadow-[0_4px_18px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-[0_7px_24px_rgba(6,182,212,0.07)]"
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.className}`}
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.7px] text-slate-400">
+                  {item.label}
+                </p>
+
+                <p className="mt-1 text-lg font-bold leading-none text-slate-800">
+                  {item.value}
+                </p>
+              </div>
+            </div>
+
+            <ChevronRight className="h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-cyan-500" />
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -669,55 +1031,135 @@ function Dashboard() {
       }
     };
 
-    window.addEventListener("orderUpdated", loadOrders);
-    window.addEventListener("ordersUpdated", loadOrders);
-    window.addEventListener("storage", handleStorage);
+    window.addEventListener(
+      "orderUpdated",
+      loadOrders
+    );
+
+    window.addEventListener(
+      "ordersUpdated",
+      loadOrders
+    );
+
+    window.addEventListener(
+      "storage",
+      handleStorage
+    );
 
     return () => {
-      window.removeEventListener("orderUpdated", loadOrders);
-      window.removeEventListener("ordersUpdated", loadOrders);
-      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(
+        "orderUpdated",
+        loadOrders
+      );
+
+      window.removeEventListener(
+        "ordersUpdated",
+        loadOrders
+      );
+
+      window.removeEventListener(
+        "storage",
+        handleStorage
+      );
     };
   }, []);
 
   return (
-    <main className="flex min-h-screen w-full bg-background-main">
+    <main className="flex min-h-screen w-full bg-slate-50">
       <AdminSidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
 
-        <div className="flex-1 overflow-y-auto bg-background-main px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
+        <div className="flex-1 overflow-y-auto bg-slate-50 px-4 py-5 pb-10 sm:px-6 sm:py-6 sm:pb-12 lg:px-8 lg:pb-14">
           <div className="mx-auto w-full max-w-[1440px]">
-            <div className="flex flex-col gap-6 sm:gap-8 lg:gap-10">
-              <section>
-                <h2 className="text-xl font-bold text-text-secondary sm:text-2xl">
-                  Dashboard Overview
-                </h2>
+            <div className="flex flex-col gap-5">
 
-                <p className="mt-1 text-sm text-text-accent">
-                  Real-time metrics for Golden-PR operations.
-                </p>
+              {/* ==================================================
+                  HEADER
+              ================================================== */}
+
+              <section className="flex flex-col justify-between gap-4 rounded-2xl border border-cyan-100 bg-gradient-to-r from-white via-white to-cyan-50/70 px-5 py-5 shadow-[0_4px_20px_rgba(6,182,212,0.05)] sm:flex-row sm:items-center">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_0_4px_rgba(6,182,212,0.10)]" />
+
+                    <span className="text-[9px] font-bold uppercase tracking-[1px] text-cyan-600">
+                      Admin Overview
+                    </span>
+                  </div>
+
+                  <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-800">
+                    Dashboard
+                  </h2>
+
+                  <p className="mt-1 text-xs text-slate-400 sm:text-sm">
+                    Overview of your Golden-PR operations and orders.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="hidden h-10 w-px bg-cyan-100 sm:block" />
+
+                  <div className="rounded-xl border border-cyan-100 bg-white px-4 py-2.5 shadow-sm">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.8px] text-slate-400">
+                      Total Orders
+                    </p>
+
+                    <p className="mt-1 text-lg font-bold leading-none text-cyan-700">
+                      {orders.length}
+                    </p>
+                  </div>
+                </div>
               </section>
+
+              {/* ==================================================
+                  STAT CARDS
+              ================================================== */}
 
               <StatisticsGrid orders={orders} />
 
-              <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
-                <RecentOrders
-                  orders={orders}
-                  onOpenOrders={() => navigate("/admin/orders")}
-                />
+              {/* ==================================================
+                  NEW ORDERS
+              ================================================== */}
 
-                <DeliverySchedule
-                  orders={orders}
-                  onOpenDeliveries={() => navigate("/admin/deliveries")}
-                />
-              </div>
+              <RecentOrders
+                orders={orders}
+                onOpenOrders={() =>
+                  navigate("/admin/orders")
+                }
+              />
 
-              <ActivityLog />
+              {/* ==================================================
+                  RECENT DELIVERIES
+              ================================================== */}
+
+              <DeliverySchedule
+                orders={orders}
+                onOpenDeliveries={() =>
+                  navigate("/admin/deliveries")
+                }
+              />
+
+              {/* ==================================================
+                  STATUS CHART
+              ================================================== */}
+
+              <OrderStatusOverview
+                orders={orders}
+              />
+
+              {/* ==================================================
+                  QUICK SUMMARY
+              ================================================== */}
+
+              <DashboardSummary
+                orders={orders}
+              />
             </div>
           </div>
         </div>
+
         <AdminFooter />
       </div>
     </main>

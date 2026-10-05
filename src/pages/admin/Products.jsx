@@ -10,6 +10,7 @@ import roundPurifiedWater from "../../assets/images/round-purified-water.png";
 import bottle500ml from "../../assets/images/500ml-bottle.png";
 
 const PRODUCTS_KEY = "adminProducts";
+const PRODUCT_TOAST_KEY = "adminProductToast";
 
 const defaultProducts = [
   {
@@ -121,10 +122,24 @@ const saveProducts = (products) => {
   );
 };
 
+const isRefillProduct = (product) => {
+  const productName = String(
+    product?.name || "",
+  ).toLowerCase();
+
+  return (
+    productName.includes("round gallon refill") ||
+    productName.includes("slim gallon refill")
+  );
+};
+
 function Products() {
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
+
+  // Toast notification state
+  const [toast, setToast] = useState("");
 
   // Warning modal state
   const [showWarning, setShowWarning] =
@@ -174,6 +189,25 @@ function Products() {
         handleStorage,
       );
     };
+  }, []);
+
+  useEffect(() => {
+    const savedToast =
+      localStorage.getItem(PRODUCT_TOAST_KEY);
+
+    if (!savedToast) {
+      return;
+    }
+
+    localStorage.removeItem(PRODUCT_TOAST_KEY);
+
+    setToast(savedToast);
+
+    const timeout = setTimeout(() => {
+      setToast("");
+    }, 3000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const handleEdit = (product) => {
@@ -330,101 +364,112 @@ function Products() {
 
                   <tbody className="bg-card-background">
                     {products.map(
-                      (product, index) => (
-                        <tr
-                          key={product.id}
-                          className={
-                            index > 0
-                              ? "border-t border-table-border"
-                              : ""
-                          }
-                        >
-                          {/* Product */}
-                          <td className="p-5">
-                            <div className="flex items-center gap-4">
-                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border-secondary bg-background-accent">
-                                <img
-                                  src={getProductImage(
-                                    product,
-                                  )}
-                                  alt={
-                                    product.name
-                                  }
-                                  className="h-8 w-8 object-contain"
-                                />
-                              </div>
+                      (product, index) => {
+                        const refillProduct =
+                          isRefillProduct(product);
 
-                              <div className="flex flex-col">
-                                <span className="text-base font-bold leading-6 text-text-primary">
-                                  {
-                                    product.name
-                                  }
-                                </span>
-
-                                <span className="text-sm leading-5 text-text-light">
-                                  {
-                                    product.description
-                                  }
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Quantity */}
-                          <td className="p-5 text-right text-base leading-6 text-text-primary">
-                            {
-                              product.quantity
+                        return (
+                          <tr
+                            key={product.id}
+                            className={
+                              index > 0
+                                ? "border-t border-table-border"
+                                : ""
                             }
-                          </td>
+                          >
+                            {/* Product */}
+                            <td className="p-5">
+                              <div className="flex items-center gap-4">
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border-secondary bg-background-accent">
+                                  <img
+                                    src={getProductImage(
+                                      product,
+                                    )}
+                                    alt={
+                                      product.name
+                                    }
+                                    className="h-8 w-8 object-contain"
+                                  />
+                                </div>
 
-                          {/* Status */}
-                          <td className="p-5 text-center">
-                            <span className="inline-flex items-center rounded-full border border-secondary-medium bg-background-lightBlue px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
-                              {
-                                product.status
-                              }
-                            </span>
-                          </td>
+                                <div className="flex flex-col">
+                                  <span className="text-base font-bold leading-6 text-text-primary">
+                                    {
+                                      product.name
+                                    }
+                                  </span>
 
-                          {/* Price */}
-                          <td className="p-5 text-right text-base leading-6 text-text-primary">
-                            ₱{" "}
-                            {Number(
-                              product.price,
-                            ).toFixed(2)}
-                          </td>
+                                  <span className="text-sm leading-5 text-text-light">
+                                    {
+                                      product.description
+                                    }
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
 
-                          {/* Actions */}
-                          <td className="p-5">
-                            <div className="flex items-center justify-center gap-4">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleEdit(
-                                    product,
-                                  )
-                                }
-                                className="text-sm font-semibold uppercase tracking-[0.7px] text-text-secondary transition-colors hover:text-text-accent"
-                              >
-                                Edit
-                              </button>
+                            {/* Quantity */}
+                            <td className="p-5 text-right text-base leading-6 text-text-primary">
+                              {refillProduct
+                                ? "—"
+                                : product.quantity}
+                            </td>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleDelete(
-                                    product,
-                                  )
-                                }
-                                disabled={deleting}
-                                className="text-sm font-semibold uppercase tracking-[0.7px] text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ),
+                            {/* Status */}
+                            <td className="p-5 text-center">
+                              {refillProduct ? (
+                                <span className="text-base text-text-light">
+                                  —
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full border border-secondary-medium bg-background-lightBlue px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                                  {
+                                    product.status
+                                  }
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Price */}
+                            <td className="p-5 text-right text-base leading-6 text-text-primary">
+                              ₱{" "}
+                              {Number(
+                                product.price,
+                              ).toFixed(2)}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="p-5">
+                              <div className="flex items-center justify-center gap-4">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleEdit(
+                                      product,
+                                    )
+                                  }
+                                  className="text-sm font-semibold uppercase tracking-[0.7px] text-text-secondary transition-colors hover:text-text-accent"
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDelete(
+                                      product,
+                                    )
+                                  }
+                                  disabled={deleting}
+                                  className="text-sm font-semibold uppercase tracking-[0.7px] text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      },
                     )}
 
                     {products.length === 0 && (
@@ -499,6 +544,33 @@ function Products() {
           </div>
         </main>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed right-5 top-5 z-[100] flex items-center gap-3 rounded-lg border border-green-200 bg-white px-4 py-3 shadow-lg">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 6L9 17L4 12"
+                stroke="#16A34A"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+
+          <span className="text-sm font-semibold text-text-primary">
+            {toast}
+          </span>
+        </div>
+      )}
 
       {/* Delete Warning Modal */}
       <WarningModal

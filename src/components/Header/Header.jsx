@@ -114,13 +114,17 @@ function Header() {
           type="button"
           onClick={handleLogoClick}
           aria-label="GoldenPR home"
-          className="flex shrink-0 items-center"
+          className="flex shrink-0 items-center gap-2"
         >
           <img
             src={goldenPRLogo}
             alt="GoldenPR"
             className="h-9 w-auto object-contain"
           />
+
+          <span className="text-lg font-bold tracking-tight text-[#08779D]">
+            GoldenPR
+          </span>
         </button>
 
         {/* Navigation and profile grouped at the far right */}

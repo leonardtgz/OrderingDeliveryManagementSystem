@@ -7,6 +7,7 @@ import Header from "../../components/Header/Header";
 import WarningModal from "../../components/admin/WarningModal";
 
 const PRODUCTS_KEY = "adminProducts";
+const PRODUCT_TOAST_KEY = "adminProductToast";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const EditAdminProduct = () => {
@@ -19,13 +20,25 @@ const EditAdminProduct = () => {
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
-  const [status, setStatus] = useState("In Stock");
+  const [status, setStatus] = useState("");
 
   const [image, setImage] = useState("");
   const [imageError, setImageError] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+
+  // Check if the product is a refill-only product
+  const isRefillProduct = (productName) => {
+    const normalizedName = String(productName || "")
+      .trim()
+      .toLowerCase();
+
+    return (
+      normalizedName === "slim gallon refill" ||
+      normalizedName === "round gallon refill"
+    );
+  };
 
   useEffect(() => {
     try {
@@ -60,13 +73,26 @@ const EditAdminProduct = () => {
       setDescription(
         foundProduct.description || "",
       );
-      setQuantity(
-        foundProduct.quantity ?? 0,
+
+      const refillProduct = isRefillProduct(
+        foundProduct.name,
       );
+
+      // Refill products should have empty quantity/status
+      if (refillProduct) {
+        setQuantity("");
+        setStatus("");
+      } else {
+        setQuantity(
+          foundProduct.quantity ?? "",
+        );
+
+        setStatus(
+          foundProduct.status || "In Stock",
+        );
+      }
+
       setPrice(foundProduct.price ?? 0);
-      setStatus(
-        foundProduct.status || "In Stock",
-      );
       setImage(foundProduct.image || "");
     } catch (error) {
       console.error(
@@ -117,12 +143,18 @@ const EditAdminProduct = () => {
   const handleSubmit = (event) => {
     event.preventDefault();
 
+    const refillProduct = isRefillProduct(name);
+
     if (
       !name.trim() ||
       !description.trim() ||
-      quantity === "" ||
-      price === ""
+      (!refillProduct &&
+        (quantity === "" || price === ""))
     ) {
+      return;
+    }
+
+    if (refillProduct && price === "") {
       return;
     }
 
@@ -183,6 +215,8 @@ const EditAdminProduct = () => {
         return;
       }
 
+      const refillProduct = isRefillProduct(name);
+
       const updatedProducts =
         products.map((item) => {
           if (
@@ -195,9 +229,18 @@ const EditAdminProduct = () => {
             ...item,
             name: name.trim(),
             description: description.trim(),
-            quantity: Number(quantity),
+
+            // Refill products do not have quantity/status
+            quantity: refillProduct
+              ? ""
+              : Number(quantity),
+
             price: Number(price),
-            status,
+
+            status: refillProduct
+              ? ""
+              : status,
+
             image:
               image ||
               item.image ||
@@ -212,6 +255,11 @@ const EditAdminProduct = () => {
 
       window.dispatchEvent(
         new Event("productUpdated"),
+      );
+
+      localStorage.setItem(
+        PRODUCT_TOAST_KEY,
+        "Product updated successfully.",
       );
 
       setShowWarning(false);
@@ -235,6 +283,8 @@ const EditAdminProduct = () => {
   if (!product) {
     return null;
   }
+
+  const refillProduct = isRefillProduct(name);
 
   return (
     <div className="flex min-h-screen bg-background-main">
@@ -333,12 +383,22 @@ const EditAdminProduct = () => {
                     type="number"
                     min="0"
                     value={quantity}
+                    disabled={refillProduct}
                     onChange={(event) =>
                       setQuantity(
                         event.target.value,
                       )
                     }
-                    className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
+                    placeholder={
+                      refillProduct
+                        ? "Not applicable"
+                        : ""
+                    }
+                    className={`h-11 rounded-lg border border-border-secondary px-3 text-sm outline-none transition ${
+                      refillProduct
+                        ? "cursor-not-allowed bg-gray-100 text-text-secondary"
+                        : "bg-background-main text-text-primary focus:border-primary-background"
+                    }`}
                   />
                 </div>
 
@@ -378,24 +438,39 @@ const EditAdminProduct = () => {
                   <select
                     id="product-status"
                     value={status}
+                    disabled={refillProduct}
                     onChange={(event) =>
                       setStatus(
                         event.target.value,
                       )
                     }
-                    className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
+                    className={`h-11 rounded-lg border border-border-secondary px-3 text-sm outline-none transition ${
+                      refillProduct
+                        ? "cursor-not-allowed bg-gray-100 text-text-secondary"
+                        : "bg-background-main text-text-primary focus:border-primary-background"
+                    }`}
                   >
-                    <option value="In Stock">
-                      In Stock
-                    </option>
+                    {!refillProduct && (
+                      <>
+                        <option value="In Stock">
+                          In Stock
+                        </option>
 
-                    <option value="Low Stock">
-                      Low Stock
-                    </option>
+                        <option value="Low Stock">
+                          Low Stock
+                        </option>
 
-                    <option value="Out of Stock">
-                      Out of Stock
-                    </option>
+                        <option value="Out of Stock">
+                          Out of Stock
+                        </option>
+                      </>
+                    )}
+
+                    {refillProduct && (
+                      <option value="">
+                        Not applicable
+                      </option>
+                    )}
                   </select>
                 </div>
 

@@ -12,6 +12,8 @@ import {
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import Header from "../../components/Header/Header";
 
+const CUSTOMER_TOAST_KEY = "adminCustomerToast";
+
 const defaultCustomers = [
   {
     id: "1",
@@ -52,6 +54,8 @@ export default function Customers() {
   const [showDeleteModal, setShowDeleteModal] =
     useState(false);
 
+  const [toast, setToast] = useState("");
+
   // Load customers
   useEffect(() => {
     const savedCustomers =
@@ -76,6 +80,28 @@ export default function Customers() {
       "adminCustomers",
       JSON.stringify(defaultCustomers),
     );
+  }, []);
+
+  // Show toast after editing customer
+  useEffect(() => {
+    const savedToast =
+      localStorage.getItem(CUSTOMER_TOAST_KEY);
+
+    if (!savedToast) {
+      return;
+    }
+
+    localStorage.removeItem(CUSTOMER_TOAST_KEY);
+
+    setToast(savedToast);
+
+    const timeoutId = setTimeout(() => {
+      setToast("");
+    }, 3000);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   // Listen for customer changes
@@ -226,6 +252,34 @@ export default function Customers() {
 
         <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="flex w-full flex-col items-start gap-8 p-6 lg:p-12">
+
+            {/* Success Toast */}
+            {toast && (
+              <div className="fixed right-5 top-5 z-[200] flex items-center gap-3 rounded-lg border border-green-200 bg-white px-4 py-3 shadow-lg">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M5 12.5L9.5 17L19 7.5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-green-600"
+                    />
+                  </svg>
+                </div>
+
+                <span className="text-sm font-semibold text-text-primary">
+                  {toast}
+                </span>
+              </div>
+            )}
 
             {/* Page Header */}
             <div className="flex w-full flex-col items-start gap-4 self-stretch pb-3 sm:flex-row sm:items-end sm:justify-between">

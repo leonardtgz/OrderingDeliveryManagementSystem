@@ -300,7 +300,7 @@ const AdminSidebar = () => {
 
       {/* Logout Warning Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4 backdrop-blur-[2px]">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/25 px-4">
           <div className="w-full max-w-[420px] overflow-hidden rounded-xl border border-red-200 bg-background-card shadow-2xl">
 
             {/* Modal Body */}

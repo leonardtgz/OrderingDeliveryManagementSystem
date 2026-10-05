@@ -3,12 +3,111 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowLeft,
+  ChevronDown,
   Save,
   X,
 } from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import Header from "../../components/Header/Header";
+
+const CUSTOMERS_KEY = "adminCustomers";
+const CUSTOMER_TOAST_KEY = "adminCustomerToast";
+
+const REGIONS = ["Central Luzon"];
+
+const PROVINCES_BY_REGION = {
+  "Central Luzon": ["Bulacan"],
+};
+
+const CITIES_BY_PROVINCE = {
+  Bulacan: [
+    "San Rafael",
+    "Angat",
+    "Balagtas",
+    "Baliwag",
+    "Bocaue",
+    "Bulakan",
+    "Bustos",
+    "Calumpit",
+    "Doña Remedios Trinidad",
+    "Guiguinto",
+    "Hagonoy",
+    "Malolos",
+    "Marilao",
+    "Meycauayan",
+    "Norzagaray",
+    "Obando",
+    "Pandi",
+    "Paombong",
+    "Plaridel",
+  ],
+};
+
+const BARANGAYS_BY_MUNICIPALITY = {
+  "San Rafael": [],
+  Angat: [],
+  Balagtas: [],
+  Baliwag: [],
+  Bocaue: [],
+  Bulakan: [],
+  Bustos: [],
+  Calumpit: [],
+  "Doña Remedios Trinidad": [],
+  Guiguinto: [],
+  Hagonoy: [],
+  Malolos: [],
+  Marilao: [],
+  Meycauayan: [],
+  Norzagaray: [],
+  Obando: [],
+  Pandi: [],
+  Paombong: [],
+  Plaridel: [],
+};
+
+const SelectField = ({
+  id,
+  name,
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled = false,
+}) => {
+  return (
+    <div className="relative">
+      <select
+        id={id}
+        name={name}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className={`h-12 w-full appearance-none rounded-lg border border-border-secondary bg-white pl-3 pr-12 text-sm text-text-primary outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 ${
+          disabled
+            ? "cursor-not-allowed bg-gray-100 text-text-secondary"
+            : ""
+        }`}
+      >
+        <option value="" disabled>
+          {placeholder}
+        </option>
+
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+
+      <ChevronDown
+        size={16}
+        strokeWidth={2}
+        className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary"
+      />
+    </div>
+  );
+};
 
 export default function EditCustomer() {
   const navigate = useNavigate();
@@ -20,14 +119,19 @@ export default function EditCustomer() {
     name: "",
     contact: "",
     email: "",
-    address: "",
+    region: "",
+    province: "",
+    city: "",
+    barangay: "",
+    postalCode: "",
+    streetAddress: "",
   });
 
   const [showWarning, setShowWarning] = useState(false);
 
   useEffect(() => {
     const savedCustomers =
-      localStorage.getItem("adminCustomers");
+      localStorage.getItem(CUSTOMERS_KEY);
 
     if (!savedCustomers) {
       navigate("/admin/customers");
@@ -58,7 +162,17 @@ export default function EditCustomer() {
         name: foundCustomer.name || "",
         contact: foundCustomer.contact || "",
         email: foundCustomer.email || "",
-        address: foundCustomer.address || "",
+        region: foundCustomer.region || "",
+        province: foundCustomer.province || "",
+        city:
+          foundCustomer.city ||
+          foundCustomer.cityMunicipality ||
+          "",
+        barangay: foundCustomer.barangay || "",
+        postalCode: foundCustomer.postalCode || "",
+        streetAddress:
+          foundCustomer.streetAddress ||
+          "",
       });
     } catch {
       navigate("/admin/customers");
@@ -74,6 +188,48 @@ export default function EditCustomer() {
     }));
   };
 
+  const handleRegionChange = (event) => {
+    const value = event.target.value;
+
+    setFormData((current) => ({
+      ...current,
+      region: value,
+      province: "",
+      city: "",
+      barangay: "",
+    }));
+  };
+
+  const handleProvinceChange = (event) => {
+    const value = event.target.value;
+
+    setFormData((current) => ({
+      ...current,
+      province: value,
+      city: "",
+      barangay: "",
+    }));
+  };
+
+  const handleCityChange = (event) => {
+    const value = event.target.value;
+
+    setFormData((current) => ({
+      ...current,
+      city: value,
+      barangay: "",
+    }));
+  };
+
+  const provinces =
+    PROVINCES_BY_REGION[formData.region] || [];
+
+  const cities =
+    CITIES_BY_PROVINCE[formData.province] || [];
+
+  const barangays =
+    BARANGAYS_BY_MUNICIPALITY[formData.city] || [];
+
   const handleSubmit = (event) => {
     event.preventDefault();
 
@@ -81,7 +237,12 @@ export default function EditCustomer() {
       !formData.name.trim() ||
       !formData.contact.trim() ||
       !formData.email.trim() ||
-      !formData.address.trim()
+      !formData.region.trim() ||
+      !formData.province.trim() ||
+      !formData.city.trim() ||
+      !formData.barangay.trim() ||
+      !formData.postalCode.trim() ||
+      !formData.streetAddress.trim()
     ) {
       window.alert(
         "Please complete all customer information.",
@@ -95,7 +256,7 @@ export default function EditCustomer() {
 
   const handleConfirmUpdate = () => {
     const savedCustomers =
-      localStorage.getItem("adminCustomers");
+      localStorage.getItem(CUSTOMERS_KEY);
 
     if (!savedCustomers) {
       window.alert(
@@ -122,12 +283,36 @@ export default function EditCustomer() {
             return item;
           }
 
+          const formattedAddress = [
+            formData.streetAddress.trim(),
+            formData.barangay.trim(),
+            formData.city.trim(),
+            formData.province.trim(),
+            formData.region.trim(),
+            formData.postalCode.trim(),
+          ]
+            .filter(Boolean)
+            .join(", ");
+
           return {
             ...item,
             name: formData.name.trim(),
             contact: formData.contact.trim(),
             email: formData.email.trim(),
-            address: formData.address.trim(),
+
+            // Keep the address fields consistent
+            // with the customer-side address form.
+            region: formData.region.trim(),
+            province: formData.province.trim(),
+            city: formData.city.trim(),
+            barangay: formData.barangay.trim(),
+            postalCode: formData.postalCode.trim(),
+            streetAddress:
+              formData.streetAddress.trim(),
+
+            // Keep the combined address for
+            // compatibility with existing customer data.
+            address: formattedAddress,
 
             // Keep existing order count.
             orders: item.orders || 0,
@@ -136,13 +321,19 @@ export default function EditCustomer() {
       );
 
       localStorage.setItem(
-        "adminCustomers",
+        CUSTOMERS_KEY,
         JSON.stringify(updatedCustomers),
       );
 
       // Tell Customers.jsx that a customer was updated.
       window.dispatchEvent(
         new Event("customerUpdated"),
+      );
+
+      // Show success toast on the Customers page.
+      localStorage.setItem(
+        CUSTOMER_TOAST_KEY,
+        "Customer updated successfully.",
       );
 
       setShowWarning(false);
@@ -279,22 +470,144 @@ export default function EditCustomer() {
 
                 {/* Address */}
                 <div className="md:col-span-2">
-                  <label
-                    htmlFor="address"
-                    className="mb-2 block text-sm font-semibold text-text-primary"
-                  >
+                  <label className="mb-3 block text-sm font-semibold text-text-primary">
                     Address
                   </label>
 
-                  <textarea
-                    id="address"
-                    name="address"
-                    rows={4}
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="Enter complete address"
-                    className="w-full resize-none rounded-lg border border-border-secondary bg-white px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+                    {/* Region */}
+                    <div>
+                      <label
+                        htmlFor="region"
+                        className="mb-2 block text-xs font-semibold text-text-secondary"
+                      >
+                        Region
+                      </label>
+
+                      <SelectField
+                        id="region"
+                        name="region"
+                        value={formData.region}
+                        onChange={handleRegionChange}
+                        options={REGIONS}
+                        placeholder="Select region"
+                      />
+                    </div>
+
+                    {/* Province */}
+                    <div>
+                      <label
+                        htmlFor="province"
+                        className="mb-2 block text-xs font-semibold text-text-secondary"
+                      >
+                        Province
+                      </label>
+
+                      <SelectField
+                        id="province"
+                        name="province"
+                        value={formData.province}
+                        onChange={handleProvinceChange}
+                        options={provinces}
+                        placeholder="Select province"
+                        disabled={!formData.region}
+                      />
+                    </div>
+
+                    {/* City / Municipality */}
+                    <div>
+                      <label
+                        htmlFor="city"
+                        className="mb-2 block whitespace-nowrap text-xs font-semibold text-text-secondary"
+                      >
+                        City / Municipality
+                      </label>
+
+                      <SelectField
+                        id="city"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleCityChange}
+                        options={cities}
+                        placeholder="Select city / municipality"
+                        disabled={!formData.province}
+                      />
+                    </div>
+
+                    {/* Barangay */}
+                    <div>
+                      <label
+                        htmlFor="barangay"
+                        className="mb-2 block text-xs font-semibold text-text-secondary"
+                      >
+                        Barangay
+                      </label>
+
+                      {barangays.length > 0 ? (
+                        <SelectField
+                          id="barangay"
+                          name="barangay"
+                          value={formData.barangay}
+                          onChange={handleChange}
+                          options={barangays}
+                          placeholder="Select barangay"
+                          disabled={!formData.city}
+                        />
+                      ) : (
+                        <input
+                          id="barangay"
+                          name="barangay"
+                          type="text"
+                          value={formData.barangay}
+                          onChange={handleChange}
+                          placeholder="Enter barangay"
+                          className="h-12 w-full rounded-lg border border-border-secondary bg-white px-4 text-sm text-text-primary outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        />
+                      )}
+                    </div>
+
+                    {/* Postal Code */}
+                    <div>
+                      <label
+                        htmlFor="postalCode"
+                        className="mb-2 block text-xs font-semibold text-text-secondary"
+                      >
+                        Postal Code
+                      </label>
+
+                      <input
+                        id="postalCode"
+                        name="postalCode"
+                        type="text"
+                        value={formData.postalCode}
+                        onChange={handleChange}
+                        placeholder="Enter postal code"
+                        className="h-12 w-full rounded-lg border border-border-secondary bg-white px-4 text-sm text-text-primary outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+
+                    {/* Street Address */}
+                    <div>
+                      <label
+                        htmlFor="streetAddress"
+                        className="mb-2 block whitespace-nowrap text-xs font-semibold text-text-secondary"
+                      >
+                        Street Address
+                      </label>
+
+                      <input
+                        id="streetAddress"
+                        name="streetAddress"
+                        type="text"
+                        value={formData.streetAddress}
+                        onChange={handleChange}
+                        placeholder="House / Building No. & Street"
+                        className="h-12 w-full rounded-lg border border-border-secondary bg-white px-4 text-sm text-text-primary outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+
+                  </div>
                 </div>
 
               </div>
@@ -412,7 +725,16 @@ export default function EditCustomer() {
                   </p>
 
                   <p className="mt-1 text-sm leading-5 text-text-primary">
-                    {formData.address}
+                    {[
+                      formData.streetAddress,
+                      formData.barangay,
+                      formData.city,
+                      formData.province,
+                      formData.region,
+                      formData.postalCode,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
                   </p>
                 </div>
 
