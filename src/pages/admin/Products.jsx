@@ -204,6 +204,7 @@ const isRefillProduct = (product) => {
   ).toLowerCase();
 
   return (
+    product?.productType === "Refill" ||
     productName.includes(
       "round gallon refill",
     ) ||

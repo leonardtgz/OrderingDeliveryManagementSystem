@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Search,
   SlidersHorizontal,
+  X,
 } from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
@@ -36,7 +37,7 @@ function normalizeStatus(status) {
   return String(status || "")
     .trim()
     .toLowerCase()
-    .replace(/[\_\-]+/g, " ")
+    .replace(/[\_-]+/g, " ")
     .replace(/\s+/g, " ");
 }
 
@@ -202,7 +203,6 @@ function getAddressFields(order) {
 
   const getLine = (index) => {
     const value = lines[index];
-
     return value ? String(value).trim() : "";
   };
 
@@ -354,9 +354,7 @@ function DeliveryCard({
   onUpdateStatus,
   isHistory,
 }) {
-  const [showStatus, setShowStatus] =
-    useState(false);
-
+  const [showStatus, setShowStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] =
     useState(delivery.status);
 
@@ -416,7 +414,6 @@ function DeliveryCard({
               {delivery.customer}
             </p>
 
-            {/* CONTACT NUMBER */}
             <p className="mt-1.5 text-sm font-medium text-slate-500">
               {delivery.contactNumber}
             </p>
@@ -479,7 +476,6 @@ function DeliveryCard({
             </p>
 
             <div className="mt-3 space-y-4">
-
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-slate-400">
                   Order Number
@@ -527,7 +523,6 @@ function DeliveryCard({
                   </p>
                 </div>
               </div>
-
             </div>
           </div>
 
@@ -548,9 +543,7 @@ function DeliveryCard({
                     />
 
                     <span className="truncate">
-                      {
-                        selectedStatusConfig.label
-                      }
+                      {selectedStatusConfig.label}
                     </span>
                   </span>
                 </div>
@@ -571,9 +564,7 @@ function DeliveryCard({
                       />
 
                       <span className="truncate">
-                        {
-                          selectedStatusConfig.label
-                        }
+                        {selectedStatusConfig.label}
                       </span>
                     </span>
 
@@ -621,9 +612,7 @@ function DeliveryCard({
                                     : "text-slate-600"
                                 }
                               >
-                                {
-                                  config.label
-                                }
+                                {config.label}
                               </span>
                             </button>
                           );
@@ -640,21 +629,263 @@ function DeliveryCard({
               !isCancelled && (
                 <button
                   type="button"
-                  onClick={handleUpdateStatus}
-                  disabled={!hasStatusChange}
+                  onClick={
+                    handleUpdateStatus
+                  }
+                  disabled={
+                    !hasStatusChange
+                  }
                   className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#08779D] px-4 text-xs font-bold uppercase tracking-[0.04em] text-white shadow-sm transition hover:bg-[#066985] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RefreshCw
                     size={15}
                     strokeWidth={2}
                   />
-
                   Update Status
                 </button>
               )}
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// DELIVERY FILTER MENU
+// ============================================================
+
+function DeliveryFilterMenu({
+  statusFilter,
+  setStatusFilter,
+  deliveryDateFilter,
+  setDeliveryDateFilter,
+  customStartDate,
+  setCustomStartDate,
+  customEndDate,
+  setCustomEndDate,
+}) {
+  const [open, setOpen] = useState(false);
+
+  const hasActiveFilters =
+    statusFilter !== "all" ||
+    deliveryDateFilter !== "all" ||
+    customStartDate ||
+    customEndDate;
+
+  const activeFilterCount = [
+    statusFilter !== "all",
+    deliveryDateFilter !== "all",
+  ].filter(Boolean).length;
+
+  const resetFilters = () => {
+    setStatusFilter("all");
+    setDeliveryDateFilter("all");
+    setCustomStartDate("");
+    setCustomEndDate("");
+  };
+
+  return (
+    <div className="relative shrink-0">
+      {/* FILTER BUTTON */}
+      <button
+        type="button"
+        onClick={() =>
+          setOpen((value) => !value)
+        }
+        className={`flex h-10 items-center gap-2 rounded-lg border px-3.5 text-sm font-semibold transition ${
+          hasActiveFilters
+            ? "border-[#08779D] bg-[#EAF7FA] text-[#08779D]"
+            : "border-[#D5E8EE] bg-white text-[#123047] hover:border-[#08779D]"
+        }`}
+      >
+        <SlidersHorizontal
+          size={16}
+          strokeWidth={2}
+        />
+
+        <span>Filters</span>
+
+        {hasActiveFilters && (
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#08779D] px-1.5 text-[10px] font-bold text-white">
+            {activeFilterCount}
+          </span>
+        )}
+
+        <ChevronDown
+          size={15}
+          strokeWidth={2}
+          className={`ml-0.5 transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open && (
+        <>
+          {/* BACKDROP */}
+          <button
+            type="button"
+            aria-label="Close filters menu"
+            className="fixed inset-0 z-40 cursor-default"
+            onClick={() => setOpen(false)}
+          />
+
+          {/* DROPDOWN */}
+          <div className="absolute right-0 top-[46px] z-50 w-[290px] rounded-xl border border-[#D5E8EE] bg-white p-4 shadow-[0_12px_35px_rgba(0,0,0,0.12)]">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-[#123047]">
+                Filters
+              </h3>
+
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-[#7890A0] transition hover:text-[#08779D]"
+                aria-label="Close filters"
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            {/* STATUS */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.5px] text-[#7890A0]">
+                Status
+              </label>
+
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(event) =>
+                    setStatusFilter(
+                      event.target.value,
+                    )
+                  }
+                  className="h-10 w-full appearance-none rounded-lg border border-[#D5E8EE] bg-white px-3 pr-9 text-sm text-[#123047] outline-none focus:border-[#08779D]"
+                >
+                  <option value="all">
+                    All Statuses
+                  </option>
+
+                  {statusOptions.map(
+                    (status) => (
+                      <option
+                        key={status}
+                        value={status}
+                      >
+                        {
+                          getStatusConfig(
+                            status,
+                          ).label
+                        }
+                      </option>
+                    ),
+                  )}
+                </select>
+
+                <ChevronDown
+                  size={15}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7890A0]"
+                />
+              </div>
+            </div>
+
+            {/* DELIVERY DATE */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.5px] text-[#7890A0]">
+                Delivery Date
+              </label>
+
+              <div className="relative">
+                <select
+                  value={deliveryDateFilter}
+                  onChange={(event) => {
+                    setDeliveryDateFilter(
+                      event.target.value,
+                    );
+
+                    if (
+                      event.target.value !==
+                      "custom"
+                    ) {
+                      setCustomStartDate("");
+                      setCustomEndDate("");
+                    }
+                  }}
+                  className="h-10 w-full appearance-none rounded-lg border border-[#D5E8EE] bg-white px-3 pr-9 text-sm text-[#123047] outline-none focus:border-[#08779D]"
+                >
+                  <option value="all">
+                    All Dates
+                  </option>
+
+                  <option value="today">
+                    Today
+                  </option>
+
+                  <option value="custom">
+                    Custom Range
+                  </option>
+                </select>
+
+                <ChevronDown
+                  size={15}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7890A0]"
+                />
+              </div>
+            </div>
+
+            {/* CUSTOM DATE RANGE */}
+            {deliveryDateFilter ===
+              "custom" && (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-[#7890A0]">
+                    From
+                  </label>
+
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(event) =>
+                      setCustomStartDate(
+                        event.target.value,
+                      )
+                    }
+                    className="h-9 w-full rounded-lg border border-[#D5E8EE] px-2 text-xs text-[#123047] outline-none focus:border-[#08779D]"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-[#7890A0]">
+                    To
+                  </label>
+
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(event) =>
+                      setCustomEndDate(
+                        event.target.value,
+                      )
+                    }
+                    className="h-9 w-full rounded-lg border border-[#D5E8EE] px-2 text-xs text-[#123047] outline-none focus:border-[#08779D]"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* CLEAR FILTERS */}
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="mt-4 w-full rounded-lg bg-[#EAF7FA] py-2 text-xs font-semibold text-[#08779D] transition hover:bg-[#D5F1F8]"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -670,8 +901,7 @@ function HistorySortMenu({
   setCustomerFilter,
   customers,
 }) {
-  const [open, setOpen] =
-    useState(false);
+  const [open, setOpen] = useState(false);
 
   const sortOptions = [
     {
@@ -692,26 +922,11 @@ function HistorySortMenu({
     },
   ];
 
-  const selectedSort =
-    sortOptions.find(
-      (option) =>
-        option.value === sortOption,
-    ) || sortOptions[0];
-
-  const selectedCustomerLabel =
-    customerFilter === "all"
-      ? "All Customers"
-      : customerFilter;
-
-  const handleSortSelect = (
-    value,
-  ) => {
+  const handleSortSelect = (value) => {
     setSortOption(value);
   };
 
-  const handleCustomerSelect = (
-    value,
-  ) => {
+  const handleCustomerSelect = (value) => {
     setCustomerFilter(value);
   };
 
@@ -753,22 +968,17 @@ function HistorySortMenu({
             type="button"
             aria-label="Close sort menu"
             className="fixed inset-0 z-40 cursor-default"
-            onClick={() =>
-              setOpen(false)
-            }
+            onClick={() => setOpen(false)}
           />
 
           {/* DROPDOWN */}
           <div className="absolute right-0 top-[46px] z-50 w-[280px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-
-            {/* SORT HEADING */}
             <div className="px-5 pb-2 pt-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400">
                 Sort Orders
               </p>
             </div>
 
-            {/* SORT OPTIONS */}
             <div className="px-2 pb-2">
               {sortOptions.map(
                 (option) => {
@@ -778,9 +988,7 @@ function HistorySortMenu({
 
                   return (
                     <button
-                      key={
-                        option.value
-                      }
+                      key={option.value}
                       type="button"
                       onClick={() =>
                         handleSortSelect(
@@ -808,10 +1016,8 @@ function HistorySortMenu({
               )}
             </div>
 
-            {/* DIVIDER */}
             <div className="mx-4 border-t border-slate-100" />
 
-            {/* FROM FILTER */}
             <div className="px-5 pb-2 pt-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400">
                 From
@@ -819,8 +1025,6 @@ function HistorySortMenu({
             </div>
 
             <div className="max-h-[230px] overflow-y-auto px-2 pb-3">
-
-              {/* ALL CUSTOMERS */}
               <button
                 type="button"
                 onClick={() =>
@@ -829,8 +1033,7 @@ function HistorySortMenu({
                   )
                 }
                 className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
-                  customerFilter ===
-                  "all"
+                  customerFilter === "all"
                     ? "bg-[#E8F7FB] font-semibold text-[#08779D]"
                     : "text-slate-700 hover:bg-slate-50"
                 }`}
@@ -847,7 +1050,6 @@ function HistorySortMenu({
                 )}
               </button>
 
-              {/* CUSTOMER LIST */}
               {customers.map(
                 (customer) => {
                   const isSelected =
@@ -903,6 +1105,18 @@ function Deliveries() {
 
   const [customerFilter, setCustomerFilter] =
     useState("all");
+
+  const [statusFilter, setStatusFilter] =
+    useState("all");
+
+  const [deliveryDateFilter, setDeliveryDateFilter] =
+    useState("all");
+
+  const [customStartDate, setCustomStartDate] =
+    useState("");
+
+  const [customEndDate, setCustomEndDate] =
+    useState("");
 
   const [searchQuery, setSearchQuery] =
     useState("");
@@ -1230,6 +1444,110 @@ function Deliveries() {
       }
 
       // ------------------------------------------------------
+      // STATUS FILTER
+      // ------------------------------------------------------
+
+      if (
+        statusFilter !== "all"
+      ) {
+        filtered =
+          filtered.filter(
+            (delivery) =>
+              delivery.status ===
+              statusFilter,
+          );
+      }
+
+      // ------------------------------------------------------
+      // DELIVERY DATE FILTER
+      // ------------------------------------------------------
+
+      if (
+        deliveryDateFilter ===
+        "today"
+      ) {
+        const today =
+          new Date();
+
+        const todayOnly =
+          getDateOnly(today);
+
+        filtered =
+          filtered.filter(
+            (delivery) => {
+              if (
+                delivery.date ===
+                "Not scheduled"
+              ) {
+                return false;
+              }
+
+              const rawDate =
+                getRawDeliveryDate(
+                  {
+                    deliveryDate:
+                      delivery.date,
+                  },
+                );
+
+              const deliveryDateOnly =
+                getDateOnly(
+                  rawDate,
+                );
+
+              return (
+                deliveryDateOnly ===
+                todayOnly
+              );
+            },
+          );
+      }
+
+      if (
+        deliveryDateFilter ===
+        "custom"
+      ) {
+        filtered =
+          filtered.filter(
+            (delivery) => {
+              if (
+                delivery.date ===
+                "Not scheduled"
+              ) {
+                return false;
+              }
+
+              const deliveryDate =
+                getDateOnly(
+                  delivery.date,
+                );
+
+              if (!deliveryDate) {
+                return false;
+              }
+
+              if (
+                customStartDate &&
+                deliveryDate <
+                  customStartDate
+              ) {
+                return false;
+              }
+
+              if (
+                customEndDate &&
+                deliveryDate >
+                  customEndDate
+              ) {
+                return false;
+              }
+
+              return true;
+            },
+          );
+      }
+
+      // ------------------------------------------------------
       // SORT
       // ------------------------------------------------------
 
@@ -1293,6 +1611,10 @@ function Deliveries() {
       historyDeliveries,
       sortOption,
       customerFilter,
+      statusFilter,
+      deliveryDateFilter,
+      customStartDate,
+      customEndDate,
       searchQuery,
     ]);
 
@@ -1345,7 +1667,6 @@ function Deliveries() {
             {/* HEADER */}
             <div className="border-b border-slate-200 pb-5">
               <div className="flex flex-col gap-5">
-
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
                     Delivery Management
@@ -1394,7 +1715,7 @@ function Deliveries() {
                   </button>
                 </div>
 
-                {/* SEARCH + SORT */}
+                {/* SEARCH + FILTERS + SORT */}
                 <div className="flex w-full items-center gap-3">
                   {/* SEARCH */}
                   <div className="relative min-w-0 flex-1">
@@ -1416,6 +1737,34 @@ function Deliveries() {
                       className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#08779D] focus:ring-2 focus:ring-[#08779D]/10"
                     />
                   </div>
+
+                  {/* FILTERS */}
+                  <DeliveryFilterMenu
+                    statusFilter={
+                      statusFilter
+                    }
+                    setStatusFilter={
+                      setStatusFilter
+                    }
+                    deliveryDateFilter={
+                      deliveryDateFilter
+                    }
+                    setDeliveryDateFilter={
+                      setDeliveryDateFilter
+                    }
+                    customStartDate={
+                      customStartDate
+                    }
+                    setCustomStartDate={
+                      setCustomStartDate
+                    }
+                    customEndDate={
+                      customEndDate
+                    }
+                    setCustomEndDate={
+                      setCustomEndDate
+                    }
+                  />
 
                   {/* SORT */}
                   <HistorySortMenu
@@ -1481,6 +1830,41 @@ function Deliveries() {
                         {
                           customerFilter
                         }
+                      </span>
+                    </span>
+                  </>
+                )}
+
+                {statusFilter !==
+                  "all" && (
+                  <>
+                    <span className="hidden h-3 w-px bg-slate-300 sm:block" />
+
+                    <span>
+                      Status:{" "}
+                      <span className="font-semibold text-slate-700">
+                        {
+                          getStatusConfig(
+                            statusFilter,
+                          ).label
+                        }
+                      </span>
+                    </span>
+                  </>
+                )}
+
+                {deliveryDateFilter !==
+                  "all" && (
+                  <>
+                    <span className="hidden h-3 w-px bg-slate-300 sm:block" />
+
+                    <span>
+                      Delivery Date:{" "}
+                      <span className="font-semibold text-slate-700">
+                        {deliveryDateFilter ===
+                        "today"
+                          ? "Today"
+                          : "Custom Range"}
                       </span>
                     </span>
                   </>

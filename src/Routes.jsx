@@ -39,6 +39,8 @@ import Deliveries from "./pages/admin/Deliveries";
 import EditCustomer from "./pages/admin/EditCustomer";
 import AdminProfile from "./pages/admin/Profile";
 import AdminNotifications from "./pages/admin/Notifications";
+import AdminEditProfile from "./pages/admin/AdminEditProfile";
+import AdminChangePassword from "./pages/admin/AdminChangePassword";
 
 
 
@@ -93,6 +95,9 @@ function AppRoutes() {
         <Route path="/admin/customers/:id/edit" element={<EditCustomer />} />
         <Route path="/admin/profile" element={<AdminProfile />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
+        <Route path="/admin/edit-profile" element={<AdminEditProfile />} />
+        <Route path="/admin/change-password" element={<AdminChangePassword />} />
+        
 
 
         {/* Unknown URL → Login */}

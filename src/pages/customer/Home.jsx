@@ -1,21 +1,14 @@
 import { useEffect, useState } from "react";
-
 import { useNavigate } from "react-router-dom";
 
 import lightBlueIcon from "../../assets/images/img_icon_light_blue_900.svg";
-
 import icon from "../../assets/images/img_icon.svg";
-
 import roundPurifiedWaterImage from "../../assets/images/round-purified-water.png";
-
 import slimPurifiedWaterImage from "../../assets/images/slim-purified-water.png";
-
 import bottleImage from "../../assets/images/500ml-bottle.png";
 
 import Header from "../../components/Header/Header";
-
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
-
 import CustomerFooter from "../../components/customer/CustomerFooter";
 
 import { getOrders } from "../../utils/orderStorage";
@@ -32,18 +25,21 @@ const products = [
     name: "Round Gallon Refill",
     price: "PHP 25.00",
     image: roundPurifiedWaterImage,
+    isRefill: true,
   },
   {
     id: 2,
     name: "Slim Gallon Refill",
     price: "PHP 25.00",
     image: slimPurifiedWaterImage,
+    isRefill: true,
   },
   {
     id: 3,
     name: "500ml Bottle (Case of 24)",
     price: "PHP 240.00",
     image: bottleImage,
+    isRefill: false,
   },
 ];
 
@@ -169,7 +165,6 @@ const getStatusBadgeClass = (status) => {
 
 const getStatusSteps = (status) => {
   const type = getStatusType(status);
-
   let currentStep = 0;
 
   if (type === "processing") {
@@ -269,8 +264,13 @@ const getEstimatedTime = (order) => {
 
 const sortOrdersNewestFirst = (orders) => {
   return [...orders].sort((a, b) => {
-    const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-    const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    const dateA = new Date(
+      a.updatedAt || a.createdAt || 0,
+    ).getTime();
+
+    const dateB = new Date(
+      b.updatedAt || b.createdAt || 0,
+    ).getTime();
 
     return dateB - dateA;
   });
@@ -330,8 +330,17 @@ function Home() {
 
   const orderHistory = customerOrders.slice(0, 3);
 
-  const handleProductClick = () => {
-    navigate("/customer/products");
+  // Clicking a product now opens Products.jsx and places
+  // that product directly into its Review Order section.
+  const handleProductClick = (product) => {
+    navigate("/customer/products", {
+      state: {
+        reviewProduct: {
+          ...product,
+          quantity: 1,
+        },
+      },
+    });
   };
 
   const handleTrackOrder = () => {
@@ -399,9 +408,14 @@ function Home() {
           <button
             type="button"
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-button-background px-4 py-3 text-sm font-bold text-button-text transition hover:opacity-90"
-            onClick={handleProductClick}
+            onClick={() => navigate("/customer/products")}
           >
-            <img src={icon} alt="" className="h-4 w-4 object-contain" />
+            <img
+              src={icon}
+              alt=""
+              className="h-4 w-4 object-contain"
+            />
+
             <span>NEW ORDER</span>
           </button>
         </section>
@@ -502,7 +516,7 @@ function Home() {
 
               <button
                 type="button"
-                onClick={handleProductClick}
+                onClick={() => navigate("/customer/products")}
                 className="mt-4 rounded-md bg-primary-background px-4 py-2 text-xs font-bold uppercase text-primary-foreground"
               >
                 Place an Order
@@ -518,7 +532,7 @@ function Home() {
           </h3>
 
           <div className="mb-4 w-full rounded-md bg-background-accent p-3 text-xs font-bold">
-            Note: All products are for refills only.
+            Note: Gallon products are for refills only.
           </div>
 
           <div className="flex w-full gap-5 overflow-x-auto px-1 pb-4 pt-1">
@@ -527,11 +541,14 @@ function Home() {
                 key={product.id}
                 role="button"
                 tabIndex={0}
-                onClick={handleProductClick}
+                onClick={() => handleProductClick(product)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
+                  if (
+                    event.key === "Enter" ||
+                    event.key === " "
+                  ) {
                     event.preventDefault();
-                    handleProductClick();
+                    handleProductClick(product);
                   }
                 }}
                 className="group w-64 flex-shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-[#D7EEF5] bg-white shadow-[0_6px_20px_rgba(8,119,157,0.08)] transition-all duration-200 hover:-translate-y-1 hover:border-[#9DDCED] hover:shadow-[0_10px_28px_rgba(8,119,157,0.14)] focus:outline-none focus:ring-2 focus:ring-[#2CA6D8]/40"
@@ -540,9 +557,11 @@ function Home() {
                 <div className="relative h-52 w-full overflow-hidden bg-gradient-to-b from-[#EAF9FD] to-[#D9F2F8]">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(44,166,216,0.16),transparent_45%)]" />
 
-                  <div className="absolute left-3 top-3 z-10 rounded-full border border-white/80 bg-white/85 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#168DBA] shadow-sm backdrop-blur-sm">
-                    Refill
-                  </div>
+                  {product.isRefill === true && (
+                    <div className="absolute left-3 top-3 z-10 rounded-full border border-white/80 bg-white/85 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#168DBA] shadow-sm backdrop-blur-sm">
+                      Refill
+                    </div>
+                  )}
 
                   <img
                     src={product.image}
@@ -586,6 +605,7 @@ function Home() {
                       alt=""
                       className="h-3.5 w-3.5 object-contain transition-all group-hover:brightness-0 group-hover:invert"
                     />
+
                     <span>Add Product</span>
                   </div>
                 </div>
@@ -682,7 +702,10 @@ function Home() {
         </section>
       </main>
 
-      <CustomerNavbar activeTab={activeTab} onNavigate={handleNavigate} />
+      <CustomerNavbar
+        activeTab={activeTab}
+        onNavigate={handleNavigate}
+      />
 
       <CustomerFooter />
     </div>

@@ -1,15 +1,21 @@
-
 import React, { useEffect, useState } from "react";
+
 import { useLocation, useNavigate } from "react-router-dom";
+
 import { Check } from "lucide-react";
 
 import Header from "../../components/Header/Header";
+
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+
 import CustomerFooter from "../../components/customer/CustomerFooter";
 
 import slimRefillImage from "../../assets/images/slim-purified-water.png";
+
 import roundRefillImage from "../../assets/images/round-purified-water.png";
+
 import bottleImage from "../../assets/images/500ml-bottle.png";
+
 import increaseIcon from "../../assets/images/img_button_increase.svg";
 
 import {
@@ -79,6 +85,8 @@ function Products() {
   const incomingOrder =
     location.state?.order || getCurrentOrder() || null;
 
+  const incomingReviewProduct = location.state?.reviewProduct || null;
+
   const returnToEditOrder = Boolean(
     location.state?.returnToEditOrder,
   );
@@ -90,7 +98,30 @@ function Products() {
   });
 
   const [cartItems, setCartItems] = useState(() => {
-    if (!returnToEditOrder || !Array.isArray(incomingOrder?.products)) {
+    if (
+      !returnToEditOrder ||
+      !Array.isArray(incomingOrder?.products)
+    ) {
+      if (incomingReviewProduct) {
+        const price =
+          Number(
+            String(incomingReviewProduct.price || "").replace(
+              /[^0-9.]/g,
+              "",
+            ),
+          ) || 0;
+
+        return [
+          {
+            id: String(incomingReviewProduct.id),
+            name: incomingReviewProduct.name,
+            quantity: 1,
+            price,
+            total: price,
+          },
+        ];
+      }
+
       return [];
     }
 
@@ -188,7 +219,8 @@ function Products() {
   };
 
   const addToCart = (productId) => {
-    const selectedQuantity = Number(quantities[productId]) || 0;
+    const selectedQuantity =
+      Number(quantities[productId]) || 0;
 
     if (selectedQuantity <= 0) return;
 
@@ -198,13 +230,15 @@ function Products() {
 
     if (!product) return;
 
-    const availableQuantity = getAvailableQuantity(productId);
+    const availableQuantity =
+      getAvailableQuantity(productId);
 
     const existingItem = cartItems.find(
       (item) => String(item.id) === String(productId),
     );
 
-    const existingQuantity = Number(existingItem?.quantity) || 0;
+    const existingQuantity =
+      Number(existingItem?.quantity) || 0;
 
     // When editing an existing order, allow the current quantity
     // to remain selected, but do not let it exceed available stock.
@@ -308,9 +342,11 @@ function Products() {
       orderNumber:
         existingOrder.orderNumber ||
         `#ORD-${String(Date.now()).slice(-6)}`,
-      customerName: existingOrder.customerName || "Maria Santos",
+      customerName:
+        existingOrder.customerName || "Maria Santos",
       contactNumber:
         existingOrder.contactNumber || "0917-555-0192",
+
       products: cartItems.map((item) => ({
         ...item,
         price: Number(item.price) || 0,
@@ -319,6 +355,7 @@ function Products() {
           (Number(item.price) || 0) *
           (Number(item.quantity) || 0),
       })),
+
       subtotal,
       deliveryFee,
       total,
@@ -336,6 +373,7 @@ function Products() {
       navigate("/customer/edit-order", {
         state: { order },
       });
+
       return;
     }
 
@@ -424,7 +462,10 @@ function Products() {
                       <h3 className="min-w-0 flex-1 text-lg font-bold leading-7 text-text-primary">
                         {isBottle ? (
                           <>
-                            <span className="block">500ml Bottle</span>
+                            <span className="block">
+                              500ml Bottle
+                            </span>
+
                             <span className="mt-0.5 block leading-7">
                               (Case of 24)
                             </span>
@@ -459,7 +500,9 @@ function Products() {
                       <div className="flex h-11 items-center overflow-hidden rounded-lg border border-border-secondary bg-background-card">
                         <button
                           type="button"
-                          onClick={() => changeQuantity(card.id, -1)}
+                          onClick={() =>
+                            changeQuantity(card.id, -1)
+                          }
                           disabled={selectedQuantity === 0}
                           aria-label={`Decrease ${card.title} quantity`}
                           className="flex h-full w-14 items-center justify-center border-r border-border-secondary text-text-accent transition-colors hover:bg-background-accent disabled:cursor-not-allowed disabled:opacity-40"
@@ -473,7 +516,9 @@ function Products() {
 
                         <button
                           type="button"
-                          onClick={() => changeQuantity(card.id, 1)}
+                          onClick={() =>
+                            changeQuantity(card.id, 1)
+                          }
                           disabled={
                             selectedQuantity >= available
                           }
@@ -492,7 +537,8 @@ function Products() {
                         type="button"
                         onClick={() => addToCart(card.id)}
                         disabled={
-                          selectedQuantity === 0 || available === 0
+                          selectedQuantity === 0 ||
+                          available === 0
                         }
                         className="mt-1 w-full rounded-lg bg-button-background py-3 text-xs font-bold uppercase tracking-[0.7px] text-white shadow-sm transition-colors hover:bg-button-hover disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -515,7 +561,8 @@ function Products() {
                 </p>
 
                 <p className="mt-1 text-sm leading-6 text-text-secondary">
-                  {totalItems} {totalItems === 1 ? "item" : "items"} in your
+                  {totalItems}{" "}
+                  {totalItems === 1 ? "item" : "items"} in your
                   order · Total ₱{total.toFixed(2)}
                 </p>
               </div>

@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserRound, Bell, LogOut } from "lucide-react";
@@ -27,6 +26,7 @@ function Header() {
   useEffect(() => {
     const showUpdateToast = () => {
       setShowToast(false);
+
       window.clearTimeout(toastTimeoutRef.current);
 
       requestAnimationFrame(() => {
@@ -108,30 +108,30 @@ function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-[100] flex h-16 w-full items-center border-b border-border-light bg-background-card px-4 shadow-sm sm:px-6 md:px-10">
+      <header className="sticky top-0 z-[100] flex h-16 w-full items-center border-b border-border-light bg-background-card px-3 shadow-sm sm:px-6 md:px-10">
         {/* Logo anchored to the far left */}
         <button
           type="button"
           onClick={handleLogoClick}
           aria-label="GoldenPR home"
-          className="flex shrink-0 items-center gap-2"
+          className="flex shrink-0 items-center gap-1.5 sm:gap-2"
         >
           <img
             src={goldenPRLogo}
             alt="GoldenPR"
-            className="h-9 w-auto object-contain"
+            className="h-7 w-auto object-contain sm:h-9"
           />
 
-          <span className="text-lg font-bold tracking-tight text-[#08779D]">
+          <span className="text-base font-bold tracking-tight text-[#08779D] sm:text-lg">
             GoldenPR
           </span>
         </button>
 
         {/* Navigation and profile grouped at the far right */}
-        <div className="ml-auto flex min-w-0 items-center justify-end gap-3 sm:gap-6 md:gap-8">
+        <div className="ml-auto flex min-w-0 items-center justify-end gap-2 sm:gap-6 md:gap-8">
           {isCustomer && (
             <nav
-              className="flex min-w-0 items-center justify-end gap-4 sm:gap-7 md:gap-9"
+              className="flex min-w-0 items-center justify-end gap-2 sm:gap-7 md:gap-9"
               aria-label="Customer navigation"
             >
               {customerNavigationItems.map((item) => {
@@ -171,15 +171,14 @@ function Header() {
               aria-label="Open profile menu"
               aria-haspopup="menu"
               aria-expanded={showProfileMenu}
-              className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors duration-200 hover:bg-background-accent ${
+              className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-200 hover:bg-background-accent sm:h-11 sm:w-11 ${
                 showProfileMenu ? "bg-background-accent" : ""
               }`}
             >
-              {/* Reduced icon size to match the other header icons */}
               <img
                 src={userIcon}
                 alt=""
-                className="h-5 w-5 object-contain"
+                className="h-4 w-4 object-contain sm:h-5 sm:w-5"
               />
             </button>
 

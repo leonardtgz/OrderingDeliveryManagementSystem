@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
+
 import { useLocation, useNavigate } from "react-router-dom";
+
 import {
   Check,
   ChevronDown,
@@ -210,11 +212,11 @@ function EditProfile() {
   const [profile, setProfile] = useState(() => getProfile());
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [status, setStatus] = useState("Active");
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [addressForm, setAddressForm] = useState(emptyAddress);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
-
   const [isClosingEdit, setIsClosingEdit] = useState(false);
 
   const [toast, setToast] = useState({
@@ -240,14 +242,17 @@ function EditProfile() {
     setProfile(savedProfile);
     setFullName(savedProfile.fullName || "");
     setPhoneNumber(savedProfile.phoneNumber || "");
+    setStatus(savedProfile.status || "Active");
     setAddresses(savedAddresses);
 
     if (shouldAddAddress) {
       setSelectedAddressId("");
+
       setAddressForm({
         ...emptyAddress,
         isDefault: savedAddresses.length === 0,
       });
+
       setIsAddingAddress(true);
       return;
     }
@@ -420,8 +425,7 @@ function EditProfile() {
       deletedAddress?.isDefault &&
       updatedAddresses.length > 0
     ) {
-      const nextDefaultId =
-        updatedAddresses[0].id;
+      const nextDefaultId = updatedAddresses[0].id;
 
       updatedAddresses = updatedAddresses.map(
         (address) => ({
@@ -625,6 +629,7 @@ function EditProfile() {
       ...profile,
       fullName: fullName.trim(),
       phoneNumber: phoneNumber.trim(),
+      status: status || "Active",
     };
 
     if (isAddingAddress || addressForm.id) {
@@ -632,7 +637,16 @@ function EditProfile() {
 
       if (!addressSaved) return;
 
-      updatedProfile = getProfile();
+      /*
+       * Re-read the saved profile after the address update,
+       * but preserve the newly selected account status.
+       */
+      updatedProfile = {
+        ...getProfile(),
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        status: status || "Active",
+      };
     }
 
     saveProfile(updatedProfile);
@@ -753,6 +767,36 @@ function EditProfile() {
                 }
                 className="h-11 w-full rounded-md border border-border-light bg-background-card px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
               />
+            </div>
+
+            {/* Account Status */}
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="status"
+                className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-primary"
+              >
+                Account Status
+              </label>
+
+              <div className="relative">
+                <select
+                  id="status"
+                  value={status || "Active"}
+                  onChange={(event) =>
+                    setStatus(event.target.value)
+                  }
+                  className="h-11 w-full appearance-none rounded-md border border-border-light bg-background-card px-3 pr-10 text-sm text-text-primary outline-none transition focus:border-primary-background"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Offline">Offline</option>
+                </select>
+
+                <ChevronDown
+                  size={16}
+                  strokeWidth={2}
+                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary"
+                />
+              </div>
             </div>
 
             <div className="border-t border-border-light pt-5">
@@ -915,7 +959,9 @@ function EditProfile() {
                                 <TextField
                                   id={`addressLabel-${address.id}`}
                                   label="Address Label"
-                                  value={addressForm.label}
+                                  value={
+                                    addressForm.label
+                                  }
                                   onChange={(value) =>
                                     updateAddressField(
                                       "label",
@@ -929,7 +975,9 @@ function EditProfile() {
                                   <SelectField
                                     id={`region-${address.id}`}
                                     label="Region"
-                                    value={addressForm.region}
+                                    value={
+                                      addressForm.region
+                                    }
                                     onChange={(value) =>
                                       updateAddressField(
                                         "region",
@@ -944,7 +992,9 @@ function EditProfile() {
                                   <SelectField
                                     id={`province-${address.id}`}
                                     label="Province"
-                                    value={addressForm.province}
+                                    value={
+                                      addressForm.province
+                                    }
                                     onChange={(value) =>
                                       updateAddressField(
                                         "province",
@@ -961,7 +1011,9 @@ function EditProfile() {
                                   <SelectField
                                     id={`city-${address.id}`}
                                     label="City / Municipality"
-                                    value={addressForm.city}
+                                    value={
+                                      addressForm.city
+                                    }
                                     onChange={(value) => {
                                       const nextBarangays =
                                         BARANGAYS_BY_MUNICIPALITY[
@@ -992,7 +1044,9 @@ function EditProfile() {
                                   <SelectField
                                     id={`barangay-${address.id}`}
                                     label="Barangay"
-                                    value={addressForm.barangay}
+                                    value={
+                                      addressForm.barangay
+                                    }
                                     onChange={(value) =>
                                       updateAddressField(
                                         "barangay",
@@ -1209,15 +1263,15 @@ function EditProfile() {
                           value,
                         )
                       }
-                      options={
-                        availableBarangays
-                      }
+                      options={availableBarangays}
                     />
 
                     <TextField
                       id="newPostalCode"
                       label="Postal Code"
-                      value={addressForm.postalCode}
+                      value={
+                        addressForm.postalCode
+                      }
                       onChange={(value) =>
                         updateAddressField(
                           "postalCode",

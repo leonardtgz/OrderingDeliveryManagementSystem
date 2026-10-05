@@ -1,17 +1,25 @@
 import React, { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
+
 import { ArrowLeft, Upload } from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
+
 import Header from "../../components/Header/Header";
+
 import WarningModal from "../../components/admin/WarningModal";
 
 import slimPurifiedWater from "../../assets/images/slim-purified-water.png";
+
 import roundPurifiedWater from "../../assets/images/round-purified-water.png";
+
 import bottle500ml from "../../assets/images/500ml-bottle.png";
 
 const PRODUCTS_KEY = "adminProducts";
+
 const PRODUCT_TOAST_KEY = "adminProductToast";
+
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const defaultProducts = [
@@ -49,13 +57,12 @@ const AddProduct = () => {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [productType, setProductType] = useState("Regular");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
   const [status, setStatus] = useState("In Stock");
-
   const [image, setImage] = useState("");
   const [imageError, setImageError] = useState("");
-
   const [showWarning, setShowWarning] = useState(false);
   const [adding, setAdding] = useState(false);
 
@@ -89,14 +96,27 @@ const AddProduct = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleProductTypeChange = (event) => {
+    const value = event.target.value;
+
+    setProductType(value);
+
+    if (value === "Refill") {
+      setQuantity("");
+      setStatus("");
+    } else {
+      setStatus("In Stock");
+    }
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
 
     if (
       !name.trim() ||
       !description.trim() ||
-      quantity === "" ||
-      price === ""
+      price === "" ||
+      (productType !== "Refill" && quantity === "")
     ) {
       return;
     }
@@ -112,8 +132,7 @@ const AddProduct = () => {
     setAdding(true);
 
     try {
-      const savedProducts =
-        localStorage.getItem(PRODUCTS_KEY);
+      const savedProducts = localStorage.getItem(PRODUCTS_KEY);
 
       let products = [];
 
@@ -135,16 +154,14 @@ const AddProduct = () => {
         id: crypto.randomUUID(),
         name: name.trim(),
         description: description.trim(),
-        quantity: Number(quantity) || 0,
+        productType,
+        quantity: productType === "Refill" ? null : Number(quantity) || 0,
         price: Number(price) || 0,
-        status,
+        status: productType === "Refill" ? null : status,
         image,
       };
 
-      const updatedProducts = [
-        ...products,
-        newProduct,
-      ];
+      const updatedProducts = [...products, newProduct];
 
       localStorage.setItem(
         PRODUCTS_KEY,
@@ -186,7 +203,6 @@ const AddProduct = () => {
 
         <main className="flex-1 overflow-y-auto p-4 pb-10 sm:p-6 md:p-8">
           <div className="mx-auto w-full max-w-[1000px]">
-
             {/* Page Header */}
             <div className="mb-6 flex items-center gap-3">
               <button
@@ -217,7 +233,6 @@ const AddProduct = () => {
               className="rounded-xl border border-border-light bg-background-card p-5 shadow-sm sm:p-6"
             >
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-
                 {/* Product Name */}
                 <div className="flex flex-col gap-2">
                   <label
@@ -253,38 +268,61 @@ const AddProduct = () => {
                     type="text"
                     value={description}
                     onChange={(event) =>
-                      setDescription(
-                        event.target.value,
-                      )
+                      setDescription(event.target.value)
                     }
                     placeholder="Enter product description"
                     className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
                   />
                 </div>
 
-                {/* Quantity */}
+                {/* Product Type */}
                 <div className="flex flex-col gap-2">
                   <label
-                    htmlFor="product-quantity"
+                    htmlFor="product-type"
                     className="text-sm font-semibold text-text-primary"
                   >
-                    Available Quantity
+                    Product Type
                   </label>
 
-                  <input
-                    id="product-quantity"
-                    type="number"
-                    min="0"
-                    value={quantity}
-                    onChange={(event) =>
-                      setQuantity(
-                        event.target.value,
-                      )
-                    }
-                    placeholder="0"
+                  <select
+                    id="product-type"
+                    value={productType}
+                    onChange={handleProductTypeChange}
                     className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
-                  />
+                  >
+                    <option value="Regular">
+                      Regular Product
+                    </option>
+
+                    <option value="Refill">
+                      Refill
+                    </option>
+                  </select>
                 </div>
+
+                {/* Quantity */}
+                {productType !== "Refill" && (
+                  <div className="flex flex-col gap-2">
+                    <label
+                      htmlFor="product-quantity"
+                      className="text-sm font-semibold text-text-primary"
+                    >
+                      Available Quantity
+                    </label>
+
+                    <input
+                      id="product-quantity"
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(event) =>
+                        setQuantity(event.target.value)
+                      }
+                      placeholder="0"
+                      className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
+                    />
+                  </div>
+                )}
 
                 {/* Price */}
                 <div className="flex flex-col gap-2">
@@ -302,9 +340,7 @@ const AddProduct = () => {
                     step="0.01"
                     value={price}
                     onChange={(event) =>
-                      setPrice(
-                        event.target.value,
-                      )
+                      setPrice(event.target.value)
                     }
                     placeholder="0.00"
                     className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
@@ -312,35 +348,37 @@ const AddProduct = () => {
                 </div>
 
                 {/* Status */}
-                <div className="flex flex-col gap-2">
-                  <label
-                    htmlFor="product-status"
-                    className="text-sm font-semibold text-text-primary"
-                  >
-                    Status
-                  </label>
+                {productType !== "Refill" && (
+                  <div className="flex flex-col gap-2">
+                    <label
+                      htmlFor="product-status"
+                      className="text-sm font-semibold text-text-primary"
+                    >
+                      Status
+                    </label>
 
-                  <select
-                    id="product-status"
-                    value={status}
-                    onChange={(event) =>
-                      setStatus(event.target.value)
-                    }
-                    className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
-                  >
-                    <option value="In Stock">
-                      In Stock
-                    </option>
+                    <select
+                      id="product-status"
+                      value={status}
+                      onChange={(event) =>
+                        setStatus(event.target.value)
+                      }
+                      className="h-11 rounded-lg border border-border-secondary bg-background-main px-3 text-sm text-text-primary outline-none transition focus:border-primary-background"
+                    >
+                      <option value="In Stock">
+                        In Stock
+                      </option>
 
-                    <option value="Low Stock">
-                      Low Stock
-                    </option>
+                      <option value="Low Stock">
+                        Low Stock
+                      </option>
 
-                    <option value="Out of Stock">
-                      Out of Stock
-                    </option>
-                  </select>
-                </div>
+                      <option value="Out of Stock">
+                        Out of Stock
+                      </option>
+                    </select>
+                  </div>
+                )}
 
                 {/* Image Upload */}
                 <div className="flex flex-col gap-2 md:col-span-2">
