@@ -58,7 +58,7 @@ function WarningModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-[420px] rounded-xl bg-white p-6 shadow-2xl">
         {/* Warning Icon */}
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FFF4E5]">

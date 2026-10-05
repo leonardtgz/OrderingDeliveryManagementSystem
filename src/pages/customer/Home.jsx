@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import lightBlueIcon from "../../assets/images/img_icon_light_blue_900.svg";
 import icon from "../../assets/images/img_icon.svg";
 import roundPurifiedWaterImage from "../../assets/images/round-purified-water.png";
 import slimPurifiedWaterImage from "../../assets/images/slim-purified-water.png";
 import bottleImage from "../../assets/images/500ml-bottle.png";
-
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
 import CustomerFooter from "../../components/customer/CustomerFooter";
-
 import { getOrders } from "../../utils/orderStorage";
 
 const customer = {
@@ -49,7 +46,6 @@ const getOrderTitle = (order) => {
       })
       .join(" + ");
   }
-
   return order.title || "Order";
 };
 
@@ -60,14 +56,12 @@ const getTotalQuantity = (order) => {
       0,
     );
   }
-
   return Number(order.qty || 0);
 };
 
 const getOrderDate = (order) => {
   if (order.createdAt) {
     const date = new Date(order.createdAt);
-
     if (!Number.isNaN(date.getTime())) {
       return date.toLocaleDateString("en-PH", {
         year: "numeric",
@@ -162,7 +156,6 @@ const getStatusBadgeClass = (status) => {
 
 const getStatusSteps = (status) => {
   const type = getStatusType(status);
-
   let currentStep = 0;
 
   if (type === "processing") {
@@ -264,14 +257,12 @@ const sortOrdersNewestFirst = (orders) => {
   return [...orders].sort((a, b) => {
     const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
     const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
-
     return dateB - dateA;
   });
 };
 
 function Home() {
   const navigate = useNavigate();
-
   const [activeTab, setActiveTab] = useState("home");
   const [customerOrders, setCustomerOrders] = useState([]);
 
@@ -514,7 +505,7 @@ function Home() {
             Note: All products are for refills only.
           </div>
 
-          <div className="flex w-full gap-4 overflow-x-auto px-1 pb-3 pt-1">
+          <div className="flex w-full gap-5 overflow-x-auto px-1 pb-4 pt-1">
             {products.map((product) => (
               <div
                 key={product.id}
@@ -527,36 +518,60 @@ function Home() {
                     handleProductClick();
                   }
                 }}
-                className="w-64 flex-shrink-0 cursor-pointer overflow-hidden rounded-md bg-background-accent transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary"
-                style={{
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                }}
+                className="group w-64 flex-shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-[#D7EEF5] bg-white shadow-[0_6px_20px_rgba(8,119,157,0.08)] transition-all duration-200 hover:-translate-y-1 hover:border-[#9DDCED] hover:shadow-[0_10px_28px_rgba(8,119,157,0.14)] focus:outline-none focus:ring-2 focus:ring-[#2CA6D8]/40"
               >
-                <div className="h-56 w-full overflow-hidden bg-white/30">
+                {/* Product Image */}
+                <div className="relative h-52 w-full overflow-hidden bg-gradient-to-b from-[#EAF9FD] to-[#D9F2F8]">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(44,166,216,0.16),transparent_45%)]" />
+
+                  <div className="absolute left-3 top-3 z-10 rounded-full border border-white/80 bg-white/85 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#168DBA] shadow-sm backdrop-blur-sm">
+                    Refill
+                  </div>
+
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="h-full w-full object-cover"
+                    className="relative z-[1] h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
                   />
                 </div>
 
-                <div className="p-4">
-                  <h4 className="text-sm font-bold leading-5">
+                {/* Product Information */}
+                <div className="px-4 pb-4 pt-4">
+                  <h4 className="min-h-[40px] text-sm font-bold leading-5 text-slate-800">
                     {product.name}
                   </h4>
 
-                  <p className="mt-1 text-xs font-bold text-text-accent">
-                    {product.price}
-                  </p>
+                  <div className="mt-3 flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Price
+                      </p>
+
+                      <p className="mt-0.5 text-base font-extrabold text-[#168DBA]">
+                        {product.price}
+                      </p>
+                    </div>
+
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E8F7FC] text-[#2CA6D8] transition-colors group-hover:bg-[#2CA6D8] group-hover:text-white">
+                      <img
+                        src={lightBlueIcon}
+                        alt=""
+                        className="h-3.5 w-3.5 object-contain transition-all group-hover:brightness-0 group-hover:invert"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex w-full items-center justify-center gap-2 bg-white py-3 text-xs font-bold uppercase text-text-accent">
-                  <img
-                    src={lightBlueIcon}
-                    alt=""
-                    className="h-3 w-3 object-contain"
-                  />
-                  <span>ADD</span>
+                {/* Add Button */}
+                <div className="border-t border-[#E5F2F6] bg-[#F8FCFD] px-4 py-3">
+                  <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#E8F7FC] py-2.5 text-xs font-bold uppercase tracking-wide text-[#168DBA] transition-all group-hover:bg-[#2CA6D8] group-hover:text-white">
+                    <img
+                      src={lightBlueIcon}
+                      alt=""
+                      className="h-3.5 w-3.5 object-contain transition-all group-hover:brightness-0 group-hover:invert"
+                    />
+                    <span>Add Product</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -652,7 +667,6 @@ function Home() {
       </main>
 
       <CustomerNavbar activeTab={activeTab} onNavigate={handleNavigate} />
-
       <CustomerFooter />
     </div>
   );

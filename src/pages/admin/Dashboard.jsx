@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
+
 import {
   AlertCircle,
   CheckCircle2,
@@ -46,7 +48,9 @@ function normalizeStatus(status) {
   }
 
   if (
-    ["processing", "confirmed", "purifying"].includes(normalized)
+    ["processing", "confirmed", "purifying"].includes(
+      normalized
+    )
   ) {
     return "PROCESSING";
   }
@@ -111,6 +115,64 @@ function getFiveGallonQuantity(order) {
 
     return total + Number(product.quantity || product.qty || 0);
   }, 0);
+}
+
+/* ============================================================
+   NEW ORDERS TABLE HELPERS
+============================================================ */
+
+function getProductName(order) {
+  if (!Array.isArray(order.products) || order.products.length === 0) {
+    return "Unpaid";
+  }
+
+  const productNames = order.products
+    .map(
+      (product) =>
+        product.name ||
+        product.productName ||
+        product.title ||
+        ""
+    )
+    .filter(Boolean);
+
+  if (productNames.length === 0) {
+    return "—";
+  }
+
+  if (productNames.length === 1) {
+    return productNames[0];
+  }
+
+  return `${productNames[0]} + ${productNames.length - 1} more`;
+}
+
+function getPaidStatus(order) {
+  const paymentStatus =
+    order.paymentStatus ||
+    order.payment?.status ||
+    order.payment?.paymentStatus ||
+    "";
+
+  if (
+    order.isPaid === true ||
+    order.paid === true ||
+    String(paymentStatus).trim().toLowerCase() === "paid"
+  ) {
+    return "Paid";
+  }
+
+  if (
+    order.isPaid === false ||
+    order.paid === false ||
+    ["unpaid", "pending", "unpaid"].includes(
+      String(paymentStatus).trim().toLowerCase()
+    )
+  ) {
+    return "Unpaid";
+  }
+
+  return "—";
 }
 
 function getAmount(order) {
@@ -429,24 +491,29 @@ function RecentOrders({
           className="group flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.6px] text-slate-500 transition-all hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
         >
           View All
+
           <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[650px]">
+        <table className="w-full min-w-[1050px]">
           <thead className="bg-slate-50/70">
             <tr>
               {[
-                "Order ID",
-                "Customer",
+                "Order #",
+                "Customer Name",
+                "Product",
                 "Qty",
+                "Delivery Date",
+                "Total",
+                "Paid",
                 "Status",
-                "Amount",
+                "Action",
               ].map((heading) => (
                 <th
                   key={heading}
-                  className="border-b border-slate-100 px-5 py-3 text-left text-[9px] font-bold uppercase tracking-[0.8px] text-slate-400"
+                  className="whitespace-nowrap border-b border-slate-100 px-5 py-3 text-left text-[9px] font-bold uppercase tracking-[0.8px] text-slate-400"
                 >
                   {heading}
                 </th>
@@ -462,6 +529,16 @@ function RecentOrders({
 
                 const styles =
                   getStatusStyle(status);
+
+                const productName =
+                  getProductName(order);
+
+                const quantity =
+                  getFiveGallonQuantity(order) ||
+                  getOrderQuantity(order);
+
+                const paidStatus =
+                  getPaidStatus(order);
 
                 return (
                   <tr
@@ -485,20 +562,55 @@ function RecentOrders({
                     tabIndex={0}
                     className="cursor-pointer border-b border-slate-100 transition-colors last:border-b-0 hover:bg-cyan-50/30"
                   >
+                    {/* ORDER # */}
                     <td className="whitespace-nowrap px-5 py-3.5 text-[11px] font-bold text-slate-700">
                       {getOrderNumber(order)}
                     </td>
 
+                    {/* CUSTOMER NAME */}
                     <td className="max-w-[190px] truncate px-5 py-3.5 text-[11px] text-slate-600">
                       {getCustomerName(order)}
                     </td>
 
-                    <td className="px-5 py-3.5 text-[11px] font-medium text-slate-600">
-                      {getFiveGallonQuantity(order) ||
-                        getOrderQuantity(order)}
+                    {/* PRODUCT */}
+                    <td className="max-w-[210px] truncate px-5 py-3.5 text-[11px] font-medium text-slate-600">
+                      {productName}
                     </td>
 
-                    <td className="px-5 py-3.5">
+                    {/* QTY */}
+                    <td className="whitespace-nowrap px-5 py-3.5 text-[11px] font-medium text-slate-600">
+                      {quantity}
+                    </td>
+
+                    {/* DELIVERY DATE */}
+                    <td className="whitespace-nowrap px-5 py-3.5 text-[11px] text-slate-600">
+                      {formatDeliveryDate(order)}
+                    </td>
+
+                    {/* TOTAL */}
+                    <td className="whitespace-nowrap px-5 py-3.5 text-[11px] font-bold text-slate-700">
+                      {getAmount(order)}
+                    </td>
+
+                    {/* PAID */}
+                    <td className="whitespace-nowrap px-5 py-3.5">
+                      {paidStatus === "Paid" ? (
+                        <span className="inline-flex whitespace-nowrap rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.4px] text-green-700">
+                          Paid
+                        </span>
+                      ) : paidStatus === "Unpaid" ? (
+                        <span className="inline-flex whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.4px] text-amber-700">
+                          Unpaid
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-medium text-slate-400">
+                          —
+                        </span>
+                      )}
+                    </td>
+
+                    {/* STATUS */}
+                    <td className="whitespace-nowrap px-5 py-3.5">
                       <span
                         className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.4px] ${styles.badge}`}
                       >
@@ -506,8 +618,21 @@ function RecentOrders({
                       </span>
                     </td>
 
-                    <td className="whitespace-nowrap px-5 py-3.5 text-[11px] font-bold text-slate-700">
-                      {getAmount(order)}
+                    {/* ACTION */}
+                    <td className="whitespace-nowrap px-5 py-3.5">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOrderClick(order);
+                        }}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition-all hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-600"
+                        aria-label={`View order ${getOrderNumber(
+                          order
+                        )}`}
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
                     </td>
                   </tr>
                 );
@@ -515,7 +640,7 @@ function RecentOrders({
             ) : (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={9}
                   className="px-5 py-12 text-center"
                 >
                   <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-cyan-50">
@@ -584,6 +709,7 @@ function DeliverySchedule({
           className="group flex shrink-0 items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.6px] text-cyan-600 transition-colors hover:text-cyan-700"
         >
           View All
+
           <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
@@ -787,8 +913,6 @@ function OrderStatusOverview({ orders }) {
       </div>
 
       <div className="grid grid-cols-1 items-center gap-7 p-5 sm:grid-cols-[230px_1fr] lg:grid-cols-[260px_1fr]">
-        {/* TRUE PIE CHART */}
-
         <div className="relative mx-auto flex h-[210px] w-[210px] items-center justify-center">
           {total > 0 ? (
             <>
@@ -836,8 +960,6 @@ function OrderStatusOverview({ orders }) {
                 })}
               </svg>
 
-              {/* Center */}
-
               <div className="absolute flex h-[88px] w-[88px] flex-col items-center justify-center rounded-full bg-white shadow-[0_2px_12px_rgba(15,23,42,0.06)]">
                 <span className="text-[8px] font-bold uppercase tracking-[0.7px] text-slate-400">
                   Total
@@ -866,8 +988,6 @@ function OrderStatusOverview({ orders }) {
             </div>
           )}
         </div>
-
-        {/* LEGEND */}
 
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {data.map((item) => {
@@ -1156,6 +1276,7 @@ function Dashboard() {
               <DashboardSummary
                 orders={orders}
               />
+
             </div>
           </div>
         </div>

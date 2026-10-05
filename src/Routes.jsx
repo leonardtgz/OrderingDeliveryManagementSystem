@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/customer/Home";
 import Products from "./pages/customer/Products";
 import OrderReview from "./pages/customer/OrderReview";
-import EditOrder from "./pages/customer/EditOrder";
+import CustomerEditOrder from "./pages/customer/EditOrder";
 import OrderSummary from "./pages/customer/OrderSummary";
 import OrderSuccessful from "./pages/customer/OrderSuccessful";
 import OrderDetails from "./pages/customer/OrderDetails";
@@ -34,6 +34,7 @@ import Customers from "./pages/admin/Customers";
 import ViewCustomer from "./pages/admin/ViewCustomer";
 import AddCustomer from "./pages/admin/AddCustomer";
 import AdminOrders from "./pages/admin/Orders";
+import AdminEditOrder from "./pages/admin/EditOrder";
 import Deliveries from "./pages/admin/Deliveries";
 import EditCustomer from "./pages/admin/EditCustomer";
 import AdminProfile from "./pages/admin/Profile";
@@ -61,7 +62,7 @@ function AppRoutes() {
         <Route path="/customer/home" element={<Home />} />
         <Route path="/customer/products" element={<Products />} />
         <Route path="/customer/order-review" element={<OrderReview />} />
-        <Route path="/customer/edit-order" element={<EditOrder />} />
+        <Route path="/customer/edit-order" element={<CustomerEditOrder />} />
         <Route path="/customer/order-summary" element={<OrderSummary />} />
         <Route path="/customer/order-successful" element={<OrderSuccessful />} />
         <Route path="/customer/orders" element={<Orders />} />
@@ -85,6 +86,7 @@ function AppRoutes() {
         <Route path="/admin/products/edit/:id" element={<EditAdminProduct />} />
         <Route path="/admin/customers" element={<Customers />} />
         <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/admin/orders/edit/:id" element={<AdminEditOrder />} />
         <Route path="/admin/deliveries" element={<Deliveries />} />
         <Route path="/admin/customers/:id" element={<ViewCustomer />} />
         <Route path="/admin/customers/new" element={<AddCustomer />} />

@@ -1,16 +1,40 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, {
+  useEffect,
+  useState,
+} from "react";
+
+import { createPortal } from "react-dom";
+
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+} from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
+
+import AdminFooter from "../../components/admin/AdminFooter";
+
 import Header from "../../components/Header/Header";
+
 import WarningModal from "../../components/admin/WarningModal";
 
 import slimPurifiedWater from "../../assets/images/slim-purified-water.png";
+
 import roundPurifiedWater from "../../assets/images/round-purified-water.png";
+
 import bottle500ml from "../../assets/images/500ml-bottle.png";
 
 const PRODUCTS_KEY = "adminProducts";
+
 const PRODUCT_TOAST_KEY = "adminProductToast";
+
+const ITEMS_PER_PAGE = 10;
 
 const defaultProducts = [
   {
@@ -69,10 +93,46 @@ const getProductImage = (product) => {
   return slimPurifiedWater;
 };
 
+/*
+ * Make sure the original/default products
+ * always exist without removing any other
+ * products that were added by the admin.
+ */
+const restoreMissingDefaultProducts = (
+  savedProducts,
+) => {
+  const products = Array.isArray(savedProducts)
+    ? [...savedProducts]
+    : [];
+
+  const existingNames = new Set(
+    products.map((product) =>
+      String(product?.name || "")
+        .trim()
+        .toLowerCase(),
+    ),
+  );
+
+  defaultProducts.forEach((defaultProduct) => {
+    const defaultName = String(
+      defaultProduct.name || "",
+    )
+      .trim()
+      .toLowerCase();
+
+    if (!existingNames.has(defaultName)) {
+      products.push(defaultProduct);
+    }
+  });
+
+  return products;
+};
+
 const getProducts = () => {
   try {
-    const savedProducts =
-      localStorage.getItem(PRODUCTS_KEY);
+    const savedProducts = localStorage.getItem(
+      PRODUCTS_KEY,
+    );
 
     if (!savedProducts) {
       localStorage.setItem(
@@ -83,8 +143,9 @@ const getProducts = () => {
       return defaultProducts;
     }
 
-    const parsedProducts =
-      JSON.parse(savedProducts);
+    const parsedProducts = JSON.parse(
+      savedProducts,
+    );
 
     if (!Array.isArray(parsedProducts)) {
       localStorage.setItem(
@@ -95,7 +156,22 @@ const getProducts = () => {
       return defaultProducts;
     }
 
-    return parsedProducts;
+    const restoredProducts =
+      restoreMissingDefaultProducts(
+        parsedProducts,
+      );
+
+    if (
+      restoredProducts.length !==
+      parsedProducts.length
+    ) {
+      localStorage.setItem(
+        PRODUCTS_KEY,
+        JSON.stringify(restoredProducts),
+      );
+    }
+
+    return restoredProducts;
   } catch (error) {
     console.error(
       "Failed to load products:",
@@ -128,8 +204,12 @@ const isRefillProduct = (product) => {
   ).toLowerCase();
 
   return (
-    productName.includes("round gallon refill") ||
-    productName.includes("slim gallon refill")
+    productName.includes(
+      "round gallon refill",
+    ) ||
+    productName.includes(
+      "slim gallon refill",
+    )
   );
 };
 
@@ -138,18 +218,37 @@ function Products() {
 
   const [products, setProducts] = useState([]);
 
-  // Toast notification state
   const [toast, setToast] = useState("");
 
-  // Warning modal state
-  const [showWarning, setShowWarning] =
-    useState(false);
+  const [
+    showWarning,
+    setShowWarning,
+  ] = useState(false);
 
-  const [selectedProduct, setSelectedProduct] =
-    useState(null);
+  const [
+    selectedProduct,
+    setSelectedProduct,
+  ] = useState(null);
 
-  const [deleting, setDeleting] =
-    useState(false);
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false);
+
+  const [
+    openActionId,
+    setOpenActionId,
+  ] = useState(null);
+
+  const [
+    actionMenuPosition,
+    setActionMenuPosition,
+  ] = useState(null);
+
+  const [
+    currentPage,
+    setCurrentPage,
+  ] = useState(1);
 
   useEffect(() => {
     const load = () => {
@@ -193,13 +292,17 @@ function Products() {
 
   useEffect(() => {
     const savedToast =
-      localStorage.getItem(PRODUCT_TOAST_KEY);
+      localStorage.getItem(
+        PRODUCT_TOAST_KEY,
+      );
 
     if (!savedToast) {
       return;
     }
 
-    localStorage.removeItem(PRODUCT_TOAST_KEY);
+    localStorage.removeItem(
+      PRODUCT_TOAST_KEY,
+    );
 
     setToast(savedToast);
 
@@ -210,110 +313,313 @@ function Products() {
     return () => clearTimeout(timeout);
   }, []);
 
-  const handleEdit = (product) => {
+  /*
+   * Close the action menu when clicking
+   * outside the button or portal menu.
+   */
+  useEffect(() => {
+    const handleDocumentClick = (
+      event,
+    ) => {
+      if (
+        !event.target.closest(
+          "[data-product-action-button]",
+        ) &&
+        !event.target.closest(
+          "[data-product-action-portal]",
+        )
+      ) {
+        setOpenActionId(null);
+        setActionMenuPosition(null);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleDocumentClick,
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleDocumentClick,
+      );
+    };
+  }, []);
+
+  /*
+   * Position the portal menu relative
+   * to the clicked three-dot button.
+   */
+  useEffect(() => {
+    if (!openActionId) {
+      setActionMenuPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const button =
+        document.querySelector(
+          `[data-product-action-button="${openActionId}"]`,
+        );
+
+      if (!button) {
+        return;
+      }
+
+      const rect =
+        button.getBoundingClientRect();
+
+      const menuWidth = 176;
+
+      const menuHeight = 96;
+
+      const gap = 8;
+
+      let left =
+        rect.right -
+        menuWidth;
+
+      let top =
+        rect.bottom +
+        gap;
+
+      if (left < 8) {
+        left = 8;
+      }
+
+      if (
+        left + menuWidth >
+        window.innerWidth - 8
+      ) {
+        left =
+          window.innerWidth -
+          menuWidth -
+          8;
+      }
+
+      if (
+        top + menuHeight >
+        window.innerHeight - 8
+      ) {
+        top =
+          rect.top -
+          menuHeight -
+          gap;
+      }
+
+      if (top < 8) {
+        top = 8;
+      }
+
+      setActionMenuPosition({
+        top,
+        left,
+      });
+    };
+
+    updatePosition();
+
+    window.addEventListener(
+      "resize",
+      updatePosition,
+    );
+
+    window.addEventListener(
+      "scroll",
+      updatePosition,
+      true,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "resize",
+        updatePosition,
+      );
+
+      window.removeEventListener(
+        "scroll",
+        updatePosition,
+        true,
+      );
+    };
+  }, [openActionId]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      products.length /
+        ITEMS_PER_PAGE,
+    ),
+  );
+
+  const paginatedProducts =
+    products.slice(
+      (currentPage - 1) *
+        ITEMS_PER_PAGE,
+      currentPage *
+        ITEMS_PER_PAGE,
+    );
+
+  useEffect(() => {
+    if (
+      currentPage >
+      totalPages
+    ) {
+      setCurrentPage(
+        totalPages,
+      );
+    }
+  }, [
+    currentPage,
+    totalPages,
+  ]);
+
+  const showingStart =
+    products.length === 0
+      ? 0
+      : (currentPage - 1) *
+          ITEMS_PER_PAGE +
+        1;
+
+  const showingEnd = Math.min(
+    currentPage *
+      ITEMS_PER_PAGE,
+    products.length,
+  );
+
+  const handleEdit = (
+    product,
+  ) => {
+    setOpenActionId(null);
+    setActionMenuPosition(null);
+
     navigate(
       `/admin/products/edit/${product.id}`,
     );
   };
 
-  // Open warning modal
-  const handleDelete = (product) => {
+  const handleDelete = (
+    product,
+  ) => {
     if (deleting) {
       return;
     }
 
-    setSelectedProduct(product);
+    setOpenActionId(null);
+    setActionMenuPosition(null);
+
+    setSelectedProduct(
+      product,
+    );
+
     setShowWarning(true);
   };
 
-  // Actually delete the product after confirmation
-  const handleConfirmDelete = () => {
-    if (!selectedProduct || deleting) {
-      return;
-    }
+  const handleConfirmDelete =
+    () => {
+      if (
+        !selectedProduct ||
+        deleting
+      ) {
+        return;
+      }
 
-    setDeleting(true);
+      setDeleting(true);
 
-    try {
-      const savedProducts =
-        localStorage.getItem(PRODUCTS_KEY);
+      try {
+        const savedProducts =
+          localStorage.getItem(
+            PRODUCTS_KEY,
+          );
 
-      if (!savedProducts) {
+        if (!savedProducts) {
+          alert(
+            "Product data could not be found.",
+          );
+
+          setDeleting(false);
+          setShowWarning(false);
+          setSelectedProduct(null);
+
+          return;
+        }
+
+        const parsedProducts =
+          JSON.parse(
+            savedProducts,
+          );
+
+        if (
+          !Array.isArray(
+            parsedProducts,
+          )
+        ) {
+          alert(
+            "Product data is invalid.",
+          );
+
+          setDeleting(false);
+          setShowWarning(false);
+          setSelectedProduct(null);
+
+          return;
+        }
+
+        const updatedProducts =
+          parsedProducts.filter(
+            (item) =>
+              String(item.id) !==
+              String(
+                selectedProduct.id,
+              ),
+          );
+
+        saveProducts(
+          updatedProducts,
+        );
+
+        setProducts(
+          updatedProducts,
+        );
+
+        setShowWarning(false);
+        setSelectedProduct(null);
+        setDeleting(false);
+      } catch (error) {
+        console.error(
+          "Failed to delete product:",
+          error,
+        );
+
         alert(
-          "Product data could not be found.",
+          "Failed to delete the product.",
         );
 
         setDeleting(false);
         setShowWarning(false);
         setSelectedProduct(null);
-        return;
       }
-
-      const parsedProducts =
-        JSON.parse(savedProducts);
-
-      if (!Array.isArray(parsedProducts)) {
-        alert(
-          "Product data is invalid.",
-        );
-
-        setDeleting(false);
-        setShowWarning(false);
-        setSelectedProduct(null);
-        return;
-      }
-
-      const updatedProducts =
-        parsedProducts.filter(
-          (item) =>
-            String(item.id) !==
-            String(selectedProduct.id),
-        );
-
-      saveProducts(updatedProducts);
-
-      // Update the list immediately
-      setProducts(updatedProducts);
-
-      // Close modal
-      setShowWarning(false);
-      setSelectedProduct(null);
-      setDeleting(false);
-    } catch (error) {
-      console.error(
-        "Failed to delete product:",
-        error,
-      );
-
-      alert(
-        "Failed to delete the product.",
-      );
-
-      setDeleting(false);
-      setShowWarning(false);
-      setSelectedProduct(null);
-    }
-  };
+    };
 
   return (
-    <div className="flex min-h-screen bg-background-main">
+    <div className="flex min-h-screen bg-slate-50">
       <AdminSidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
 
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[1100px] px-5 py-8 sm:px-7">
-
+        <main className="min-w-0 flex-1 overflow-y-auto bg-slate-50 pb-12">
+          <div className="mx-auto w-full max-w-[1200px] px-5 py-7 sm:px-7 lg:px-8 lg:py-8">
             {/* Page Header */}
             <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-              <h1 className="text-3xl font-bold leading-10 tracking-[-0.32px] text-text-primary">
+              <h1 className="text-2xl font-bold leading-8 tracking-[-0.2px] text-slate-800 sm:text-[26px]">
                 Product Management
               </h1>
 
               <Link
                 to="/admin/products/new"
-                className="flex items-center gap-3 rounded-lg bg-button-background px-5 py-3 text-sm font-semibold uppercase tracking-[0.7px] text-white shadow-sm transition-colors hover:bg-button-hover"
+                className="flex items-center gap-2.5 rounded-lg bg-button-background px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-button-hover"
               >
                 <svg
                   width="14"
@@ -334,149 +640,201 @@ function Products() {
               </Link>
             </div>
 
-            {/* Products Card */}
-            <section className="w-full overflow-hidden rounded-xl border border-card-border bg-card-background shadow-card">
+            {/* Product Table */}
+            <section className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="w-full overflow-x-auto">
                 <table className="w-full min-w-[760px] border-collapse">
                   <thead>
-                    <tr className="border-b border-table-border bg-table-headerBg">
-                      <th className="p-5 text-left text-sm font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                    <tr className="border-b border-blue-100 bg-blue-50">
+                      <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-[0.7px] text-slate-600">
                         Product Name
                       </th>
 
-                      <th className="p-5 text-right text-sm font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                      <th className="px-5 py-3.5 text-right text-xs font-bold uppercase tracking-[0.7px] text-slate-600">
                         Avail. Qty
                       </th>
 
-                      <th className="p-5 text-center text-sm font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                      <th className="px-5 py-3.5 text-center text-xs font-bold uppercase tracking-[0.7px] text-slate-600">
                         Status
                       </th>
 
-                      <th className="p-5 text-right text-sm font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                      <th className="px-5 py-3.5 text-right text-xs font-bold uppercase tracking-[0.7px] text-slate-600">
                         Price
                       </th>
 
-                      <th className="p-5 text-center text-sm font-semibold uppercase tracking-[0.7px] text-text-secondary">
+                      <th className="px-5 py-3.5 text-center text-xs font-bold uppercase tracking-[0.7px] text-slate-600">
                         Actions
                       </th>
                     </tr>
                   </thead>
 
-                  <tbody className="bg-card-background">
-                    {products.map(
-                      (product, index) => {
-                        const refillProduct =
-                          isRefillProduct(product);
+                  <tbody className="bg-white">
+                    {paginatedProducts.length >
+                    0 ? (
+                      paginatedProducts.map(
+                        (product) => {
+                          const refillProduct =
+                            isRefillProduct(
+                              product,
+                            );
 
-                        return (
-                          <tr
-                            key={product.id}
-                            className={
-                              index > 0
-                                ? "border-t border-table-border"
-                                : ""
-                            }
-                          >
-                            {/* Product */}
-                            <td className="p-5">
-                              <div className="flex items-center gap-4">
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border-secondary bg-background-accent">
-                                  <img
-                                    src={getProductImage(
-                                      product,
-                                    )}
-                                    alt={
-                                      product.name
-                                    }
-                                    className="h-8 w-8 object-contain"
-                                  />
+                          const actionId =
+                            String(
+                              product.id,
+                            );
+
+                          const quantity =
+                            Number(
+                              product.quantity,
+                            );
+
+                          /*
+                           * Use the saved status first.
+                           * Only calculate from quantity
+                           * when no status exists.
+                           */
+                          const stockStatus =
+                            product.status ||
+                            (quantity <= 0
+                              ? "Out of Stock"
+                              : quantity <= 30
+                                ? "Low Stock"
+                                : "In Stock");
+
+                          const stockStatusClass =
+                            stockStatus ===
+                            "Out of Stock"
+                              ? "border-red-200 bg-red-50 text-red-700"
+                              : stockStatus ===
+                                  "Low Stock"
+                                ? "border-yellow-200 bg-yellow-50 text-yellow-700"
+                                : "border-green-200 bg-green-50 text-green-700";
+
+                          return (
+                            <tr
+                              key={actionId}
+                              className="border-t border-slate-100 bg-white transition-colors first:border-t-0 hover:bg-slate-50/70"
+                            >
+                              <td className="px-5 py-4">
+                                <div className="flex items-center gap-3.5">
+                                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
+                                    <img
+                                      src={getProductImage(
+                                        product,
+                                      )}
+                                      alt={
+                                        product.name
+                                      }
+                                      className="h-8 w-8 object-contain"
+                                    />
+                                  </div>
+
+                                  <div className="flex min-w-0 flex-col">
+                                    <span className="text-sm font-semibold leading-5 text-slate-800">
+                                      {
+                                        product.name
+                                      }
+                                    </span>
+
+                                    <span className="text-xs leading-5 text-slate-500">
+                                      {
+                                        product.description
+                                      }
+                                    </span>
+                                  </div>
                                 </div>
+                              </td>
 
-                                <div className="flex flex-col">
-                                  <span className="text-base font-bold leading-6 text-text-primary">
+                              <td
+                                className={`px-5 py-4 text-right text-sm font-medium leading-5 ${
+                                  refillProduct
+                                    ? "text-slate-400"
+                                    : "text-slate-700"
+                                }`}
+                              >
+                                {refillProduct
+                                  ? "—"
+                                  : product.quantity}
+                              </td>
+
+                              <td className="px-5 py-4 text-center">
+                                {refillProduct ? (
+                                  <span className="text-sm text-slate-400">
+                                    —
+                                  </span>
+                                ) : (
+                                  <span
+                                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${stockStatusClass}`}
+                                  >
                                     {
-                                      product.name
+                                      stockStatus
                                     }
                                   </span>
+                                )}
+                              </td>
 
-                                  <span className="text-sm leading-5 text-text-light">
-                                    {
-                                      product.description
+                              <td className="px-5 py-4 text-right text-sm font-medium leading-5 text-slate-700">
+                                ₱{" "}
+                                {Number(
+                                  product.price,
+                                ).toFixed(
+                                  2,
+                                )}
+                              </td>
+
+                              <td className="px-5 py-4">
+                                <div className="relative flex items-center justify-center">
+                                  <button
+                                    type="button"
+                                    data-product-action-button={
+                                      actionId
                                     }
-                                  </span>
+                                    onClick={(
+                                      event,
+                                    ) => {
+                                      event.stopPropagation();
+
+                                      if (
+                                        openActionId ===
+                                        actionId
+                                      ) {
+                                        setOpenActionId(
+                                          null,
+                                        );
+
+                                        setActionMenuPosition(
+                                          null,
+                                        );
+
+                                        return;
+                                      }
+
+                                      setOpenActionId(
+                                        actionId,
+                                      );
+                                    }}
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+                                    aria-label={`Actions for ${product.name}`}
+                                    aria-expanded={
+                                      openActionId ===
+                                      actionId
+                                    }
+                                  >
+                                    <MoreVertical
+                                      size={18}
+                                    />
+                                  </button>
                                 </div>
-                              </div>
-                            </td>
-
-                            {/* Quantity */}
-                            <td className="p-5 text-right text-base leading-6 text-text-primary">
-                              {refillProduct
-                                ? "—"
-                                : product.quantity}
-                            </td>
-
-                            {/* Status */}
-                            <td className="p-5 text-center">
-                              {refillProduct ? (
-                                <span className="text-base text-text-light">
-                                  —
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center rounded-full border border-secondary-medium bg-background-lightBlue px-3 py-1 text-xs font-semibold uppercase tracking-[0.7px] text-text-secondary">
-                                  {
-                                    product.status
-                                  }
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Price */}
-                            <td className="p-5 text-right text-base leading-6 text-text-primary">
-                              ₱{" "}
-                              {Number(
-                                product.price,
-                              ).toFixed(2)}
-                            </td>
-
-                            {/* Actions */}
-                            <td className="p-5">
-                              <div className="flex items-center justify-center gap-4">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleEdit(
-                                      product,
-                                    )
-                                  }
-                                  className="text-sm font-semibold uppercase tracking-[0.7px] text-text-secondary transition-colors hover:text-text-accent"
-                                >
-                                  Edit
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleDelete(
-                                      product,
-                                    )
-                                  }
-                                  disabled={deleting}
-                                  className="text-sm font-semibold uppercase tracking-[0.7px] text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      },
-                    )}
-
-                    {products.length === 0 && (
+                              </td>
+                            </tr>
+                          );
+                        },
+                      )
+                    ) : (
                       <tr>
                         <td
                           colSpan="5"
-                          className="p-10 text-center text-base text-text-light"
+                          className="px-5 py-12 text-center text-sm text-slate-500"
                         >
                           No products available.
                         </td>
@@ -486,66 +844,178 @@ function Products() {
                 </table>
               </div>
 
-              {/* Footer */}
-              <div className="flex w-full flex-col items-center justify-between gap-4 border-t border-table-border bg-card-background px-5 py-4 sm:flex-row">
-                <span className="text-sm leading-6 text-text-light">
+              {/* Pagination */}
+              <div className="flex w-full flex-col items-center justify-between gap-4 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row">
+                <span className="text-sm leading-6 text-slate-500">
                   Showing{" "}
-                  {products.length === 0
-                    ? 0
-                    : 1}
-                  -
-                  {products.length} of{" "}
-                  {products.length} items
+                  <span className="font-semibold text-slate-700">
+                    {showingStart}
+                    -
+                    {showingEnd}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-slate-700">
+                    {
+                      products.length
+                    }
+                  </span>{" "}
+                  items
                 </span>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    disabled
+                    onClick={() =>
+                      setCurrentPage(
+                        (page) =>
+                          Math.max(
+                            1,
+                            page - 1,
+                          ),
+                      )
+                    }
+                    disabled={
+                      currentPage ===
+                      1
+                    }
                     aria-label="Previous page"
-                    className="flex items-center justify-center rounded border border-border-secondary px-3 py-2 opacity-50"
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:border-button-background hover:bg-button-background hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <svg
-                      width="7"
-                      height="10"
-                      viewBox="0 0 7 10"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M5 10L0 5L5 0L6.16667 1.16667L2.33333 5L6.16667 8.83333L5 10Z"
-                        fill="#001D32"
-                      />
-                    </svg>
+                    <ChevronLeft
+                      size={16}
+                    />
                   </button>
+
+                  {Array.from(
+                    {
+                      length:
+                        totalPages,
+                    },
+                    (
+                      _,
+                      index,
+                    ) =>
+                      index + 1,
+                  ).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() =>
+                          setCurrentPage(
+                            page,
+                          )
+                        }
+                        className={`flex h-8 min-w-8 items-center justify-center rounded-md border px-2.5 text-sm font-semibold transition-colors ${
+                          currentPage ===
+                          page
+                            ? "border-button-background bg-button-background text-white"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-button-background hover:bg-button-background hover:text-white"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ),
+                  )}
 
                   <button
                     type="button"
-                    disabled
+                    onClick={() =>
+                      setCurrentPage(
+                        (page) =>
+                          Math.min(
+                            totalPages,
+                            page + 1,
+                          ),
+                      )
+                    }
+                    disabled={
+                      currentPage ===
+                      totalPages
+                    }
                     aria-label="Next page"
-                    className="flex items-center justify-center rounded border border-border-secondary px-3 py-2 opacity-50"
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:border-button-background hover:bg-button-background hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <svg
-                      width="7"
-                      height="10"
-                      viewBox="0 0 7 10"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M3.83333 5L0 1.16667L1.16667 0L6.16667 5L1.16667 10L0 8.83333L3.83333 5Z"
-                        fill="#001D32"
-                      />
-                    </svg>
+                    <ChevronRight
+                      size={16}
+                    />
                   </button>
                 </div>
               </div>
             </section>
           </div>
         </main>
+
+        <AdminFooter />
       </div>
 
-      {/* Toast Notification */}
+      {/* Portal Action Menu */}
+      {openActionId &&
+        actionMenuPosition &&
+        createPortal(
+          (() => {
+            const product =
+              products.find(
+                (item) =>
+                  String(
+                    item.id,
+                  ) ===
+                  String(
+                    openActionId,
+                  ),
+              );
+
+            if (!product) {
+              return null;
+            }
+
+            return (
+              <div
+                data-product-action-portal
+                className="fixed z-[99999] w-44 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
+                style={{
+                  top: actionMenuPosition.top,
+                  left: actionMenuPosition.left,
+                }}
+                onMouseDown={(
+                  event,
+                ) =>
+                  event.stopPropagation()
+                }
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleEdit(
+                      product,
+                    )
+                  }
+                  className="flex w-full items-center px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                >
+                  Edit
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleDelete(
+                      product,
+                    )
+                  }
+                  disabled={
+                    deleting
+                  }
+                  className="flex w-full items-center px-4 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              </div>
+            );
+          })(),
+          document.body,
+        )}
+
+      {/* Toast */}
       {toast && (
         <div className="fixed right-5 top-5 z-[100] flex items-center gap-3 rounded-lg border border-green-200 bg-white px-4 py-3 shadow-lg">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
@@ -566,13 +1036,12 @@ function Products() {
             </svg>
           </div>
 
-          <span className="text-sm font-semibold text-text-primary">
+          <span className="text-sm font-semibold text-slate-800">
             {toast}
           </span>
         </div>
       )}
 
-      {/* Delete Warning Modal */}
       <WarningModal
         isOpen={showWarning}
         type="delete"
@@ -581,7 +1050,9 @@ function Products() {
           setShowWarning(false);
           setSelectedProduct(null);
         }}
-        onConfirm={handleConfirmDelete}
+        onConfirm={
+          handleConfirmDelete
+        }
       />
     </div>
   );
