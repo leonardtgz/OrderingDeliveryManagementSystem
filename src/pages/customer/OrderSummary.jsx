@@ -27,6 +27,17 @@ const DEFAULT_CUSTOMER = {
   ],
 };
 
+const formatTime = (time) => {
+  if (!time) return "";
+
+  const [hours, minutes] = time.split(":");
+  const hour = Number(hours);
+  const period = hour >= 12 ? "PM" : "AM";
+  const formattedHour = hour % 12 || 12;
+
+  return `${formattedHour}:${minutes} ${period}`;
+};
+
 function OrderSummary() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -362,7 +373,7 @@ function OrderSummary() {
                   </span>
 
                   <span className="mt-1 block text-sm leading-6 text-text-primary">
-                    {deliverySchedule}
+                    {formatTime(deliverySchedule)}
                   </span>
                 </div>
               </div>

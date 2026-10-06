@@ -6,6 +6,7 @@ const adminLinks = [
   { label: "Products", to: "/admin/products" },
   { label: "Customers", to: "/admin/customers" },
   { label: "Orders & Deliveries", to: "/admin/orders" },
+  { label: "Profile", to: "/admin/profile" },
 ];
 
 function AdminFooter() {
@@ -20,7 +21,6 @@ function AdminFooter() {
             <h2 className="text-base font-extrabold tracking-tight">
               GoldenPR
             </h2>
-
             <p className="text-[11px] text-text-secondary">
               Administration Portal
             </p>
@@ -79,7 +79,6 @@ function AdminFooter() {
       <div className="border-t border-border-light bg-[#F6F9FC]">
         <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-1.5 px-5 py-3 text-[10px] text-text-secondary sm:px-6 md:flex-row md:items-center md:justify-between">
           <p>© {currentYear} GoldenPR. All rights reserved.</p>
-
           <p>System Administration and Operations</p>
         </div>
       </div>

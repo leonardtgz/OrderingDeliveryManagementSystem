@@ -23,7 +23,6 @@ import { getOrders } from "../../utils/orderStorage";
 const customer = {
   name: "Maria Santos",
   contactNumber: "0917-555-0192",
-  zone: "Sector 4",
 };
 
 const products = [
@@ -103,6 +102,33 @@ const getOrderDate = (order) => {
 
 const getOrderNumber = (order) => {
   return order.orderNumber || order.id || "Unknown";
+};
+
+const getDeliveryAddress = (order) => {
+  const address =
+    order?.deliveryAddress ||
+    order?.address ||
+    order?.deliveryDetails?.address ||
+    "";
+
+  if (Array.isArray(address)) {
+    return address.filter(Boolean).join(", ");
+  }
+
+  if (typeof address === "object" && address !== null) {
+    return [
+      address.street,
+      address.barangay,
+      address.city,
+      address.province,
+      address.region,
+      address.postalCode,
+    ]
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  return String(address).trim();
 };
 
 const normalizeStatus = (status) => {
@@ -189,7 +215,6 @@ const getStatusBadgeClass = (status) => {
 
 const getStatusSteps = (status) => {
   const type = getStatusType(status);
-
   let currentStep = 0;
 
   if (type === "processing") {
@@ -316,7 +341,6 @@ const sortOrdersNewestFirst = (orders) => {
 
 function Home() {
   const navigate = useNavigate();
-
   const [activeTab, setActiveTab] = useState("home");
   const [customerOrders, setCustomerOrders] = useState([]);
 
@@ -369,6 +393,10 @@ function Home() {
     ) || null;
 
   const orderHistory = customerOrders.slice(0, 3);
+
+  const deliveryAddress =
+    getDeliveryAddress(currentOrder) ||
+    getDeliveryAddress(customerOrders[0]);
 
   // Clicking a product now opens Products.jsx and places
   // that product directly into its Review Order section.
@@ -442,7 +470,8 @@ function Home() {
           </h2>
 
           <p className="mt-1 text-sm text-text-secondary">
-            Your designated zone: {customer.zone}
+            <span className="font-bold">Your delivery area:</span>{" "}
+            {deliveryAddress || "No delivery address available"}
           </p>
 
           <button
@@ -455,7 +484,6 @@ function Home() {
               alt=""
               className="h-4 w-4 object-contain"
             />
-
             <span>NEW ORDER</span>
           </button>
         </section>

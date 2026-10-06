@@ -1,108 +1,106 @@
 import { useEffect, useRef, useState } from "react";
+
 import { useLocation, useNavigate } from "react-router-dom";
+
 import {
   Bell,
-  CheckCircle2,
-  Truck,
   Clock,
-  XCircle,
+  RefreshCw,
+  Truck,
+  PackageCheck,
+  CircleX,
 } from "lucide-react";
+
 import userIcon from "../../assets/images/img_user_light_blue_900.svg";
+
 import goldenPRLogo from "../../assets/images/goldenpr-logo.png";
+
 import { getOrders } from "../../utils/orderStorage";
 
 function getNotificationForOrder(order, isCustomer) {
   const status = String(order.status || "").toLowerCase();
 
-  // Admin should only receive notifications for new/pending orders.
-  // Order status update notifications are for customers only.
-  if (
-    !isCustomer &&
-    !(
-      status.includes("pending") ||
-      status.includes("processing")
-    )
-  ) {
+  // Notifications are only for customers.
+  if (!isCustomer) {
     return null;
   }
 
   let title = "Order Update";
-  let message = isCustomer
-    ? "Your order has been updated."
-    : "An order has been updated.";
+  let message = "Your order has been updated.";
   let Icon = Bell;
+  let iconColor = "#08779D";
+  let iconBackground = "#EAF6FA";
+  let iconBorder = "#BAE6FD";
 
   const orderNumber =
     order.orderNumber || order.id || "Unknown Order";
 
-  const customerName =
-    order.customerName || "Customer";
-
-  if (
-    status.includes("pending") ||
-    status.includes("processing")
-  ) {
-    if (isCustomer) {
-      title = "Order Received";
-      message = `Your order ${orderNumber} has been received and is being processed.`;
-    } else {
-      title = "New / Pending Order";
-      message = `${orderNumber} from ${customerName} is pending and requires processing.`;
-    }
-
+  if (status.includes("pending")) {
+    title = "Order Received";
+    message = `Your order ${orderNumber} has been received and is being processed.`;
     Icon = Clock;
+
+    // Pending: bg-amber-100 text-amber-800 border-amber-200
+    iconColor = "#92400E";
+    iconBackground = "#FEF3C7";
+    iconBorder = "#FDE68A";
+  } else if (status.includes("processing")) {
+    title = "Order Processing";
+    message = `Your order ${orderNumber} is currently being processed.`;
+    Icon = RefreshCw;
+
+    // Processing: bg-blue-100 text-blue-800 border-blue-200
+    iconColor = "#1E40AF";
+    iconBackground = "#DBEAFE";
+    iconBorder = "#BFDBFE";
   } else if (
     status.includes("purifying") ||
     status.includes("confirmed")
   ) {
     title = "Order Confirmed";
+    message = `Your order ${orderNumber} has been confirmed and is being prepared.`;
+    Icon = PackageCheck;
 
-    if (isCustomer) {
-      message = `Your order ${orderNumber} has been confirmed and is being prepared.`;
-    } else {
-      message = `${orderNumber} from ${customerName} has been confirmed and is being prepared.`;
-    }
-
-    Icon = CheckCircle2;
+    // Processing/confirmed style: blue
+    iconColor = "#1E40AF";
+    iconBackground = "#DBEAFE";
+    iconBorder = "#BFDBFE";
   } else if (
     status.includes("out for delivery") ||
     status.includes("delivery")
   ) {
     title = "Out for Delivery";
-
-    if (isCustomer) {
-      message = `Your order ${orderNumber} is now out for delivery.`;
-    } else {
-      message = `${orderNumber} for ${customerName} is currently out for delivery.`;
-    }
-
+    message = `Your order ${orderNumber} is now out for delivery.`;
     Icon = Truck;
+
+    // Out for Delivery: bg-cyan-100 text-cyan-800 border-cyan-200
+    iconColor = "#155E75";
+    iconBackground = "#CFFAFE";
+    iconBorder = "#A5F3FC";
   } else if (
     status.includes("delivered") ||
     status.includes("completed")
   ) {
     title = "Order Delivered";
+    message = `Your order ${orderNumber} has been delivered.`;
+    Icon = PackageCheck;
 
-    if (isCustomer) {
-      message = `Your order ${orderNumber} has been delivered.`;
-    } else {
-      message = `${orderNumber} for ${customerName} has been delivered successfully.`;
-    }
-
-    Icon = CheckCircle2;
+    // Delivered: bg-green-100 text-green-800 border-green-200
+    iconColor = "#166534";
+    iconBackground = "#DCFCE7";
+    iconBorder = "#BBF7D0";
   } else if (
     status.includes("cancelled") ||
     status.includes("canceled")
   ) {
     title = "Order Cancelled";
+    message = `Your order ${orderNumber} has been cancelled.`;
+    Icon = CircleX;
 
-    if (isCustomer) {
-      message = `Your order ${orderNumber} has been cancelled.`;
-    } else {
-      message = `${orderNumber} for ${customerName} has been cancelled.`;
-    }
-
-    Icon = XCircle;
+    // Cancelled: bg-red-100 text-red-800 border-red-200
+    iconColor = "#991B1B";
+    iconBackground = "#FEE2E2";
+    iconBorder = "#FECACA";
   }
 
   return {
@@ -111,6 +109,9 @@ function getNotificationForOrder(order, isCustomer) {
     message,
     date: order.updatedAt || order.createdAt,
     Icon,
+    iconColor,
+    iconBackground,
+    iconBorder,
     orderId: order.id || null,
     orderNumber: order.orderNumber || order.id || null,
   };
@@ -136,11 +137,15 @@ function Header() {
   const location = useLocation();
 
   const [showToast, setShowToast] = useState(false);
+
   const [showNotifications, setShowNotifications] =
     useState(false);
+
   const [showPreviousNotifications, setShowPreviousNotifications] =
     useState(false);
+
   const [notifications, setNotifications] = useState([]);
+
   const [unreadNotificationIds, setUnreadNotificationIds] =
     useState([]);
 
@@ -153,9 +158,8 @@ function Header() {
   const isAdmin =
     location.pathname.startsWith("/admin");
 
-  const notificationStorageKey = isCustomer
-    ? "goldenpr_customer_read_notifications"
-    : "goldenpr_admin_read_notifications";
+  const notificationStorageKey =
+    "goldenpr_customer_read_notifications";
 
   const customerNavigationItems = [
     {
@@ -171,6 +175,13 @@ function Header() {
   ];
 
   const loadNotifications = () => {
+    // Only customers can receive notifications.
+    if (!isCustomer) {
+      setNotifications([]);
+      setUnreadNotificationIds([]);
+      return;
+    }
+
     const orders = getOrders();
 
     const orderNotifications = orders
@@ -235,23 +246,27 @@ function Header() {
     loadNotifications();
 
     const handleOrderUpdate = () => {
-      loadNotifications();
+      if (isCustomer) {
+        loadNotifications();
+      }
     };
 
-    window.addEventListener(
-      "ordersUpdated",
-      handleOrderUpdate
-    );
+    if (isCustomer) {
+      window.addEventListener(
+        "ordersUpdated",
+        handleOrderUpdate
+      );
 
-    window.addEventListener(
-      "orderUpdated",
-      handleOrderUpdate
-    );
+      window.addEventListener(
+        "orderUpdated",
+        handleOrderUpdate
+      );
 
-    window.addEventListener(
-      "storage",
-      handleOrderUpdate
-    );
+      window.addEventListener(
+        "storage",
+        handleOrderUpdate
+      );
+    }
 
     const interval = setInterval(
       loadNotifications,
@@ -304,15 +319,17 @@ function Header() {
       });
     };
 
-    window.addEventListener(
-      "orderUpdated",
-      showUpdateToast
-    );
+    if (isCustomer) {
+      window.addEventListener(
+        "orderUpdated",
+        showUpdateToast
+      );
 
-    window.addEventListener(
-      "ordersUpdated",
-      showUpdateToast
-    );
+      window.addEventListener(
+        "ordersUpdated",
+        showUpdateToast
+      );
+    }
 
     const handleStorageUpdate = (event) => {
       if (
@@ -323,10 +340,12 @@ function Header() {
       }
     };
 
-    window.addEventListener(
-      "storage",
-      handleStorageUpdate
-    );
+    if (isCustomer) {
+      window.addEventListener(
+        "storage",
+        handleStorageUpdate
+      );
+    }
 
     return () => {
       window.removeEventListener(
@@ -553,152 +572,167 @@ function Header() {
 
           {/* Notification + Profile tightly grouped */}
           <div className="flex shrink-0 items-center gap-1">
-            {/* Notification Bell */}
-            <div
-              className="relative flex shrink-0 items-center"
-              ref={notificationRef}
-            >
-              <button
-                type="button"
-                onClick={
-                  handleNotificationClick
-                }
-                aria-label="Notifications"
-                aria-expanded={
-                  showNotifications
-                }
-                className={`relative flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-200 hover:bg-background-accent ${
-                  showNotifications
-                    ? "bg-background-accent"
-                    : ""
-                }`}
+            {/* Notification Bell - Customer Only */}
+            {isCustomer && (
+              <div
+                className="relative flex shrink-0 items-center"
+                ref={notificationRef}
               >
-                <Bell
-                  size={22}
-                  strokeWidth={2.5}
-                  className="text-[#08779D]"
-                />
+                <button
+                  type="button"
+                  onClick={
+                    handleNotificationClick
+                  }
+                  aria-label="Notifications"
+                  aria-expanded={
+                    showNotifications
+                  }
+                  className={`relative flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-200 hover:bg-background-accent ${
+                    showNotifications
+                      ? "bg-background-accent"
+                      : ""
+                  }`}
+                >
+                  <Bell
+                    size={22}
+                    strokeWidth={2.5}
+                    className="text-[#08779D]"
+                  />
 
-                {/* Red badge ONLY when there are unread/new notifications */}
-                {unreadNotificationIds.length >
-                  0 && (
-                  <span className="absolute right-0 top-0 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[8px] font-bold leading-none text-white">
-                    {unreadNotificationIds.length >
-                    9
-                      ? "9+"
-                      : unreadNotificationIds.length}
-                  </span>
-                )}
-              </button>
+                  {/* Red badge ONLY when there are unread/new notifications */}
+                  {unreadNotificationIds.length >
+                    0 && (
+                    <span className="absolute right-0 top-0 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[8px] font-bold leading-none text-white">
+                      {unreadNotificationIds.length >
+                      9
+                        ? "9+"
+                        : unreadNotificationIds.length}
+                    </span>
+                  )}
+                </button>
 
-              {/* Compact Notification Popup */}
-              {showNotifications && (
-                <div className="fixed right-3 top-[68px] z-[300] w-[calc(100vw-24px)] max-w-[370px] overflow-hidden rounded-xl border border-border-light bg-white shadow-[0_10px_30px_rgba(0,0,0,0.16)] sm:right-6 sm:top-[72px]">
-                  {/* Header */}
-                  <div className="border-b border-slate-100 px-4 pb-2.5 pt-3.5">
-                    <h2 className="text-base font-bold text-slate-900">
-                      Notifications
-                    </h2>
-                  </div>
+                {/* Compact Notification Popup */}
+                {showNotifications && (
+                  <div className="fixed right-3 top-[68px] z-[300] w-[calc(100vw-24px)] max-w-[370px] overflow-hidden rounded-xl border border-border-light bg-white shadow-[0_10px_30px_rgba(0,0,0,0.16)] sm:right-6 sm:top-[72px]">
+                    {/* Header */}
+                    <div className="border-b border-slate-100 px-4 pb-2.5 pt-3.5">
+                      <h2 className="text-base font-bold text-slate-900">
+                        Notifications
+                      </h2>
+                    </div>
 
-                  {/* Notification List */}
-                  <div className="max-h-[350px] overflow-y-auto py-0.5">
-                    {visibleNotifications.length ===
-                    0 ? (
-                      <div className="flex flex-col items-center justify-center px-5 py-10 text-center">
-                        <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#EAF6FA]">
-                          <Bell
-                            size={20}
-                            className="text-[#08779D]"
-                          />
-                        </span>
+                    {/* Notification List */}
+                    <div className="max-h-[350px] overflow-y-auto py-0.5">
+                      {visibleNotifications.length ===
+                      0 ? (
+                        <div className="flex flex-col items-center justify-center px-5 py-10 text-center">
+                          <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#EAF6FA]">
+                            <Bell
+                              size={20}
+                              className="text-[#08779D]"
+                            />
+                          </span>
 
-                        <p className="text-sm font-semibold text-slate-800">
-                          No notifications
-                        </p>
+                          <p className="text-sm font-semibold text-slate-800">
+                            No notifications
+                          </p>
 
-                        <p className="mt-1 text-xs text-slate-500">
-                          There are no order updates
-                          yet.
-                        </p>
-                      </div>
-                    ) : (
-                      visibleNotifications.map(
-                        (notification) => {
-                          const Icon =
-                            notification.Icon;
+                          <p className="mt-1 text-xs text-slate-500">
+                            There are no order updates
+                            yet.
+                          </p>
+                        </div>
+                      ) : (
+                        visibleNotifications.map(
+                          (notification) => {
+                            const Icon =
+                              notification.Icon;
 
-                          return (
-                            <button
-                              key={notification.id}
-                              type="button"
-                              onClick={() =>
-                                handleSpecificNotificationClick(
-                                  notification
-                                )
-                              }
-                              className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition-colors duration-150 hover:bg-slate-50 sm:px-4"
-                            >
-                              {/* Notification Icon */}
-                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF6FA]">
-                                <Icon
-                                  size={17}
-                                  className="text-[#08779D]"
-                                  strokeWidth={2}
-                                />
-                              </span>
+                            return (
+                              <button
+                                key={
+                                  notification.id
+                                }
+                                type="button"
+                                onClick={() =>
+                                  handleSpecificNotificationClick(
+                                    notification
+                                  )
+                                }
+                                className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left transition-colors duration-150 hover:bg-slate-50 sm:px-4"
+                              >
+                                {/* Notification Icon */}
+                                <span
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border"
+                                  style={{
+                                    backgroundColor:
+                                      notification.iconBackground,
+                                    borderColor:
+                                      notification.iconBorder,
+                                  }}
+                                >
+                                  <Icon
+                                    size={17}
+                                    style={{
+                                      color:
+                                        notification.iconColor,
+                                    }}
+                                    strokeWidth={2}
+                                  />
+                                </span>
 
-                              {/* Notification Content */}
-                              <span className="min-w-0 flex-1">
-                                <span className="flex items-start justify-between gap-2">
-                                  <span className="text-sm font-bold leading-5 text-slate-900">
+                                {/* Notification Content */}
+                                <span className="min-w-0 flex-1">
+                                  <span className="flex items-start justify-between gap-2">
+                                    <span className="text-sm font-bold leading-5 text-slate-900">
+                                      {
+                                        notification.title
+                                      }
+                                    </span>
+                                  </span>
+
+                                  <span className="mt-0.5 block text-xs leading-5 text-slate-500">
                                     {
-                                      notification.title
+                                      notification.message
                                     }
                                   </span>
-                                </span>
 
-                                <span className="mt-0.5 block text-xs leading-5 text-slate-500">
-                                  {
-                                    notification.message
-                                  }
+                                  <span className="mt-1 block text-[11px] font-medium text-slate-400">
+                                    {formatNotificationDate(
+                                      notification.date
+                                    )}
+                                  </span>
                                 </span>
+                              </button>
+                            );
+                          }
+                        )
+                      )}
+                    </div>
 
-                                <span className="mt-1 block text-[11px] font-medium text-slate-400">
-                                  {formatNotificationDate(
-                                    notification.date
-                                  )}
-                                </span>
-                              </span>
-                            </button>
-                          );
-                        }
-                      )
+                    {/* Previous Notifications */}
+                    {hasPreviousNotifications && (
+                      <div className="border-t border-slate-100 px-3.5 py-2.5 sm:px-4">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowPreviousNotifications(
+                              (current) =>
+                                !current
+                            )
+                          }
+                          className="w-full rounded-lg px-3 py-2 text-center text-sm font-semibold text-[#08779D] transition-colors duration-200 hover:bg-[#EAF6FA]"
+                        >
+                          {showPreviousNotifications
+                            ? "Show fewer notifications"
+                            : "See previous notifications"}
+                        </button>
+                      </div>
                     )}
                   </div>
-
-                  {/* Previous Notifications */}
-                  {hasPreviousNotifications && (
-                    <div className="border-t border-slate-100 px-3.5 py-2.5 sm:px-4">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowPreviousNotifications(
-                            (current) =>
-                              !current
-                          )
-                        }
-                        className="w-full rounded-lg px-3 py-2 text-center text-sm font-semibold text-[#08779D] transition-colors duration-200 hover:bg-[#EAF6FA]"
-                      >
-                        {showPreviousNotifications
-                          ? "Show fewer notifications"
-                          : "See previous notifications"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Profile Icon */}
             <button
