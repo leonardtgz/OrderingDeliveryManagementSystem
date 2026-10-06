@@ -1,9 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
-
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import {
-  AlertCircle,
   CheckCircle2,
   ChevronRight,
   Clock3,
@@ -11,7 +8,6 @@ import {
   Truck,
   Users,
 } from "lucide-react";
-
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import Header from "../../components/Header/Header";
 import AdminFooter from "../../components/admin/AdminFooter";
@@ -26,7 +22,6 @@ function getOrders() {
   try {
     const savedOrders = localStorage.getItem(ORDERS_KEY);
     const orders = savedOrders ? JSON.parse(savedOrders) : [];
-
     return Array.isArray(orders) ? orders : [];
   } catch (error) {
     console.error("Failed to load orders:", error);
@@ -147,6 +142,10 @@ function getProductName(order) {
   return `${productNames[0]} + ${productNames.length - 1} more`;
 }
 
+/*
+ * Keep the Paid column aligned with the Orders page:
+ * show "Yes" or "No".
+ */
 function getPaidStatus(order) {
   const paymentStatus =
     order.paymentStatus ||
@@ -159,20 +158,20 @@ function getPaidStatus(order) {
     order.paid === true ||
     String(paymentStatus).trim().toLowerCase() === "paid"
   ) {
-    return "Paid";
+    return "Yes";
   }
 
   if (
     order.isPaid === false ||
     order.paid === false ||
-    ["unpaid", "pending", "unpaid"].includes(
+    ["unpaid", "pending"].includes(
       String(paymentStatus).trim().toLowerCase()
     )
   ) {
-    return "Unpaid";
+    return "No";
   }
 
-  return "—";
+  return "No";
 }
 
 function getAmount(order) {
@@ -224,7 +223,8 @@ function formatDeliveryTime(order) {
   }
 
   const dateValue =
-    order.updatedAt || order.createdAt;
+    order.updatedAt ||
+    order.createdAt;
 
   if (!dateValue) {
     return "";
@@ -252,7 +252,6 @@ const STATUS_CONFIG = {
     badge: "border-amber-200 bg-amber-50 text-amber-700",
     soft: "bg-amber-50",
     icon: "bg-amber-50 text-amber-600",
-    dot: "#f59e0b",
   },
 
   PROCESSING: {
@@ -260,7 +259,6 @@ const STATUS_CONFIG = {
     badge: "border-blue-200 bg-blue-50 text-blue-700",
     soft: "bg-blue-50",
     icon: "bg-blue-50 text-blue-600",
-    dot: "#3b82f6",
   },
 
   "OUT FOR DELIVERY": {
@@ -268,7 +266,6 @@ const STATUS_CONFIG = {
     badge: "border-cyan-200 bg-cyan-50 text-cyan-700",
     soft: "bg-cyan-50",
     icon: "bg-cyan-50 text-cyan-600",
-    dot: "#06b6d4",
   },
 
   DELIVERED: {
@@ -276,7 +273,6 @@ const STATUS_CONFIG = {
     badge: "border-green-200 bg-green-50 text-green-700",
     soft: "bg-green-50",
     icon: "bg-green-50 text-green-600",
-    dot: "#22c55e",
   },
 
   CANCELLED: {
@@ -284,7 +280,6 @@ const STATUS_CONFIG = {
     badge: "border-red-200 bg-red-50 text-red-700",
     soft: "bg-red-50",
     icon: "bg-red-50 text-red-600",
-    dot: "#ef4444",
   },
 };
 
@@ -296,7 +291,7 @@ function getStatusStyle(status) {
 }
 
 /* ============================================================
-   STATISTICS CARDS
+   TOP METRIC CARDS
 ============================================================ */
 
 function StatisticsGrid({ orders }) {
@@ -367,7 +362,7 @@ function StatisticsGrid({ orders }) {
   ];
 
   return (
-    <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
       {stats.map((stat) => {
         const styles = stat.status
           ? getStatusStyle(stat.status)
@@ -417,8 +412,6 @@ function StatisticsGrid({ orders }) {
                       ? "bg-cyan-500"
                       : stat.status === "DELIVERED"
                       ? "bg-green-500"
-                      : stat.status === "CANCELLED"
-                      ? "bg-red-500"
                       : "bg-cyan-500"
                   }`}
                 />
@@ -432,7 +425,7 @@ function StatisticsGrid({ orders }) {
 }
 
 /* ============================================================
-   NEW ORDERS
+   NEW ORDERS / ACTIVE QUEUE
 ============================================================ */
 
 function RecentOrders({
@@ -466,39 +459,38 @@ function RecentOrders({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_4px_22px_rgba(15,23,42,0.04)]">
-      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
-        <div>
+      <div className="border-b border-slate-100 bg-cyan-50/40 px-5 py-4">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-50">
-              <Package className="h-3.5 w-3.5 text-cyan-600" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm">
+              <Package className="h-4 w-4 text-cyan-600" />
             </div>
 
             <div>
               <h3 className="text-sm font-bold text-slate-800">
-                New Orders
+                New Orders / Active Queue
               </h3>
 
               <p className="mt-0.5 text-[10px] text-slate-400">
-                Latest customer orders
+                Latest incoming orders requiring processing or dispatch
               </p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={onOpenOrders}
+            className="group flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[9px] font-bold uppercase tracking-[0.6px] text-slate-500 transition-all hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
+          >
+            View All
+            <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={onOpenOrders}
-          className="group flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.6px] text-slate-500 transition-all hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
-        >
-          View All
-
-          <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-        </button>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1050px]">
-          <thead className="bg-slate-50/70">
+          <thead className="bg-slate-50/80">
             <tr>
               {[
                 "Order #",
@@ -562,54 +554,42 @@ function RecentOrders({
                     tabIndex={0}
                     className="cursor-pointer border-b border-slate-100 transition-colors last:border-b-0 hover:bg-cyan-50/30"
                   >
-                    {/* ORDER # */}
                     <td className="whitespace-nowrap px-5 py-3.5 text-[11px] font-bold text-slate-700">
                       {getOrderNumber(order)}
                     </td>
 
-                    {/* CUSTOMER NAME */}
                     <td className="max-w-[190px] truncate px-5 py-3.5 text-[11px] text-slate-600">
                       {getCustomerName(order)}
                     </td>
 
-                    {/* PRODUCT */}
                     <td className="max-w-[210px] truncate px-5 py-3.5 text-[11px] font-medium text-slate-600">
                       {productName}
                     </td>
 
-                    {/* QTY */}
                     <td className="whitespace-nowrap px-5 py-3.5 text-[11px] font-medium text-slate-600">
                       {quantity}
                     </td>
 
-                    {/* DELIVERY DATE */}
                     <td className="whitespace-nowrap px-5 py-3.5 text-[11px] text-slate-600">
                       {formatDeliveryDate(order)}
                     </td>
 
-                    {/* TOTAL */}
                     <td className="whitespace-nowrap px-5 py-3.5 text-[11px] font-bold text-slate-700">
                       {getAmount(order)}
                     </td>
 
-                    {/* PAID */}
                     <td className="whitespace-nowrap px-5 py-3.5">
-                      {paidStatus === "Paid" ? (
-                        <span className="inline-flex whitespace-nowrap rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.4px] text-green-700">
-                          Paid
-                        </span>
-                      ) : paidStatus === "Unpaid" ? (
-                        <span className="inline-flex whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.4px] text-amber-700">
-                          Unpaid
-                        </span>
-                      ) : (
-                        <span className="text-[11px] font-medium text-slate-400">
-                          —
-                        </span>
-                      )}
+                      <span
+                        className={`inline-flex min-w-[34px] justify-center rounded-full border px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.4px] ${
+                          paidStatus === "Yes"
+                            ? "border-green-200 bg-green-50 text-green-700"
+                            : "border-red-200 bg-red-50 text-red-700"
+                        }`}
+                      >
+                        {paidStatus}
+                      </span>
                     </td>
 
-                    {/* STATUS */}
                     <td className="whitespace-nowrap px-5 py-3.5">
                       <span
                         className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.4px] ${styles.badge}`}
@@ -618,7 +598,6 @@ function RecentOrders({
                       </span>
                     </td>
 
-                    {/* ACTION */}
                     <td className="whitespace-nowrap px-5 py-3.5">
                       <button
                         type="button"
@@ -665,7 +644,7 @@ function RecentOrders({
 }
 
 /* ============================================================
-   RECENT DELIVERIES
+   RECENT DELIVERIES / DISPATCH LOG
 ============================================================ */
 
 function DeliverySchedule({
@@ -682,100 +661,131 @@ function DeliverySchedule({
         getOrderTimestamp(b) -
         getOrderTimestamp(a)
     )
-    .slice(0, 3);
+    .slice(0, 5);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_4px_22px_rgba(15,23,42,0.04)]">
-      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-50">
-            <Truck className="h-3.5 w-3.5 text-green-600" />
+      <div className="border-b border-slate-100 bg-cyan-50/40 px-5 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm">
+              <Truck className="h-4 w-4 text-cyan-600" />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">
+                Recent Deliveries / Dispatch Log
+              </h3>
+
+              <p className="mt-0.5 text-[10px] text-slate-400">
+                Latest completed deliveries from fulfillment history
+              </p>
+            </div>
           </div>
 
-          <div>
-            <h3 className="text-sm font-bold text-slate-800">
-              Recent Deliveries
-            </h3>
-
-            <p className="mt-0.5 text-[10px] text-slate-400">
-              Latest completed orders
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={() => onOpenDeliveries()}
+            className="group flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[9px] font-bold uppercase tracking-[0.6px] text-slate-500 transition-all hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
+          >
+            View All
+            <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={onOpenDeliveries}
-          className="group flex shrink-0 items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.6px] text-cyan-600 transition-colors hover:text-cyan-700"
-        >
-          View All
-
-          <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-        </button>
       </div>
 
-      <div className="p-5">
+      <div className="space-y-3 p-5">
         {deliveries.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            {deliveries.map((order) => {
-              const quantity =
-                getOrderQuantity(order);
+          deliveries.map((order) => {
+            const quantity = getOrderQuantity(order);
+            const deliveryDate = formatDeliveryDate(order);
+            const deliveryTime = formatDeliveryTime(order);
 
-              const total = Number(
-                order.total || 0
-              );
+            return (
+              <div
+                key={
+                  order.id ||
+                  order.orderNumber
+                }
+                className="group flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50/40 px-4 py-4 transition-all duration-200 hover:border-green-200 hover:bg-white hover:shadow-[0_5px_18px_rgba(34,197,94,0.07)] sm:flex-row sm:items-center"
+              >
+                <div className="shrink-0">
+                  <span className="inline-flex items-center rounded-full bg-green-600 px-3 py-1.5 text-[8px] font-bold uppercase tracking-[0.6px] text-white shadow-sm">
+                    Delivered
+                  </span>
+                </div>
 
-              return (
-                <div
-                  key={
-                    order.id ||
-                    order.orderNumber
-                  }
-                  className="group rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-white hover:shadow-[0_6px_20px_rgba(6,182,212,0.08)]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <span className="block truncate text-[9px] font-bold uppercase tracking-[0.6px] text-slate-400">
-                        {getOrderNumber(order)}
-                      </span>
+                <div className="min-w-[125px] sm:w-[140px]">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.7px] text-slate-400">
+                    Delivery ID
+                  </p>
 
-                      <span className="mt-1.5 block truncate text-xs font-semibold text-slate-700">
-                        {getCustomerName(order)}
-                      </span>
-                    </div>
+                  <p className="mt-1 truncate text-[11px] font-bold text-slate-700">
+                    {getOrderNumber(order)}
+                  </p>
+                </div>
 
-                    <span className="shrink-0 rounded-md bg-white px-2 py-1 text-[9px] font-medium text-slate-400">
-                      {formatDeliveryTime(order)}
-                    </span>
-                  </div>
+                <div className="min-w-0 flex-1 sm:min-w-[150px]">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.7px] text-slate-400">
+                    Customer
+                  </p>
 
-                  <div className="mt-4 flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-slate-400">
-                      {formatDeliveryDate(order)}
-                    </span>
+                  <p className="mt-1 truncate text-[11px] font-semibold text-slate-700">
+                    {getCustomerName(order)}
+                  </p>
+                </div>
 
-                    <span className="rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.4px] text-green-700">
-                      Delivered
-                    </span>
-                  </div>
+                <div className="min-w-[170px] sm:w-[190px]">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.7px] text-slate-400">
+                    Delivered
+                  </p>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
-                    <span className="text-[10px] text-slate-400">
-                      {quantity > 0
-                        ? `${quantity} items`
-                        : "Delivery completed"}
-                    </span>
+                  <p className="mt-1 whitespace-nowrap text-[11px] font-medium text-slate-600">
+                    {deliveryDate}
 
-                    {total > 0 && (
-                      <span className="text-[10px] font-bold text-slate-700">
-                        ₱{total.toFixed(2)}
+                    {deliveryTime && (
+                      <span className="text-slate-400">
+                        {" "}
+                        · {deliveryTime}
                       </span>
                     )}
-                  </div>
+                  </p>
                 </div>
-              );
-            })}
-          </div>
+
+                <div className="min-w-[90px] sm:w-[100px]">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.7px] text-slate-400">
+                    Quantity
+                  </p>
+
+                  <p className="mt-1 text-[11px] font-semibold text-slate-700">
+                    {quantity > 0
+                      ? `${quantity} items`
+                      : "—"}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 justify-end sm:ml-auto">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onOpenDeliveries(order);
+                    }}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition-all hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-600"
+                    aria-label={`View delivery ${getOrderNumber(
+                      order
+                    )}`}
+                  >
+                    <span className="flex flex-col items-center justify-center gap-[2px]">
+                      <span className="h-1 w-1 rounded-full bg-current" />
+                      <span className="h-1 w-1 rounded-full bg-current" />
+                      <span className="h-1 w-1 rounded-full bg-current" />
+                    </span>
+                  </button>
+                </div>
+              </div>
+            );
+          })
         ) : (
           <div className="py-8 text-center">
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-green-50">
@@ -792,340 +802,22 @@ function DeliverySchedule({
           </div>
         )}
       </div>
-    </section>
-  );
-}
 
-/* ============================================================
-   PIE CHART HELPERS
-============================================================ */
-
-function polarToCartesian(
-  centerX,
-  centerY,
-  radius,
-  angleInDegrees
-) {
-  const angleInRadians =
-    ((angleInDegrees - 90) * Math.PI) / 180;
-
-  return {
-    x:
-      centerX +
-      radius * Math.cos(angleInRadians),
-
-    y:
-      centerY +
-      radius * Math.sin(angleInRadians),
-  };
-}
-
-function describePieSlice(
-  centerX,
-  centerY,
-  radius,
-  startAngle,
-  endAngle
-) {
-  const start = polarToCartesian(
-    centerX,
-    centerY,
-    radius,
-    endAngle
-  );
-
-  const end = polarToCartesian(
-    centerX,
-    centerY,
-    radius,
-    startAngle
-  );
-
-  const largeArcFlag =
-    endAngle - startAngle <= 180
-      ? "0"
-      : "1";
-
-  return [
-    `M ${centerX} ${centerY}`,
-    `L ${start.x} ${start.y}`,
-    `A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`,
-    "Z",
-  ].join(" ");
-}
-
-/* ============================================================
-   ORDER STATUS OVERVIEW
-============================================================ */
-
-function OrderStatusOverview({ orders }) {
-  const statuses = [
-    "PENDING",
-    "PROCESSING",
-    "OUT FOR DELIVERY",
-    "DELIVERED",
-    "CANCELLED",
-  ];
-
-  const data = statuses.map((status) => ({
-    status,
-    count: orders.filter(
-      (order) =>
-        normalizeStatus(order.status) === status
-    ).length,
-  }));
-
-  const total = data.reduce(
-    (sum, item) => sum + item.count,
-    0
-  );
-
-  let accumulatedAngle = 0;
-
-  return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_4px_22px_rgba(15,23,42,0.04)]">
-      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-50">
-            <Package className="h-3.5 w-3.5 text-cyan-600" />
-          </div>
-
-          <div>
-            <h3 className="text-sm font-bold text-slate-800">
-              Order Status Overview
-            </h3>
-
-            <p className="mt-0.5 text-[10px] text-slate-400">
-              Current distribution of all orders
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-lg bg-cyan-50 px-3 py-2 text-right">
-          <p className="text-[8px] font-bold uppercase tracking-[0.7px] text-cyan-600">
-            Total Orders
+      {deliveries.length > 0 && (
+        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-3">
+          <p className="text-[9px] font-medium text-slate-400">
+            Showing {deliveries.length} recent deliveries
           </p>
 
-          <p className="mt-0.5 text-base font-bold leading-none text-cyan-800">
-            {total}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 items-center gap-7 p-5 sm:grid-cols-[230px_1fr] lg:grid-cols-[260px_1fr]">
-        <div className="relative mx-auto flex h-[210px] w-[210px] items-center justify-center">
-          {total > 0 ? (
-            <>
-              <svg
-                viewBox="0 0 190 190"
-                className="h-full w-full"
-              >
-                {data.map((item) => {
-                  if (item.count === 0) {
-                    return null;
-                  }
-
-                  const percentage =
-                    item.count / total;
-
-                  const startAngle =
-                    accumulatedAngle;
-
-                  const endAngle =
-                    accumulatedAngle +
-                    percentage * 360;
-
-                  accumulatedAngle = endAngle;
-
-                  return (
-                    <path
-                      key={item.status}
-                      d={describePieSlice(
-                        95,
-                        95,
-                        78,
-                        startAngle,
-                        endAngle
-                      )}
-                      fill={
-                        getStatusStyle(
-                          item.status
-                        ).dot
-                      }
-                      stroke="#ffffff"
-                      strokeWidth="2"
-                      className="transition-opacity duration-200 hover:opacity-80"
-                    />
-                  );
-                })}
-              </svg>
-
-              <div className="absolute flex h-[88px] w-[88px] flex-col items-center justify-center rounded-full bg-white shadow-[0_2px_12px_rgba(15,23,42,0.06)]">
-                <span className="text-[8px] font-bold uppercase tracking-[0.7px] text-slate-400">
-                  Total
-                </span>
-
-                <span className="mt-1 text-2xl font-bold leading-none text-slate-800">
-                  {total}
-                </span>
-
-                <span className="mt-1 text-[9px] text-slate-400">
-                  Orders
-                </span>
-              </div>
-            </>
-          ) : (
-            <div className="flex h-[170px] w-[170px] items-center justify-center rounded-full border-[22px] border-slate-100">
-              <div className="text-center">
-                <span className="block text-2xl font-bold text-slate-700">
-                  0
-                </span>
-
-                <span className="text-[9px] text-slate-400">
-                  Orders
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-          {data.map((item) => {
-            const styles =
-              getStatusStyle(item.status);
-
-            const percentage =
-              total > 0
-                ? Math.round(
-                    (item.count / total) * 100
-                  )
-                : 0;
-
-            return (
-              <div
-                key={item.status}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-3 transition-all hover:border-cyan-200 hover:bg-cyan-50/40"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{
-                      backgroundColor:
-                        styles.dot,
-                    }}
-                  />
-
-                  <span className="truncate text-[11px] font-semibold text-slate-700">
-                    {styles.label}
-                  </span>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-2.5">
-                  <span className="text-xs font-bold text-slate-700">
-                    {item.count}
-                  </span>
-
-                  <span className="min-w-[34px] text-right text-[9px] font-medium text-slate-400">
-                    {percentage}%
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ============================================================
-   DASHBOARD SUMMARY
-============================================================ */
-
-function DashboardSummary({ orders }) {
-  const summary = useMemo(() => {
-    const active = orders.filter((order) => {
-      const status =
-        normalizeStatus(order.status);
-
-      return (
-        status !== "DELIVERED" &&
-        status !== "CANCELLED"
-      );
-    }).length;
-
-    const delivered = orders.filter(
-      (order) =>
-        normalizeStatus(order.status) ===
-        "DELIVERED"
-    ).length;
-
-    const cancelled = orders.filter(
-      (order) =>
-        normalizeStatus(order.status) ===
-        "CANCELLED"
-    ).length;
-
-    return {
-      active,
-      delivered,
-      cancelled,
-    };
-  }, [orders]);
-
-  const items = [
-    {
-      label: "Active Orders",
-      value: summary.active,
-      icon: Package,
-      className: "bg-cyan-50 text-cyan-600",
-    },
-    {
-      label: "Delivered",
-      value: summary.delivered,
-      icon: CheckCircle2,
-      className: "bg-green-50 text-green-600",
-    },
-    {
-      label: "Cancelled",
-      value: summary.cancelled,
-      icon: AlertCircle,
-      className: "bg-red-50 text-red-600",
-    },
-  ];
-
-  return (
-    <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      {items.map((item) => {
-        const Icon = item.icon;
-
-        return (
-          <div
-            key={item.label}
-            className="group flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white px-4 py-3.5 shadow-[0_4px_18px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-[0_7px_24px_rgba(6,182,212,0.07)]"
+          <button
+            type="button"
+            onClick={() => onOpenDeliveries()}
+            className="text-[9px] font-bold uppercase tracking-[0.6px] text-cyan-600 transition-colors hover:text-cyan-700"
           >
-            <div className="flex items-center gap-3">
-              <div
-                className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.className}`}
-              >
-                <Icon className="h-4 w-4" />
-              </div>
-
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.7px] text-slate-400">
-                  {item.label}
-                </p>
-
-                <p className="mt-1 text-lg font-bold leading-none text-slate-800">
-                  {item.value}
-                </p>
-              </div>
-            </div>
-
-            <ChevronRight className="h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-cyan-500" />
-          </div>
-        );
-      })}
+            View Dispatch Log
+          </button>
+        </div>
+      )}
     </section>
   );
 }
@@ -1191,13 +883,11 @@ function Dashboard() {
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
 
-        <div className="flex-1 overflow-y-auto bg-slate-50 px-4 py-5 pb-10 sm:px-6 sm:py-6 sm:pb-12 lg:px-8 lg:pb-14">
+        <div className="flex-1 overflow-y-auto bg-slate-50 px-4 py-6 pb-12 sm:px-6 sm:py-7 sm:pb-14 lg:px-8 lg:pb-16">
           <div className="mx-auto w-full max-w-[1440px]">
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6">
 
-              {/* ==================================================
-                  HEADER
-              ================================================== */}
+              {/* HEADER */}
 
               <section className="flex flex-col justify-between gap-4 rounded-2xl border border-cyan-100 bg-gradient-to-r from-white via-white to-cyan-50/70 px-5 py-5 shadow-[0_4px_20px_rgba(6,182,212,0.05)] sm:flex-row sm:items-center">
                 <div>
@@ -1233,15 +923,11 @@ function Dashboard() {
                 </div>
               </section>
 
-              {/* ==================================================
-                  STAT CARDS
-              ================================================== */}
+              {/* PRIMARY METRICS */}
 
               <StatisticsGrid orders={orders} />
 
-              {/* ==================================================
-                  NEW ORDERS
-              ================================================== */}
+              {/* NEW ORDERS / ACTIVE QUEUE */}
 
               <RecentOrders
                 orders={orders}
@@ -1250,33 +936,38 @@ function Dashboard() {
                 }
               />
 
-              {/* ==================================================
-                  RECENT DELIVERIES
-              ================================================== */}
+              {/* RECENT DELIVERIES / DISPATCH LOG */}
 
               <DeliverySchedule
                 orders={orders}
-                onOpenDeliveries={() =>
-                  navigate("/admin/deliveries")
-                }
+                onOpenDeliveries={(order) => {
+                  /*
+                   * Recent Deliveries is a history/dispatch-log view,
+                   * so always navigate to the History tab instead of
+                   * the Active Deliveries screen.
+                   */
+                  if (order) {
+                    const orderId =
+                      order.orderNumber || order.id;
+
+                    if (orderId) {
+                      navigate(
+                        `/admin/deliveries?tab=history&highlight=${encodeURIComponent(
+                          orderId
+                        )}`
+                      );
+                    } else {
+                      navigate(
+                        "/admin/deliveries?tab=history"
+                      );
+                    }
+                  } else {
+                    navigate(
+                      "/admin/deliveries?tab=history"
+                    );
+                  }
+                }}
               />
-
-              {/* ==================================================
-                  STATUS CHART
-              ================================================== */}
-
-              <OrderStatusOverview
-                orders={orders}
-              />
-
-              {/* ==================================================
-                  QUICK SUMMARY
-              ================================================== */}
-
-              <DashboardSummary
-                orders={orders}
-              />
-
             </div>
           </div>
         </div>
