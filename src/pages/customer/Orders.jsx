@@ -463,9 +463,7 @@ function HistoryCard({
                     key={`${product.name}-${index}`}
                     className="flex min-h-5 w-full min-w-0 items-center justify-between gap-3"
                   >
-                    <span
-                      className="min-w-0 flex-1 break-words text-sm font-bold leading-5 text-stone-800 sm:text-base"
-                    >
+                    <span className="min-w-0 flex-1 break-words text-sm font-bold leading-5 text-stone-800 sm:text-base">
                       {product.name}
                     </span>
 
@@ -523,7 +521,7 @@ function HistoryCard({
             </span>
 
             <span
-              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.5px] ${getStatusStyle(
+              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[10px] font-bold tracking-[0.5px] ${getStatusStyle(
                 status
               )}`}
             >

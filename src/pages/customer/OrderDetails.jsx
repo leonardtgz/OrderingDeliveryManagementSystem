@@ -260,6 +260,46 @@ const getStatusStyle = (status) => {
   return "bg-gray-100 text-gray-700";
 };
 
+const normalizeStatus = (status) => {
+  const normalized = String(
+    status || "Pending"
+  )
+    .trim()
+    .toLowerCase();
+
+  if (
+    normalized === "completed" ||
+    normalized === "delivered"
+  ) {
+    return "Delivered";
+  }
+
+  if (
+    normalized === "cancelled" ||
+    normalized === "canceled"
+  ) {
+    return "Cancelled";
+  }
+
+  if (
+    normalized === "out for delivery" ||
+    normalized === "in transit" ||
+    normalized === "on the way"
+  ) {
+    return "Out for Delivery";
+  }
+
+  if (
+    normalized === "confirmed" ||
+    normalized === "processing" ||
+    normalized === "purifying"
+  ) {
+    return "Processing";
+  }
+
+  return "Pending";
+};
+
 function OrderDetails() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -467,11 +507,11 @@ function OrderDetails() {
               </div>
 
               <span
-                className={`w-fit rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.6px] ${getStatusStyle(
+                className={`w-fit rounded-md px-2.5 py-1.5 text-xs font-bold tracking-[0.4px] ${getStatusStyle(
                   status
                 )}`}
               >
-                {status}
+                {normalizeStatus(status)}
               </span>
             </div>
 
@@ -648,7 +688,7 @@ function OrderDetails() {
                 Final Total
               </span>
 
-              <span className="text-lg font-bold text-text-accent sm:text-xl">
+              <span className="text-base font-bold text-text-accent sm:text-lg">
                 ₱{total.toFixed(2)}
               </span>
             </div>

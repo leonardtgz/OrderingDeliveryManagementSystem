@@ -308,9 +308,15 @@ function StatisticsGrid({ orders }) {
       icon: Clock3,
     },
     {
-      title: "Processing / Out for Delivery",
-      value: processing + forDelivery,
+      title: "Processing",
+      value: processing,
       status: "PROCESSING",
+      icon: Truck,
+    },
+    {
+      title: "Out for Delivery",
+      value: forDelivery,
+      status: "OUT FOR DELIVERY",
       icon: Truck,
     },
     {
@@ -328,7 +334,7 @@ function StatisticsGrid({ orders }) {
   ];
 
   return (
-    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
       {stats.map((stat) => {
         const styles = stat.status
           ? getStatusStyle(stat.status)
@@ -374,6 +380,8 @@ function StatisticsGrid({ orders }) {
                       ? "bg-amber-400"
                       : stat.status === "PROCESSING"
                       ? "bg-blue-500"
+                      : stat.status === "OUT FOR DELIVERY"
+                      ? "bg-cyan-500"
                       : stat.status === "DELIVERED"
                       ? "bg-green-500"
                       : "bg-cyan-500"
@@ -877,7 +885,7 @@ function DeliverySchedule({
           </div>
 
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-slate-800">
+            <h3 className="text-base font-bold text-slate-800">
               Recent Deliveries
             </h3>
 
@@ -954,7 +962,7 @@ function DeliverySchedule({
                       </span>
                     )}
 
-                    <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.3px] text-green-700">
+                    <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-1.5 text-[9px] font-bold tracking-[0.3px] text-green-700">
                       Delivered
                     </span>
                   </div>

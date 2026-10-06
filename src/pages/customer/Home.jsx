@@ -1,13 +1,23 @@
 import { useEffect, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
+
 import lightBlueIcon from "../../assets/images/img_icon_light_blue_900.svg";
+
 import icon from "../../assets/images/img_icon.svg";
+
 import roundPurifiedWaterImage from "../../assets/images/round-purified-water.png";
+
 import slimPurifiedWaterImage from "../../assets/images/slim-purified-water.png";
+
 import bottleImage from "../../assets/images/500ml-bottle.png";
+
 import Header from "../../components/Header/Header";
+
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+
 import CustomerFooter from "../../components/customer/CustomerFooter";
+
 import { getOrders } from "../../utils/orderStorage";
 
 const customer = {
@@ -140,6 +150,20 @@ const getStatusType = (status) => {
   return "pending";
 };
 
+const formatStatusLabel = (status) => {
+  const type = getStatusType(status);
+
+  const labels = {
+    pending: "Pending",
+    processing: "Processing",
+    delivery: "Out for Delivery",
+    delivered: "Delivered",
+    cancelled: "Cancelled",
+  };
+
+  return labels[type] || "Pending";
+};
+
 const isCompletedStatus = (status) => {
   const type = getStatusType(status);
   return type === "delivered" || type === "cancelled";
@@ -165,6 +189,7 @@ const getStatusBadgeClass = (status) => {
 
 const getStatusSteps = (status) => {
   const type = getStatusType(status);
+
   let currentStep = 0;
 
   if (type === "processing") {
@@ -291,6 +316,7 @@ const sortOrdersNewestFirst = (orders) => {
 
 function Home() {
   const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("home");
   const [customerOrders, setCustomerOrders] = useState([]);
 
@@ -491,7 +517,7 @@ function Home() {
                         currentStatus,
                       )}`}
                     >
-                      {currentStatus}
+                      {formatStatusLabel(currentStatus)}
                     </span>
                   </div>
                 </div>
@@ -603,24 +629,14 @@ function Home() {
                     {product.name}
                   </h4>
 
-                  <div className="mt-3 flex items-end justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                        Price
-                      </p>
+                  <div className="mt-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Price
+                    </p>
 
-                      <p className="mt-0.5 text-base font-extrabold text-[#168DBA]">
-                        {product.price}
-                      </p>
-                    </div>
-
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E8F7FC] text-[#2CA6D8] transition-colors group-hover:bg-[#2CA6D8] group-hover:text-white">
-                      <img
-                        src={lightBlueIcon}
-                        alt=""
-                        className="h-3.5 w-3.5 object-contain transition-all group-hover:brightness-0 group-hover:invert"
-                      />
-                    </div>
+                    <p className="mt-0.5 text-base font-extrabold text-[#168DBA]">
+                      {product.price}
+                    </p>
                   </div>
                 </div>
 
@@ -725,11 +741,11 @@ function Home() {
                       </p>
 
                       <span
-                        className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-bold uppercase ${getStatusBadgeClass(
+                        className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${getStatusBadgeClass(
                           status,
                         )}`}
                       >
-                        {status}
+                        {formatStatusLabel(status)}
                       </span>
                     </div>
                   </div>

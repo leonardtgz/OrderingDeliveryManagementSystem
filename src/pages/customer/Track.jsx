@@ -4,11 +4,15 @@ import React, {
   useMemo,
   useState,
 } from "react";
+
 import { useLocation, useNavigate } from "react-router-dom";
 
 import Header from "../../components/Header/Header";
+
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+
 import CustomerFooter from "../../components/customer/CustomerFooter";
+
 import snazzyImage from "../../assets/images/snazzy-image (1).png";
 
 import { getCurrentOrder, getOrders } from "../../utils/orderStorage";
@@ -367,7 +371,8 @@ function findLatestTrackedOrder(referenceOrder) {
     const sameOrderNumber =
       referenceOrderNumber != null &&
       storedOrder.orderNumber != null &&
-      String(storedOrder.orderNumber) === String(referenceOrderNumber);
+      String(storedOrder.orderNumber) ===
+        String(referenceOrderNumber);
 
     return sameId || sameOrderNumber;
   });
@@ -377,8 +382,13 @@ function findLatestTrackedOrder(referenceOrder) {
   }
 
   return [...matchingOrders].sort((a, b) => {
-    const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-    const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    const dateA = new Date(
+      a.updatedAt || a.createdAt || 0,
+    ).getTime();
+
+    const dateB = new Date(
+      b.updatedAt || b.createdAt || 0,
+    ).getTime();
 
     return dateB - dateA;
   })[0];
@@ -395,7 +405,10 @@ function Track() {
   const [order, setOrder] = useState(null);
 
   const loadTrackedOrder = useCallback(() => {
-    const latestOrder = findLatestTrackedOrder(trackedOrderReference);
+    const latestOrder = findLatestTrackedOrder(
+      trackedOrderReference,
+    );
+
     setOrder(latestOrder);
   }, [trackedOrderReference]);
 
@@ -410,12 +423,27 @@ function Track() {
     window.addEventListener("ordersUpdated", handleOrderUpdate);
     window.addEventListener("storage", handleOrderUpdate);
 
-    const interval = window.setInterval(loadTrackedOrder, 1000);
+    const interval = window.setInterval(
+      loadTrackedOrder,
+      1000,
+    );
 
     return () => {
-      window.removeEventListener("orderUpdated", handleOrderUpdate);
-      window.removeEventListener("ordersUpdated", handleOrderUpdate);
-      window.removeEventListener("storage", handleOrderUpdate);
+      window.removeEventListener(
+        "orderUpdated",
+        handleOrderUpdate,
+      );
+
+      window.removeEventListener(
+        "ordersUpdated",
+        handleOrderUpdate,
+      );
+
+      window.removeEventListener(
+        "storage",
+        handleOrderUpdate,
+      );
+
       window.clearInterval(interval);
     };
   }, [loadTrackedOrder]);
@@ -468,21 +496,63 @@ function Track() {
     };
   }, [order]);
 
-  const currentStatus = String(normalizedOrder?.status || "Pending")
+  const currentStatus = String(
+    normalizedOrder?.status || "Pending",
+  )
     .trim()
     .toLowerCase();
 
   const isDelivered =
-    currentStatus === "delivered" || currentStatus === "completed";
+    currentStatus === "delivered" ||
+    currentStatus === "completed";
 
   const isCancelled =
-    currentStatus === "cancelled" || currentStatus === "canceled";
+    currentStatus === "cancelled" ||
+    currentStatus === "canceled";
+
+  const getProperStatusLabel = (status) => {
+    const normalized = String(status || "pending")
+      .trim()
+      .toLowerCase();
+
+    if (
+      normalized === "out for delivery" ||
+      normalized === "in transit" ||
+      normalized === "delivery"
+    ) {
+      return "Out for Delivery";
+    }
+
+    if (
+      normalized === "processing" ||
+      normalized === "confirmed" ||
+      normalized === "purifying"
+    ) {
+      return "Processing";
+    }
+
+    if (
+      normalized === "delivered" ||
+      normalized === "completed"
+    ) {
+      return "Delivered";
+    }
+
+    if (
+      normalized === "cancelled" ||
+      normalized === "canceled"
+    ) {
+      return "Cancelled";
+    }
+
+    return "Pending";
+  };
 
   const steps = useMemo(() => {
     if (isDelivered) {
       return [
         { label: "Pending", time: "Completed", status: "done" },
-        { label: "Purifying", time: "Completed", status: "done" },
+        { label: "Processing", time: "Completed", status: "done" },
         {
           label: "Out for Delivery",
           time: "Completed",
@@ -502,7 +572,7 @@ function Track() {
       return [
         { label: "Pending", time: "Cancelled", status: "done" },
         {
-          label: "Purifying",
+          label: "Processing",
           time: "--:--",
           status: "upcoming",
         },
@@ -526,7 +596,7 @@ function Track() {
     ) {
       return [
         { label: "Pending", time: "Completed", status: "done" },
-        { label: "Purifying", time: "Completed", status: "done" },
+        { label: "Processing", time: "Completed", status: "done" },
         {
           label: "Out for Delivery",
           time: normalizedOrder?.deliveryTime || "In Transit",
@@ -548,7 +618,7 @@ function Track() {
       return [
         { label: "Pending", time: "Completed", status: "done" },
         {
-          label: "Purifying",
+          label: "Processing",
           time: "Preparing",
           status: "current",
         },
@@ -572,7 +642,7 @@ function Track() {
         status: "current",
       },
       {
-        label: "Purifying",
+        label: "Processing",
         time: "--:--",
         status: "upcoming",
       },
@@ -683,7 +753,7 @@ function Track() {
         badge:
           "border-green-200 bg-green-100 text-green-800",
         dot: "bg-green-600",
-        label: "DELIVERED",
+        label: "Delivered",
       };
     }
 
@@ -692,7 +762,7 @@ function Track() {
         badge:
           "border-red-200 bg-red-100 text-red-800",
         dot: "bg-red-600",
-        label: "CANCELLED",
+        label: "Cancelled",
       };
     }
 
@@ -705,7 +775,7 @@ function Track() {
         badge:
           "border-cyan-200 bg-cyan-100 text-cyan-800",
         dot: "bg-cyan-600",
-        label: "OUT FOR DELIVERY",
+        label: "Out for Delivery",
       };
     }
 
@@ -718,7 +788,7 @@ function Track() {
         badge:
           "border-blue-200 bg-blue-100 text-blue-800",
         dot: "bg-blue-600",
-        label: "PROCESSING",
+        label: "Processing",
       };
     }
 
@@ -726,7 +796,7 @@ function Track() {
       badge:
         "border-amber-200 bg-amber-100 text-amber-800",
       dot: "bg-amber-600",
-      label: "PENDING",
+      label: "Pending",
     };
   };
 
@@ -806,7 +876,7 @@ function Track() {
                   </p>
 
                   <p className="mt-1 text-base font-bold capitalize text-slate-900">
-                    {normalizedOrder.status || "Pending"}
+                    {getProperStatusLabel(normalizedOrder.status)}
                   </p>
                 </div>
 
@@ -869,7 +939,9 @@ function Track() {
                   deliveryTime={
                     isDelivered
                       ? normalizedOrder.deliveryTime
-                        ? formatTime12Hour(normalizedOrder.deliveryTime)
+                        ? formatTime12Hour(
+                            normalizedOrder.deliveryTime,
+                          )
                         : "Delivered"
                       : deliveryTime
                   }
@@ -1099,7 +1171,9 @@ function Track() {
                     <span
                       className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${statusBadge.badge}`}
                     >
-                      {normalizedOrder.status || "Pending"}
+                      {getProperStatusLabel(
+                        normalizedOrder.status,
+                      )}
                     </span>
                   </DetailField>
 
