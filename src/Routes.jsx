@@ -24,6 +24,8 @@ import DeliveryDetails from "./pages/customer/DeliveryDetails";
 import Login from "./pages/auth/Login";
 import SignUp from "./pages/auth/SignUp";
 import ResetPassword from "./pages/auth/ResetPassword";
+import VerifyOTP from "./pages/auth/VerifyOTP";
+import NewPassword from "./pages/auth/NewPassword";
 
 // Admin pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -45,6 +47,7 @@ import AdminDeliveryDetails from "./pages/admin/DeliveryDetails";
 
 
 
+
 function AppRoutes() {
   return (
     <BrowserRouter>
@@ -60,6 +63,8 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-otp" element={<VerifyOTP />} />
+        <Route path="/reset-password/new" element={<NewPassword />} />
 
         {/* Customer */}
         <Route path="/customer/home" element={<Home />} />

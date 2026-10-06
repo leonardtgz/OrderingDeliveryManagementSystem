@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+
 import { useLocation, useNavigate } from "react-router-dom";
+
 import {
   Bell,
   CheckCircle2,
@@ -9,22 +11,32 @@ import {
 } from "lucide-react";
 
 import userIcon from "../../assets/images/img_user_light_blue_900.svg";
+
 import goldenPRLogo from "../../assets/images/goldenpr-logo.png";
+
 import { getOrders } from "../../utils/orderStorage";
 
 function getNotificationForOrder(order, isCustomer) {
   const status = String(order.status || "").toLowerCase();
 
   let title = "Order Update";
+
   let message = isCustomer
     ? "Your order has been updated."
     : "An order has been updated.";
+
   let Icon = Bell;
 
-  const orderNumber = order.orderNumber || order.id || "Unknown Order";
-  const customerName = order.customerName || "Customer";
+  const orderNumber =
+    order.orderNumber || order.id || "Unknown Order";
 
-  if (status.includes("pending") || status.includes("processing")) {
+  const customerName =
+    order.customerName || "Customer";
+
+  if (
+    status.includes("pending") ||
+    status.includes("processing")
+  ) {
     if (isCustomer) {
       title = "Order Received";
       message = `Your order ${orderNumber} has been received and is being processed.`;
@@ -119,17 +131,22 @@ function Header() {
   const location = useLocation();
 
   const [showToast, setShowToast] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [showNotifications, setShowNotifications] =
+    useState(false);
   const [showPreviousNotifications, setShowPreviousNotifications] =
     useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [unreadNotificationIds, setUnreadNotificationIds] = useState([]);
+  const [unreadNotificationIds, setUnreadNotificationIds] =
+    useState([]);
 
   const toastTimeoutRef = useRef(null);
   const notificationRef = useRef(null);
 
-  const isCustomer = location.pathname.startsWith("/customer");
-  const isAdmin = location.pathname.startsWith("/admin");
+  const isCustomer =
+    location.pathname.startsWith("/customer");
+
+  const isAdmin =
+    location.pathname.startsWith("/admin");
 
   const notificationStorageKey = isCustomer
     ? "goldenpr_customer_read_notifications"
@@ -154,10 +171,14 @@ function Header() {
     const orderNotifications = orders
       .filter(
         (order) =>
-          order && (order.id || order.orderNumber)
+          order &&
+          (order.id || order.orderNumber)
       )
       .map((order) =>
-        getNotificationForOrder(order, isCustomer)
+        getNotificationForOrder(
+          order,
+          isCustomer
+        )
       )
       .sort((a, b) => {
         return (
@@ -196,7 +217,10 @@ function Header() {
             notification.id
           )
       )
-      .map((notification) => notification.id);
+      .map(
+        (notification) =>
+          notification.id
+      );
 
     setUnreadNotificationIds(unreadIds);
   };
@@ -246,13 +270,18 @@ function Header() {
 
       clearInterval(interval);
     };
-  }, [isCustomer, notificationStorageKey]);
+  }, [
+    isCustomer,
+    notificationStorageKey,
+  ]);
 
   useEffect(() => {
     const showUpdateToast = () => {
       setShowToast(false);
 
-      window.clearTimeout(toastTimeoutRef.current);
+      window.clearTimeout(
+        toastTimeoutRef.current
+      );
 
       requestAnimationFrame(() => {
         setShowToast(true);
@@ -351,13 +380,16 @@ function Header() {
   const markNotificationsAsRead = () => {
     const currentNotificationIds =
       notifications.map(
-        (notification) => notification.id
+        (notification) =>
+          notification.id
       );
 
     try {
       window.localStorage.setItem(
         notificationStorageKey,
-        JSON.stringify(currentNotificationIds)
+        JSON.stringify(
+          currentNotificationIds
+        )
       );
     } catch {
       // Ignore localStorage errors.
@@ -367,9 +399,12 @@ function Header() {
   };
 
   const handleNotificationClick = () => {
-    const willOpen = !showNotifications;
+    const willOpen =
+      !showNotifications;
 
-    setShowNotifications(willOpen);
+    setShowNotifications(
+      willOpen
+    );
 
     if (willOpen) {
       markNotificationsAsRead();
@@ -525,7 +560,7 @@ function Header() {
                 }`}
               >
                 <Bell
-                  size={24}
+                  size={22}
                   strokeWidth={2.5}
                   className="text-[#08779D]"
                 />
@@ -661,7 +696,7 @@ function Header() {
               <img
                 src={userIcon}
                 alt=""
-                className="h-6 w-6 object-contain"
+                className="h-5 w-5 object-contain"
               />
             </button>
           </div>

@@ -1,22 +1,23 @@
 import AuthBackground from "../../components/AuthBackground";
-
 import { useState } from "react";
-
-import { Link } from "react-router-dom";
-
+import { Link, useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
-
 import EditText from "../../components/ui/EditText";
 
 function ResetPassword() {
-  const [email, setEmail] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!email) return;
+    if (!contactNumber) return;
 
-    alert("Reset link sent!");
+    navigate("/verify-otp", {
+      state: {
+        contactNumber,
+      },
+    });
   };
 
   return (
@@ -69,13 +70,14 @@ function ResetPassword() {
                   color: "#4b5563",
                 }}
               >
-                Enter your email and we'll send you a reset link.
+                Enter your phone number and we'll send you a verification
+                code.
               </p>
             </div>
 
             <div style={{ marginBottom: "20px" }}>
               <label
-                htmlFor="email"
+                htmlFor="contactNumber"
                 style={{
                   display: "block",
                   marginBottom: "8px",
@@ -84,18 +86,16 @@ function ResetPassword() {
                   color: "#16324f",
                 }}
               >
-                EMAIL ADDRESS
+                CONTACT NUMBER (PH)
               </label>
 
               <EditText
-                id="email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
-                placeholder="e.g., user@example.com"
+                id="contactNumber"
+                name="contactNumber"
+                type="tel"
+                value={contactNumber}
+                onChange={(e) => setContactNumber(e.target.value)}
+                placeholder="0917 123 4567"
                 required
                 className="w-full"
               />
@@ -106,7 +106,7 @@ function ResetPassword() {
               variant="primary"
               className="w-full"
             >
-              SEND RESET LINK
+              SEND OTP
             </Button>
 
             <div
