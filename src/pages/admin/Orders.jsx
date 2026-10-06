@@ -1,26 +1,22 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-
 import { createPortal } from "react-dom";
-
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  useSearchParams,
-  useNavigate,
-} from "react-router-dom";
-
-import {
-  ArrowUpDown,
   CalendarDays,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ListFilter,
+  ChevronUp,
+  Clock3,
+  Eye,
   MoreVertical,
-  Pencil,
+  Package,
   Search,
   SlidersHorizontal,
   Trash2,
@@ -28,17 +24,17 @@ import {
 } from "lucide-react";
 
 import AdminSidebar from "../../components/admin/AdminSidebar";
-import AdminFooter from "../../components/admin/AdminFooter";
 import Header from "../../components/Header/Header";
+import AdminFooter from "../../components/admin/AdminFooter";
 
 import {
   getOrders,
   updateOrder,
 } from "../../utils/orderStorage";
 
-const ORDERS_KEY = "goldenpr_orders";
+const ORDERS_PER_PAGE = 10;
 
-const statusOptions = [
+const STATUS_OPTIONS = [
   "Pending",
   "Processing",
   "Out for Delivery",
@@ -46,34 +42,56 @@ const statusOptions = [
   "Cancelled",
 ];
 
-function normalizeStatus(status) {
-  const value = String(
-    status || "Pending",
-  )
+const TABS = [
+  {
+    key: "all",
+    label: "All Orders",
+  },
+  {
+    key: "active",
+    label: "Active Queue",
+  },
+  {
+    key: "delivery",
+    label: "Out for Delivery",
+  },
+  {
+    key: "history",
+    label: "History / Completed",
+  },
+];
+
+const normalizeStatus = (status) => {
+  const value = String(status || "")
     .trim()
     .toLowerCase();
 
   if (
-    value === "confirmed" ||
-    value === "purifying" ||
-    value === "processing"
+    value === "out for delivery" ||
+    value === "out_for_delivery" ||
+    value === "in transit" ||
+    value === "in_transit"
+  ) {
+    return "Out for Delivery";
+  }
+
+  if (
+    value === "processing" ||
+    value === "process"
   ) {
     return "Processing";
   }
 
-  if (
-    value === "completed" ||
-    value === "delivered"
-  ) {
-    return "Delivered";
+  if (value === "pending") {
+    return "Pending";
   }
 
   if (
-    value === "out for delivery" ||
-    value === "out_for_delivery" ||
-    value === "out-for-delivery"
+    value === "delivered" ||
+    value === "complete" ||
+    value === "completed"
   ) {
-    return "Out for Delivery";
+    return "Delivered";
   }
 
   if (
@@ -83,85 +101,265 @@ function normalizeStatus(status) {
     return "Cancelled";
   }
 
-  return "Pending";
-}
+  return status || "Pending";
+};
 
-function getStatusBadgeClass(status) {
-  switch (normalizeStatus(status)) {
+const getStatusStyle = (status) => {
+  const normalized = normalizeStatus(status);
+
+  switch (normalized) {
+    case "Pending":
+      return "bg-amber-100 text-amber-800 border border-amber-200";
+
     case "Processing":
-      return "border border-blue-200 bg-blue-100 text-blue-800";
+      return "bg-blue-100 text-blue-800 border border-blue-200";
 
     case "Out for Delivery":
-      return "border border-cyan-200 bg-cyan-100 text-cyan-800";
+      return "bg-cyan-100 text-cyan-800 border border-cyan-200";
 
     case "Delivered":
-      return "border border-green-200 bg-green-100 text-green-800";
+      return "bg-green-100 text-green-800 border border-green-200";
 
     case "Cancelled":
-      return "border border-red-200 bg-red-100 text-red-800";
+      return "bg-red-100 text-red-800 border border-red-200";
 
-    case "Pending":
     default:
-      return "border border-amber-200 bg-amber-100 text-amber-800";
+      return "bg-gray-100 text-gray-700 border border-gray-200";
   }
-}
+};
 
-function getOrderProductName(order) {
+const getCustomerName = (order) => {
+  return (
+    order?.customerName ||
+    order?.customer?.name ||
+    order?.customer?.fullName ||
+    order?.name ||
+    order?.customer ||
+    "Unknown Customer"
+  );
+};
+
+const getOrderNumber = (order) => {
+  const raw =
+    order?.orderNumber ||
+    order?.orderId ||
+    order?.id ||
+    order?.reference ||
+    "";
+
+  const value = String(raw);
+
+  if (value.startsWith("#ORD-")) {
+    return value;
+  }
+
+  if (value.startsWith("ORD-")) {
+    return `#${value}`;
+  }
+
+  const numericMatch = value.match(/\d+/);
+
+  if (numericMatch) {
+    return `#ORD-${numericMatch[0]}`;
+  }
+
+  return `#ORD-${value || "1000"}`;
+};
+
+const getProducts = (order) => {
+  const products =
+    order?.products ||
+    order?.items ||
+    order?.orderItems ||
+    [];
+
+  if (Array.isArray(products)) {
+    return products;
+  }
+
   if (
-    Array.isArray(order?.products) &&
-    order.products.length > 0
+    products &&
+    typeof products === "object"
   ) {
-    return order.products
-      .map(
-        (product) =>
-          product?.name || "Product",
-      )
-      .join(" + ");
+    return Object.values(products);
+  }
+
+  return [];
+};
+
+const getProductName = (product) => {
+  if (typeof product === "string") {
+    return product;
   }
 
   return (
-    order?.product ||
-    "Water Order"
+    product?.name ||
+    product?.productName ||
+    product?.title ||
+    product?.product?.name ||
+    "Product"
   );
-}
+};
 
-function getOrderQuantity(order) {
-  if (
-    Array.isArray(order?.products) &&
-    order.products.length > 0
-  ) {
-    return order.products.reduce(
-      (total, product) =>
-        total +
-        Number(
-          product?.quantity ??
-            product?.qty ??
-            0,
-        ),
-      0,
-    );
+const getQuantity = (product) => {
+  if (typeof product === "string") {
+    return 1;
   }
 
-  return Number(
-    order?.qty ??
-      order?.quantity ??
-      0,
-  );
-}
+  const quantity =
+    product?.quantity ??
+    product?.qty ??
+    product?.count ??
+    product?.productQuantity ??
+    1;
 
-/*
- * Delivery dates are always displayed as YYYY-MM-DD.
- * This also handles static/legacy dates stored in
- * deliverySchedule or deliveryDate.
- */
-function getDeliveryDate(order) {
-  const value =
+  const parsed = Number(quantity);
+
+  return Number.isFinite(parsed) && parsed > 0
+    ? parsed
+    : 1;
+};
+
+const getCompactProducts = (order) => {
+  const products = getProducts(order);
+
+  if (!products.length) {
+    return [];
+  }
+
+  return products.map((product) => ({
+    name: getProductName(product),
+    quantity: getQuantity(product),
+  }));
+};
+
+const getProductSummary = (order) => {
+  const products = getProducts(order);
+
+  if (!products.length) {
+    return "No items";
+  }
+
+  return products
+    .map((product) => {
+      const quantity = getQuantity(product);
+      const name = getProductName(product);
+
+      return `${quantity}x ${name}`;
+    })
+    .join(", ");
+};
+
+const getOrderTotal = (order) => {
+  const total =
+    order?.total ??
+    order?.orderTotal ??
+    order?.grandTotal ??
+    order?.amount ??
+    order?.price ??
+    0;
+
+  const numericTotal = Number(total);
+
+  return Number.isFinite(numericTotal)
+    ? numericTotal
+    : 0;
+};
+
+const formatCurrency = (value) => {
+  return `₱${Number(value || 0).toLocaleString(
+    "en-PH",
+    {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }
+  )}`;
+};
+
+const getDeliveryDate = (order) => {
+  return (
     order?.deliveryDate ||
-    order?.deliverySchedule ||
+    order?.scheduledDate ||
+    order?.date ||
+    order?.delivery?.date ||
+    ""
+  );
+};
+
+const getDeliveryTime = (order) => {
+  const time =
+    order?.deliveryTime ||
+    order?.timeSlot ||
+    order?.deliverySlot ||
+    order?.scheduledTime ||
+    order?.delivery?.time ||
     "";
 
+  if (!time) {
+    return "";
+  }
+
+  const [hours, minutes] = String(time).split(":");
+  const hour = Number(hours);
+
+  if (
+    Number.isNaN(hour) ||
+    minutes === undefined
+  ) {
+    return time;
+  }
+
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+
+  return `${displayHour}:${minutes} ${period}`;
+};
+
+const getAddress = (order) => {
+  return (
+    order?.address ||
+    order?.deliveryAddress ||
+    order?.shippingAddress ||
+    order?.customer?.address ||
+    ""
+  );
+};
+
+const getContactNumber = (order) => {
+  return (
+    order?.contactNumber ||
+    order?.phone ||
+    order?.phoneNumber ||
+    order?.mobile ||
+    order?.customer?.phone ||
+    order?.customer?.contactNumber ||
+    ""
+  );
+};
+
+const getCreatedDate = (order) => {
+  return (
+    order?.createdAt ||
+    order?.createdDate ||
+    order?.dateCreated ||
+    order?.orderDate ||
+    order?.date ||
+    ""
+  );
+};
+
+const getPaymentStatus = (order) => {
+  return (
+    order?.paymentStatus ||
+    order?.payment?.status ||
+    order?.payment_status ||
+    "Pending"
+  );
+};
+
+const formatDate = (value) => {
   if (!value) {
-    return "Not scheduled";
+    return "—";
   }
 
   const date = new Date(value);
@@ -170,2148 +368,1828 @@ function getDeliveryDate(order) {
     return String(value);
   }
 
-  const year = date.getFullYear();
-
-  const month = String(
-    date.getMonth() + 1,
-  ).padStart(2, "0");
-
-  const day = String(
-    date.getDate(),
-  ).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function getOrderTotal(order) {
-  const directTotal =
-    order?.total ??
-    order?.totalAmount ??
-    order?.grandTotal ??
-    order?.amount;
-
-  if (
-    directTotal !== undefined &&
-    directTotal !== null &&
-    directTotal !== ""
-  ) {
-    const numericTotal =
-      Number(directTotal);
-
-    if (
-      Number.isFinite(
-        numericTotal,
-      )
-    ) {
-      return numericTotal;
+  return date.toLocaleDateString(
+    "en-PH",
+    {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     }
-  }
+  );
+};
 
-  if (
-    Array.isArray(order?.products) &&
-    order.products.length > 0
-  ) {
-    return order.products.reduce(
-      (total, product) => {
-        const quantity =
-          Number(
-            product?.quantity ??
-              product?.qty ??
-              0,
-          );
-
-        const price =
-          Number(
-            product?.price ??
-              product?.unitPrice ??
-              0,
-          );
-
-        return (
-          total +
-          quantity * price
-        );
-      },
-      0,
-    );
-  }
-
-  const quantity =
-    Number(
-      order?.qty ??
-        order?.quantity ??
-        0,
-    );
-
-  const price =
-    Number(
-      order?.price ??
-        order?.unitPrice ??
-        0,
-    );
-
-  return quantity * price;
-}
-
-function formatCurrency(amount) {
-  return `₱${Number(
-    amount || 0,
-  ).toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-function getPaymentStatus(order) {
-  const paymentValue =
-    order?.paymentStatus ??
-    order?.paid ??
-    order?.isPaid ??
-    order?.payment?.status;
-
-  if (
-    paymentValue === true ||
-    String(
-      paymentValue || "",
-    )
-      .trim()
-      .toLowerCase() ===
-      "paid"
-  ) {
-    return "Paid";
-  }
-
-  if (
-    String(
-      paymentValue || "",
-    )
-      .trim()
-      .toLowerCase() ===
-    "yes"
-  ) {
-    return "Paid";
-  }
-
-  return "Unpaid";
-}
-
-function getDeliveryDateObject(order) {
-  const value =
-    order?.deliveryDate ||
-    order?.deliverySchedule;
+const getSortTimestamp = (order) => {
+  const value = getCreatedDate(order);
 
   if (!value) {
-    return null;
+    return 0;
   }
 
-  const date =
-    new Date(value);
+  const timestamp = new Date(value).getTime();
+
+  return Number.isNaN(timestamp)
+    ? 0
+    : timestamp;
+};
+
+const getPaymentStyle = (status) => {
+  const normalized = String(status || "")
+    .trim()
+    .toLowerCase();
 
   if (
-    Number.isNaN(
-      date.getTime(),
-    )
+    normalized === "paid" ||
+    normalized === "completed" ||
+    normalized === "complete"
   ) {
-    return null;
+    return "bg-emerald-50 text-emerald-700 border border-emerald-200";
   }
-
-  return date;
-}
-
-function getOrderDate(order) {
-  const value =
-    order?.createdAt ||
-    order?.updatedAt;
-
-  if (!value) {
-    return new Date(0);
-  }
-
-  const date =
-    new Date(value);
 
   if (
-    Number.isNaN(
-      date.getTime(),
-    )
+    normalized === "unpaid" ||
+    normalized === "pending" ||
+    normalized === "failed"
   ) {
-    return new Date(0);
+    return "bg-red-50 text-red-700 border border-red-200";
   }
 
-  return date;
-}
+  return "bg-gray-50 text-gray-600 border border-gray-200";
+};
 
-/*
- * Returns the identifier that should be used by the table.
- *
- * Normally this is the orderNumber.
- * If several saved orders accidentally have the same
- * orderNumber, the unique database/state id is used instead.
- *
- * This prevents multiple rows from sharing the same
- * action-menu state and React key.
- */
-function getUniqueOrderId(
-  order,
-  allOrders = [],
-) {
-  const orderNumber = String(
-    order?.orderNumber || "",
-  ).trim();
+const OrderStatusBadge = ({ status }) => {
+  const normalizedStatus =
+    normalizeStatus(status);
 
-  if (orderNumber) {
-    const matchingOrders =
-      allOrders.filter(
-        (existingOrder) =>
-          String(
-            existingOrder?.orderNumber ||
-              "",
-          ).trim() === orderNumber,
-      );
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${getStatusStyle(
+        normalizedStatus
+      )}`}
+    >
+      {normalizedStatus}
+    </span>
+  );
+};
 
-    if (matchingOrders.length <= 1) {
-      return orderNumber;
-    }
-  }
+const PaymentBadge = ({ status }) => {
+  const normalized = String(status || "")
+    .trim()
+    .toLowerCase();
 
-  const uniqueId = String(
-    order?.id || "",
-  ).trim();
+  const isPaid = ["paid", "completed", "complete"].includes(
+    normalized
+  );
 
-  if (uniqueId) {
-    return uniqueId;
-  }
+  const displayStatus = isPaid ? "Paid" : "Unpaid";
 
-  return orderNumber || "N/A";
-}
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${getPaymentStyle(
+        displayStatus
+      )}`}
+    >
+      {displayStatus}
+    </span>
+  );
+};
 
-function Orders() {
-  const navigate =
-    useNavigate();
+const Orders = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [
-    searchParams,
-    setSearchParams,
-  ] = useSearchParams();
+  const [orders, setOrders] = useState([]);
 
-  const [orders, setOrders] =
-    useState([]);
+  const [searchTerm, setSearchTerm] =
+    useState("");
 
-  const [
-    searchTerm,
-    setSearchTerm,
-  ] = useState("");
+  const [activeTab, setActiveTab] =
+    useState("all");
 
-  const [
-    statusFilter,
-    setStatusFilter,
-  ] = useState("All");
+  const [statusFilter, setStatusFilter] =
+    useState("All");
 
-  const [
-    paymentFilter,
-    setPaymentFilter,
-  ] = useState("All");
+  const [deliveryDateFilter, setDeliveryDateFilter] =
+    useState("All Dates");
 
-  const [
-    deliveryFilter,
-    setDeliveryFilter,
-  ] = useState("All");
+  const [customerFilter, setCustomerFilter] =
+    useState("All Customers");
 
-  const [
-    customStartDate,
-    setCustomStartDate,
-  ] = useState("");
+  const [sortOption, setSortOption] =
+    useState("newest");
 
-  const [
-    customEndDate,
-    setCustomEndDate,
-  ] = useState("");
+  const [filterOpen, setFilterOpen] =
+    useState(false);
 
-  const [
-    sortOption,
-    setSortOption,
-  ] = useState("date-newest");
+  const [sortOpen, setSortOpen] =
+    useState(false);
 
-  const [
-    showFilters,
-    setShowFilters,
-  ] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] =
+    useState(false);
 
-  const [
-    showSort,
-    setShowSort,
-  ] = useState(false);
+  const [deliveryDateDropdownOpen, setDeliveryDateDropdownOpen] =
+    useState(false);
 
-  const [
-    openActionId,
-    setOpenActionId,
-  ] = useState(null);
+  const [customerDropdownOpen, setCustomerDropdownOpen] =
+    useState(false);
 
-  const [
-    actionMenuPosition,
-    setActionMenuPosition,
-  ] = useState(null);
+  const [currentPage, setCurrentPage] =
+    useState(1);
 
-  const [
-    currentPage,
-    setCurrentPage,
-  ] = useState(1);
+  const [openStatusId, setOpenStatusId] =
+    useState(null);
 
-  const [
-    highlightedOrderId,
-    setHighlightedOrderId,
-  ] = useState(null);
+  const [openActionId, setOpenActionId] =
+    useState(null);
 
-  const ordersPerPage = 10;
+  const [actionMenuPosition, setActionMenuPosition] =
+    useState(null);
 
-  // ==========================================================
-  // LOAD ORDERS
-  // ==========================================================
+  const filterRef = useRef(null);
+  const sortRef = useRef(null);
 
   const loadOrders = () => {
-    const savedOrders =
-      getOrders();
+    const storedOrders = getOrders();
 
-    setOrders(
-      Array.isArray(savedOrders)
-        ? savedOrders
-        : [],
-    );
+    if (Array.isArray(storedOrders)) {
+      setOrders(storedOrders);
+    } else {
+      setOrders([]);
+    }
   };
-
-  // ==========================================================
-  // ORDER LISTENERS
-  // ==========================================================
 
   useEffect(() => {
     loadOrders();
 
-    const handleOrderUpdate =
-      () => {
-        loadOrders();
-      };
+    const handleStorage = () => {
+      loadOrders();
+    };
+
+    const handleOrdersUpdated = () => {
+      loadOrders();
+    };
+
+    const handleOrderUpdated = () => {
+      loadOrders();
+    };
 
     window.addEventListener(
       "storage",
-      handleOrderUpdate,
-    );
-
-    window.addEventListener(
-      "orderUpdated",
-      handleOrderUpdate,
+      handleStorage
     );
 
     window.addEventListener(
       "ordersUpdated",
-      handleOrderUpdate,
+      handleOrdersUpdated
     );
 
-    const interval =
-      setInterval(() => {
-        loadOrders();
-      }, 1000);
+    window.addEventListener(
+      "orderUpdated",
+      handleOrderUpdated
+    );
+
+    const interval = window.setInterval(
+      loadOrders,
+      1000
+    );
 
     return () => {
       window.removeEventListener(
         "storage",
-        handleOrderUpdate,
-      );
-
-      window.removeEventListener(
-        "orderUpdated",
-        handleOrderUpdate,
+        handleStorage
       );
 
       window.removeEventListener(
         "ordersUpdated",
-        handleOrderUpdate,
+        handleOrdersUpdated
       );
 
-      clearInterval(
-        interval,
+      window.removeEventListener(
+        "orderUpdated",
+        handleOrderUpdated
       );
+
+      window.clearInterval(interval);
     };
   }, []);
 
-  // ==========================================================
-  // CLOSE ACTION MENU WHEN CLICKING OUTSIDE
-  // ==========================================================
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+
+    if (
+      tab === "all" ||
+      tab === "active" ||
+      tab === "delivery" ||
+      tab === "history"
+    ) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
-    const handleDocumentMouseDown = (
-      event,
-    ) => {
-      const target =
-        event.target;
-
+    const handleClickOutside = (event) => {
       if (
-        target instanceof Element &&
-        (
-          target.closest(
-            "[data-order-action-button]",
-          ) ||
-          target.closest(
-            "[data-order-action-portal]",
-          )
-        )
+        filterRef.current &&
+        !filterRef.current.contains(event.target)
       ) {
-        return;
+        setFilterOpen(false);
+        setStatusDropdownOpen(false);
+        setDeliveryDateDropdownOpen(false);
       }
 
-      setOpenActionId(null);
-      setActionMenuPosition(null);
+      if (
+        sortRef.current &&
+        !sortRef.current.contains(event.target)
+      ) {
+        setSortOpen(false);
+        setCustomerDropdownOpen(false);
+      }
     };
 
     document.addEventListener(
       "mousedown",
-      handleDocumentMouseDown,
+      handleClickOutside
     );
 
     return () => {
       document.removeEventListener(
         "mousedown",
-        handleDocumentMouseDown,
+        handleClickOutside
       );
     };
   }, []);
 
   useEffect(() => {
-    if (!openActionId) {
+    const closeMenus = () => {
+      setOpenActionId(null);
       setActionMenuPosition(null);
-      return undefined;
-    }
-
-    const updateActionMenuPosition =
-      () => {
-        const button =
-          document.querySelector(
-            `[data-order-action-button="${CSS.escape(
-              String(openActionId),
-            )}"]`,
-          );
-
-        if (!button) {
-          return;
-        }
-
-        const rect =
-          button.getBoundingClientRect();
-
-        const menuWidth = 155;
-        const menuHeight = 100;
-        const gap = 4;
-        const padding = 8;
-
-        let left =
-          rect.right -
-          menuWidth;
-
-        left = Math.max(
-          padding,
-          Math.min(
-            left,
-            window.innerWidth -
-              menuWidth -
-              padding,
-          ),
-        );
-
-        let top =
-          rect.bottom + gap;
-
-        if (
-          top + menuHeight >
-          window.innerHeight -
-            padding
-        ) {
-          top =
-            rect.top -
-            menuHeight -
-            gap;
-        }
-
-        top = Math.max(
-          padding,
-          Math.min(
-            top,
-            window.innerHeight -
-              menuHeight -
-              padding,
-          ),
-        );
-
-        setActionMenuPosition({
-          top,
-          left,
-        });
-      };
-
-    updateActionMenuPosition();
+    };
 
     window.addEventListener(
       "resize",
-      updateActionMenuPosition,
+      closeMenus
     );
 
     window.addEventListener(
       "scroll",
-      updateActionMenuPosition,
-      true,
+      closeMenus,
+      true
     );
 
     return () => {
       window.removeEventListener(
         "resize",
-        updateActionMenuPosition,
+        closeMenus
       );
 
       window.removeEventListener(
         "scroll",
-        updateActionMenuPosition,
-        true,
+        closeMenus,
+        true
       );
     };
-  }, [openActionId]);
-
-  // ==========================================================
-  // GET HIGHLIGHTED ORDER
-  // ==========================================================
+  }, []);
 
   useEffect(() => {
-    const orderToHighlight =
-      searchParams.get(
-        "highlight",
-      );
-
-    if (!orderToHighlight) {
-      return;
-    }
-
-    setHighlightedOrderId(
-      orderToHighlight,
-    );
-
-    setSearchTerm("");
-    setStatusFilter("All");
-    setPaymentFilter("All");
-    setDeliveryFilter("All");
-    setCustomStartDate("");
-    setCustomEndDate("");
     setCurrentPage(1);
-  }, [searchParams]);
+  }, [
+    activeTab,
+    statusFilter,
+    deliveryDateFilter,
+    customerFilter,
+    searchTerm,
+    sortOption,
+  ]);
 
-  // ==========================================================
-  // FILTER + SORT ORDERS
-  // ==========================================================
+  const visibleOrders = useMemo(() => {
+    return orders.filter(
+      (order) => order?.deleted !== true
+    );
+  }, [orders]);
 
-  const filteredOrders =
-    useMemo(() => {
-      const search =
-        searchTerm
-          .toLowerCase()
-          .trim();
+  const customerOptions = useMemo(() => {
+    const names = visibleOrders
+      .map((order) => getCustomerName(order))
+      .filter(Boolean);
 
-      const today =
-        new Date();
+    return [
+      "All Customers",
+      ...Array.from(new Set(names)),
+    ];
+  }, [visibleOrders]);
 
-      today.setHours(
-        0,
-        0,
-        0,
-        0,
-      );
+  const counts = useMemo(() => {
+    const normalizedOrders =
+      visibleOrders.map((order) => ({
+        ...order,
+        normalizedStatus:
+          normalizeStatus(order.status),
+      }));
 
-      return orders
-        .filter((order) => {
-          const orderId =
-            String(
-              order?.orderNumber ||
-                order?.id ||
-                "",
-            ).toLowerCase();
+    return {
+      all: normalizedOrders.length,
 
-          const customerName =
-            String(
-              order?.customerName ||
-                order?.customer ||
-                "",
-            ).toLowerCase();
+      active:
+        normalizedOrders.filter(
+          (order) =>
+            order.normalizedStatus !==
+              "Delivered" &&
+            order.normalizedStatus !==
+              "Cancelled"
+        ).length,
 
-          const product =
-            getOrderProductName(
-              order,
-            ).toLowerCase();
+      delivery:
+        normalizedOrders.filter(
+          (order) =>
+            order.normalizedStatus ===
+            "Out for Delivery"
+        ).length,
 
-          const matchesSearch =
-            !search ||
-            orderId.includes(
-              search,
-            ) ||
-            customerName.includes(
-              search,
-            ) ||
-            product.includes(
-              search,
-            );
+      history:
+        normalizedOrders.filter(
+          (order) =>
+            order.normalizedStatus ===
+              "Delivered" ||
+            order.normalizedStatus ===
+              "Cancelled"
+        ).length,
+    };
+  }, [visibleOrders]);
 
-          const orderStatus =
-            normalizeStatus(
-              order?.status,
-            );
+  const filteredOrders = useMemo(() => {
+    const search =
+      searchTerm.trim().toLowerCase();
 
-          const matchesStatus =
-            statusFilter === "All" ||
-            orderStatus ===
-              statusFilter;
+    const filtered = visibleOrders.filter(
+      (order) => {
+        const status =
+          normalizeStatus(order.status);
 
-          const paymentStatus =
-            getPaymentStatus(
-              order,
-            );
+        if (activeTab === "active") {
+          if (
+            status === "Delivered" ||
+            status === "Cancelled"
+          ) {
+            return false;
+          }
+        }
 
-          const matchesPayment =
-            paymentFilter === "All" ||
-            paymentStatus ===
-              paymentFilter;
+        if (activeTab === "delivery") {
+          if (
+            status !== "Out for Delivery"
+          ) {
+            return false;
+          }
+        }
 
-          let matchesDeliveryDate =
-            true;
+        if (activeTab === "history") {
+          if (
+            status !== "Delivered" &&
+            status !== "Cancelled"
+          ) {
+            return false;
+          }
+        }
+
+        if (
+          statusFilter !== "All" &&
+          status !==
+            normalizeStatus(statusFilter)
+        ) {
+          return false;
+        }
+
+        if (
+          customerFilter !== "All Customers" &&
+          getCustomerName(order) !==
+            customerFilter
+        ) {
+          return false;
+        }
+
+        if (
+          deliveryDateFilter !==
+          "All Dates"
+        ) {
+          const rawDate =
+            getDeliveryDate(order);
+
+          if (!rawDate) {
+            return false;
+          }
 
           const deliveryDate =
-            getDeliveryDateObject(
-              order,
-            );
+            new Date(rawDate);
 
           if (
-            deliveryFilter ===
-            "Today"
-          ) {
-            if (!deliveryDate) {
-              matchesDeliveryDate =
-                false;
-            } else {
-              deliveryDate.setHours(
-                0,
-                0,
-                0,
-                0,
-              );
-
-              matchesDeliveryDate =
-                deliveryDate.getTime() ===
-                today.getTime();
-            }
-          }
-
-          if (
-            deliveryFilter ===
-            "Custom"
-          ) {
-            if (!deliveryDate) {
-              matchesDeliveryDate =
-                false;
-            } else {
-              const orderDate =
-                new Date(
-                  deliveryDate,
-                );
-
-              orderDate.setHours(
-                0,
-                0,
-                0,
-                0,
-              );
-
-              if (
-                customStartDate
-              ) {
-                const start =
-                  new Date(
-                    `${customStartDate}T00:00:00`,
-                  );
-
-                if (
-                  orderDate <
-                  start
-                ) {
-                  matchesDeliveryDate =
-                    false;
-                }
-              }
-
-              if (
-                customEndDate
-              ) {
-                const end =
-                  new Date(
-                    `${customEndDate}T23:59:59`,
-                  );
-
-                if (
-                  orderDate >
-                  end
-                ) {
-                  matchesDeliveryDate =
-                    false;
-                }
-              }
-            }
-          }
-
-          return (
-            matchesSearch &&
-            matchesStatus &&
-            matchesPayment &&
-            matchesDeliveryDate
-          );
-        })
-        .sort((a, b) => {
-          if (
-            sortOption ===
-            "date-oldest"
-          ) {
-            return (
-              getOrderDate(a) -
-              getOrderDate(b)
-            );
-          }
-
-          if (
-            sortOption ===
-            "total-highest"
-          ) {
-            return (
-              getOrderTotal(b) -
-              getOrderTotal(a)
-            );
-          }
-
-          if (
-            sortOption ===
-            "total-lowest"
-          ) {
-            return (
-              getOrderTotal(a) -
-              getOrderTotal(b)
-            );
-          }
-
-          if (
-            sortOption ===
-            "order-asc"
-          ) {
-            return String(
-              getUniqueOrderId(
-                a,
-                orders,
-              ),
-            ).localeCompare(
-              String(
-                getUniqueOrderId(
-                  b,
-                  orders,
-                ),
-              ),
-              undefined,
-              {
-                numeric: true,
-                sensitivity:
-                  "base",
-              },
-            );
-          }
-
-          if (
-            sortOption ===
-            "order-desc"
-          ) {
-            return String(
-              getUniqueOrderId(
-                b,
-                orders,
-              ),
-            ).localeCompare(
-              String(
-                getUniqueOrderId(
-                  a,
-                  orders,
-                ),
-              ),
-              undefined,
-              {
-                numeric: true,
-                sensitivity:
-                  "base",
-              },
-            );
-          }
-
-          return (
-            getOrderDate(b) -
-            getOrderDate(a)
-          );
-        });
-    }, [
-      orders,
-      searchTerm,
-      statusFilter,
-      paymentFilter,
-      deliveryFilter,
-      customStartDate,
-      customEndDate,
-      sortOption,
-    ]);
-
-  // ==========================================================
-  // TOTAL PAGES
-  // ==========================================================
-
-  const totalPages =
-    Math.max(
-      1,
-      Math.ceil(
-        filteredOrders.length /
-          ordersPerPage,
-      ),
-    );
-
-  const safePage =
-    Math.min(
-      currentPage,
-      totalPages,
-    );
-
-  // ==========================================================
-  // DISPLAYED ORDERS
-  // ==========================================================
-
-  const displayedOrders =
-    filteredOrders.slice(
-      (safePage - 1) *
-        ordersPerPage,
-      safePage *
-        ordersPerPage,
-    );
-
-  // ==========================================================
-  // AUTOMATICALLY MOVE TO PAGE
-  // CONTAINING HIGHLIGHTED ORDER
-  // ==========================================================
-
-  useEffect(() => {
-    if (
-      !highlightedOrderId ||
-      filteredOrders.length ===
-        0
-    ) {
-      return;
-    }
-
-    const highlightedIndex =
-      filteredOrders.findIndex(
-        (order) => {
-          const orderId =
-            getUniqueOrderId(
-              order,
-              orders,
-            );
-
-          return (
-            String(orderId) ===
-            String(
-              highlightedOrderId,
+            Number.isNaN(
+              deliveryDate.getTime()
             )
+          ) {
+            return false;
+          }
+
+          const now = new Date();
+
+          const today = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
           );
-        },
-      );
 
-    if (
-      highlightedIndex === -1
-    ) {
-      return;
-    }
+          const targetDate = new Date(
+            deliveryDate.getFullYear(),
+            deliveryDate.getMonth(),
+            deliveryDate.getDate()
+          );
 
-    const page =
-      Math.floor(
-        highlightedIndex /
-          ordersPerPage,
-      ) + 1;
+          const difference =
+            Math.round(
+              (targetDate - today) /
+                (1000 * 60 * 60 * 24)
+            );
 
-    if (
-      currentPage !== page
-    ) {
-      setCurrentPage(page);
-    }
+          if (
+            deliveryDateFilter ===
+              "Today" &&
+            difference !== 0
+          ) {
+            return false;
+          }
+
+          if (
+            deliveryDateFilter ===
+              "Tomorrow" &&
+            difference !== 1
+          ) {
+            return false;
+          }
+
+          if (
+            deliveryDateFilter ===
+              "This Week" &&
+            (difference < 0 ||
+              difference > 6)
+          ) {
+            return false;
+          }
+        }
+
+        if (!search) {
+          return true;
+        }
+
+        const searchableText = [
+          getOrderNumber(order),
+          getCustomerName(order),
+          getContactNumber(order),
+          getAddress(order),
+          getDeliveryDate(order),
+          getDeliveryTime(order),
+          getProductSummary(order),
+          status,
+          getPaymentStatus(order),
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(
+          search
+        );
+      }
+    );
+
+    return filtered.sort((a, b) => {
+      switch (sortOption) {
+        case "oldest":
+          return (
+            getSortTimestamp(a) -
+            getSortTimestamp(b)
+          );
+
+        case "order-asc":
+          return getOrderNumber(
+            a
+          ).localeCompare(
+            getOrderNumber(b)
+          );
+
+        case "order-desc":
+          return getOrderNumber(
+            b
+          ).localeCompare(
+            getOrderNumber(a)
+          );
+
+        case "newest":
+        default:
+          return (
+            getSortTimestamp(b) -
+            getSortTimestamp(a)
+          );
+      }
+    });
   }, [
-    highlightedOrderId,
+    visibleOrders,
+    activeTab,
+    statusFilter,
+    deliveryDateFilter,
+    customerFilter,
+    searchTerm,
+    sortOption,
+  ]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      filteredOrders.length /
+        ORDERS_PER_PAGE
+    )
+  );
+
+  const paginatedOrders = useMemo(() => {
+    const startIndex =
+      (currentPage - 1) *
+      ORDERS_PER_PAGE;
+
+    return filteredOrders.slice(
+      startIndex,
+      startIndex + ORDERS_PER_PAGE
+    );
+  }, [
     filteredOrders,
     currentPage,
-    orders,
   ]);
-
-  // ==========================================================
-  // SCROLL TO HIGHLIGHTED ORDER
-  // ==========================================================
 
   useEffect(() => {
-    if (
-      !highlightedOrderId ||
-      displayedOrders.length ===
-        0
-    ) {
-      return;
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
     }
-
-    const timer =
-      window.setTimeout(
-        () => {
-          const element =
-            document.getElementById(
-              `order-row-${CSS.escape(
-                String(
-                  highlightedOrderId,
-                ),
-              )}`,
-            );
-
-          if (element) {
-            element.scrollIntoView({
-              behavior: "smooth",
-              block: "center",
-            });
-          }
-        },
-        150,
-      );
-
-    return () => {
-      window.clearTimeout(
-        timer,
-      );
-    };
   }, [
-    highlightedOrderId,
-    displayedOrders,
+    currentPage,
+    totalPages,
   ]);
 
-  // ==========================================================
-  // REMOVE HIGHLIGHT
-  // ==========================================================
-
-  useEffect(() => {
-    if (!highlightedOrderId) {
-      return;
-    }
-
-    const timer =
-      window.setTimeout(
-        () => {
-          setHighlightedOrderId(
-            null,
-          );
-
-          setSearchParams(
-            {},
-            {
-              replace: true,
-            },
-          );
-        },
-        4000,
-      );
-
-    return () => {
-      window.clearTimeout(
-        timer,
-      );
-    };
-  }, [
-    highlightedOrderId,
-    setSearchParams,
-  ]);
-
-  // ==========================================================
-  // SEARCH
-  // ==========================================================
-
-  const handleSearch = (
-    event,
-  ) => {
-    setSearchTerm(
-      event.target.value,
-    );
-
-    setCurrentPage(1);
-  };
-
-  // ==========================================================
-  // FILTERS
-  // ==========================================================
-
-  const resetFilters = () => {
-    setStatusFilter("All");
-    setPaymentFilter("All");
-    setDeliveryFilter("All");
-    setCustomStartDate("");
-    setCustomEndDate("");
-    setCurrentPage(1);
-  };
-
-  const hasActiveFilters =
-    statusFilter !== "All" ||
-    paymentFilter !== "All" ||
-    deliveryFilter !== "All" ||
-    customStartDate ||
-    customEndDate;
-
-  // ==========================================================
-  // ACTIONS
-  // ==========================================================
-
-  const handleEditOrder = (
+  const handleStatusUpdate = (
     order,
+    newStatus
   ) => {
-    /*
-     * Use the actual saved order number when available.
-     * If the order number is duplicated, use the unique
-     * state/database id so the correct row is edited.
-     */
-    const orderNumber =
-      String(
-        order?.orderNumber || "",
-      ).trim();
-
-    const duplicateOrderNumber =
-      orderNumber &&
-      orders.filter(
-        (existingOrder) =>
-          String(
-            existingOrder?.orderNumber ||
-              "",
-          ).trim() ===
-          orderNumber,
-      ).length > 1;
-
     const orderId =
-      duplicateOrderNumber
-        ? order?.id ||
-          orderNumber
-        : orderNumber ||
-          order?.id;
+      order?.id ||
+      order?.orderId ||
+      order?.orderNumber;
 
+    if (!orderId) {
+      return;
+    }
+
+    updateOrder(orderId, {
+      status: newStatus,
+      updatedAt:
+        new Date().toISOString(),
+    });
+
+    setOpenStatusId(null);
+    loadOrders();
+  };
+
+  const handleViewDeliveryDetails = (
+    order
+  ) => {
     setOpenActionId(null);
     setActionMenuPosition(null);
 
-    /*
-     * Encode the identifier so characters such as #,
-     * spaces, or other URL-sensitive characters cannot
-     * break the admin edit route.
-     */
+    navigate(
+      "/admin/delivery-details",
+      {
+        state: {
+          order,
+        },
+      }
+    );
+  };
+
+  /*
+   * Edit Order navigation:
+   * Use the selected order's id in the URL
+   * and also pass the complete order through
+   * React Router state for EditOrder.jsx.
+   */
+  const handleEditOrder = (order) => {
+    if (!order) {
+      return;
+    }
+
+    const orderId = order?.id;
+
+    if (!orderId) {
+      console.error(
+        "Cannot edit order: missing order id.",
+        order
+      );
+      return;
+    }
+
+    setOpenActionId(null);
+    setActionMenuPosition(null);
+    setOpenStatusId(null);
+
     navigate(
       `/admin/orders/edit/${encodeURIComponent(
-        String(orderId),
+        String(orderId)
       )}`,
+      {
+        state: {
+          order: {
+            ...order,
+          },
+        },
+        replace: false,
+      }
     );
   };
 
   const handleDeleteOrder = (
-    order,
+    order
   ) => {
-    const orderNumber =
-      String(
-        order?.orderNumber || "",
-      ).trim();
-
-    const duplicateOrderNumber =
-      orderNumber &&
-      orders.filter(
-        (existingOrder) =>
-          String(
-            existingOrder?.orderNumber ||
-              "",
-          ).trim() ===
-          orderNumber,
-      ).length > 1;
-
-    const orderId =
-      duplicateOrderNumber
-        ? order?.id ||
-          orderNumber
-        : orderNumber ||
-          order?.id;
-
     setOpenActionId(null);
     setActionMenuPosition(null);
 
+    const orderNumber =
+      getOrderNumber(order);
+
+    const customerName =
+      getCustomerName(order);
+
     const confirmed =
       window.confirm(
-        `Are you sure you want to delete order ${orderId}?`,
+        `Are you sure you want to delete ${orderNumber} for ${customerName}? This action cannot be undone.`
       );
 
     if (!confirmed) {
       return;
     }
 
-    try {
-      const savedOrders =
-        getOrders();
+    const orderId =
+      order?.id ||
+      order?.orderId ||
+      order?.orderNumber;
 
-      const updatedOrders =
-        savedOrders.filter(
-          (existingOrder) => {
-            /*
-             * When the orderNumber is unique,
-             * remove by orderNumber.
-             *
-             * When duplicate orderNumbers exist,
-             * remove only the matching unique id.
-             */
-            if (
-              duplicateOrderNumber
-            ) {
-              return (
-                String(
-                  existingOrder?.id ||
-                    "",
-                ) !==
-                String(
-                  order?.id ||
-                    "",
-                )
-              );
-            }
+    if (!orderId) {
+      return;
+    }
 
-            const existingId =
-              existingOrder?.orderNumber ||
-              existingOrder?.id;
+    updateOrder(orderId, {
+      status: "Cancelled",
+      deleted: true,
+      deletedAt:
+        new Date().toISOString(),
+      updatedAt:
+        new Date().toISOString(),
+    });
 
-            return (
-              String(existingId) !==
-              String(orderId)
-            );
-          },
-        );
+    loadOrders();
+  };
 
-      localStorage.setItem(
-        ORDERS_KEY,
-        JSON.stringify(
-          updatedOrders,
-        ),
-      );
+  const handleActionMenuToggle = (
+    event,
+    orderKey
+  ) => {
+    event.stopPropagation();
 
-      window.dispatchEvent(
-        new Event("ordersUpdated"),
-      );
+    setOpenStatusId(null);
 
-      window.dispatchEvent(
-        new Event("orderUpdated"),
-      );
+    if (openActionId === orderKey) {
+      setOpenActionId(null);
+      setActionMenuPosition(null);
+      return;
+    }
 
-      setOrders(
-        updatedOrders,
-      );
+    const buttonRect =
+      event.currentTarget.getBoundingClientRect();
 
-      if (
-        displayedOrders.length ===
-          1 &&
-        safePage > 1
-      ) {
-        setCurrentPage(
-          safePage - 1,
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Failed to delete order:",
-        error,
-      );
+    const menuWidth = 224;
+    const menuHeight = 160;
+    const spacing = 8;
+
+    let left =
+      buttonRect.right -
+      menuWidth;
+
+    let top =
+      buttonRect.bottom +
+      spacing;
+
+    if (left < 12) {
+      left = 12;
+    }
+
+    if (
+      left + menuWidth >
+      window.innerWidth - 12
+    ) {
+      left =
+        window.innerWidth -
+        menuWidth -
+        12;
+    }
+
+    if (
+      top + menuHeight >
+      window.innerHeight - 12
+    ) {
+      top =
+        buttonRect.top -
+        menuHeight -
+        spacing;
+    }
+
+    if (top < 12) {
+      top = 12;
+    }
+
+    setActionMenuPosition({
+      top,
+      left,
+    });
+
+    setOpenActionId(orderKey);
+  };
+
+  const clearFilters = () => {
+    setStatusFilter("All");
+    setDeliveryDateFilter("All Dates");
+    setCustomerFilter("All Customers");
+
+    setStatusDropdownOpen(false);
+    setDeliveryDateDropdownOpen(false);
+    setCustomerDropdownOpen(false);
+  };
+
+  const getSortLabel = () => {
+    switch (sortOption) {
+      case "oldest":
+        return "Date: Oldest to Newest";
+
+      case "order-asc":
+        return "Order #: A-Z / 0-9";
+
+      case "order-desc":
+        return "Order #: Z-A / 9-0";
+
+      case "newest":
+      default:
+        return "Date: Newest to Oldest";
     }
   };
 
-  // ==========================================================
-  // PAGINATION
-  // ==========================================================
-
-  const handlePreviousPage =
-    () => {
-      setCurrentPage((page) =>
-        Math.max(
-          1,
-          page - 1,
-        ),
+  const getPaginationNumbers = () => {
+    if (totalPages <= 5) {
+      return Array.from(
+        {
+          length: totalPages,
+        },
+        (_, index) => index + 1
       );
-    };
+    }
 
-  const handleNextPage = () => {
-    setCurrentPage((page) =>
-      Math.min(
+    if (currentPage <= 3) {
+      return [
+        1,
+        2,
+        3,
+        4,
+        "...",
         totalPages,
-        page + 1,
-      ),
-    );
+      ];
+    }
+
+    if (
+      currentPage >=
+      totalPages - 2
+    ) {
+      return [
+        1,
+        "...",
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
+      ];
+    }
+
+    return [
+      1,
+      "...",
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      "...",
+      totalPages,
+    ];
   };
 
-  const firstItem =
-    filteredOrders.length ===
-    0
-      ? 0
-      : (safePage - 1) *
-          ordersPerPage +
-        1;
-
-  const lastItem =
-    Math.min(
-      safePage *
-        ordersPerPage,
-      filteredOrders.length,
-    );
-
-  // ==========================================================
-  // RENDER
-  // ==========================================================
+  const hasActiveFilters =
+    statusFilter !== "All" ||
+    deliveryDateFilter !==
+      "All Dates" ||
+    customerFilter !==
+      "All Customers";
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-50">
-      <AdminSidebar />
+    <div className="min-h-screen bg-[#F6F8FA] text-gray-900">
+      <div className="fixed inset-y-0 left-0 z-40 w-64">
+        <AdminSidebar />
+      </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="w-full shrink-0">
+      <div className="ml-64 flex min-h-screen min-w-0 flex-col">
+        <div className="shrink-0">
           <Header />
         </div>
 
-        <main className="min-w-0 flex-1 overflow-y-auto bg-slate-50">
-          <div className="mx-auto w-full max-w-[1400px] p-4 pb-16 sm:p-6 sm:pb-16">
-
-            {/* Page Header */}
-            <div className="flex flex-col gap-1">
-              <h1 className="text-[30px] font-bold leading-[1.2] tracking-[-0.02em] text-text-primary sm:text-[34px]">
-                Order Management
+        <main className="flex-1 px-7 py-7">
+          <div className="mb-7 flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                Orders & Deliveries
               </h1>
 
-              <p className="text-sm leading-6 text-text-primary">
-                Manage and track customer
-                water delivery orders.
-              </p>
-
-              <p className="text-sm leading-6 text-text-secondary">
-                New customer orders will
-                appear here automatically.
+              <p className="mt-1.5 text-sm text-gray-500">
+                Manage customer orders,
+                fulfillment, and delivery
+                schedules.
               </p>
             </div>
 
-            {/* Toolbar */}
-            <div className="mt-7 flex flex-col gap-3 border-b border-[#BFEAF5] pb-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 shadow-sm">
+              <Package className="h-4 w-4 text-gray-500" />
 
-              {/* Search */}
-              <div className="relative w-full lg:max-w-[360px]">
-                <Search
-                  size={17}
-                  strokeWidth={2}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7890A0]"
-                />
+              <span className="text-sm font-medium text-gray-600">
+                {counts.all} total orders
+              </span>
+            </div>
+          </div>
+
+          <div className="mb-5 border-b border-gray-200">
+            <div className="flex items-center gap-8">
+              {TABS.map((tab) => {
+                const isActive =
+                  activeTab === tab.key;
+
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(tab.key);
+                      setOpenActionId(null);
+                      setActionMenuPosition(null);
+                      setOpenStatusId(null);
+                    }}
+                    className={`flex items-center gap-2 border-b-2 px-2 pb-3.5 pt-1 text-sm font-semibold transition ${
+                      isActive
+                        ? "border-[#2CA6D8] text-[#1687B8]"
+                        : "border-transparent text-gray-500 hover:text-gray-800"
+                    }`}
+                  >
+                    <span>
+                      {tab.label}
+                    </span>
+
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${
+                        isActive
+                          ? "bg-[#E8F7FC] text-[#1687B8]"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {counts[tab.key]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
                 <input
                   type="text"
                   value={searchTerm}
-                  onChange={
-                    handleSearch
+                  onChange={(event) =>
+                    setSearchTerm(
+                      event.target.value
+                    )
                   }
                   placeholder="Search orders..."
-                  className="h-[42px] w-full rounded-lg border border-[#D5E8EE] bg-white pl-10 pr-4 text-sm text-text-primary outline-none transition focus:border-[#08779D] focus:ring-2 focus:ring-[#D5F1F8]"
+                  className="h-10 w-[288px] rounded-lg border border-gray-200 bg-white pl-9 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-[#2CA6D8] focus:ring-2 focus:ring-[#2CA6D8]/10"
                 />
               </div>
 
-              {/* Filters + Sort */}
-              <div className="flex flex-wrap items-center gap-2">
+              {/* FILTERS */}
+              <div
+                ref={filterRef}
+                className="relative"
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterOpen(
+                      (open) => !open
+                    );
+                    setSortOpen(false);
+                    setCustomerDropdownOpen(false);
+                  }}
+                  className={`flex h-10 items-center gap-2 rounded-lg border px-3.5 text-sm font-semibold transition ${
+                    hasActiveFilters
+                      ? "border-[#CFEAF4] bg-[#E8F7FC] text-[#1687B8]"
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
 
-                {/* Filters */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowFilters(
-                        (value) =>
-                          !value,
-                      );
-                      setShowSort(false);
-                    }}
-                    className={`flex h-[42px] items-center gap-2 rounded-lg border px-4 text-sm font-semibold transition ${
-                      hasActiveFilters
-                        ? "border-[#08779D] bg-[#EAF7FA] text-[#08779D]"
-                        : "border-[#D5E8EE] bg-white text-[#123047] hover:border-[#08779D]"
-                    }`}
-                  >
-                    <SlidersHorizontal
-                      size={16}
-                      strokeWidth={2}
-                    />
+                  <span>Filters</span>
 
-                    <span>
-                      Filters
-                    </span>
+                  {filterOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
 
-                    {hasActiveFilters && (
-                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#08779D] px-1.5 text-[10px] font-bold text-white">
-                        {[
-                          statusFilter !==
-                            "All",
-                          paymentFilter !==
-                            "All",
-                          deliveryFilter !==
-                            "All",
-                        ].filter(
-                          Boolean,
-                        ).length}
-                      </span>
-                    )}
-
-                    <ChevronDown
-                      size={15}
-                      className={`transition-transform ${
-                        showFilters
-                          ? "rotate-180"
-                          : ""
-                      }`}
-                    />
-                  </button>
-
-                  {showFilters && (
-                    <div className="absolute right-0 top-full z-[100] mt-2 w-[290px] rounded-xl border border-[#D5E8EE] bg-white p-4 shadow-[0_12px_35px_rgba(0,0,0,0.12)]">
-
-                      <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-sm font-bold text-[#123047]">
-                          Filters
-                        </h3>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setShowFilters(
-                              false,
-                            )
-                          }
-                          className="text-[#7890A0] transition hover:text-[#08779D]"
-                          aria-label="Close filters"
-                        >
-                          <X
-                            size={17}
-                          />
-                        </button>
-                      </div>
-
-                      {/* Status */}
-                      <div className="mb-4">
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.5px] text-[#7890A0]">
-                          Status
-                        </label>
-
-                        <div className="relative">
-                          <select
-                            value={
-                              statusFilter
-                            }
-                            onChange={(
-                              event,
-                            ) => {
-                              setStatusFilter(
-                                event
-                                  .target
-                                  .value,
-                              );
-
-                              setCurrentPage(
-                                1,
-                              );
-                            }}
-                            className="h-10 w-full appearance-none rounded-lg border border-[#D5E8EE] bg-white px-3 pr-9 text-sm text-[#123047] outline-none focus:border-[#08779D]"
-                          >
-                            <option value="All">
-                              All Statuses
-                            </option>
-
-                            {statusOptions.map(
-                              (
-                                status,
-                              ) => (
-                                <option
-                                  key={
-                                    status
-                                  }
-                                  value={
-                                    status
-                                  }
-                                >
-                                  {
-                                    status
-                                  }
-                                </option>
-                              ),
-                            )}
-                          </select>
-
-                          <ChevronDown
-                            size={15}
-                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7890A0]"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Payment */}
-                      <div className="mb-4">
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.5px] text-[#7890A0]">
-                          Payment Status
-                        </label>
-
-                        <div className="relative">
-                          <select
-                            value={
-                              paymentFilter
-                            }
-                            onChange={(
-                              event,
-                            ) => {
-                              setPaymentFilter(
-                                event
-                                  .target
-                                  .value,
-                              );
-
-                              setCurrentPage(
-                                1,
-                              );
-                            }}
-                            className="h-10 w-full appearance-none rounded-lg border border-[#D5E8EE] bg-white px-3 pr-9 text-sm text-[#123047] outline-none focus:border-[#08779D]"
-                          >
-                            <option value="All">
-                              All Payments
-                            </option>
-
-                            <option value="Paid">
-                              Paid
-                            </option>
-
-                            <option value="Unpaid">
-                              Unpaid
-                            </option>
-                          </select>
-
-                          <ChevronDown
-                            size={15}
-                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7890A0]"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Delivery Date */}
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.5px] text-[#7890A0]">
-                          Delivery Date
-                        </label>
-
-                        <div className="relative">
-                          <select
-                            value={
-                              deliveryFilter
-                            }
-                            onChange={(
-                              event,
-                            ) => {
-                              setDeliveryFilter(
-                                event
-                                  .target
-                                  .value,
-                              );
-
-                              setCurrentPage(
-                                1,
-                              );
-
-                              if (
-                                event
-                                  .target
-                                  .value !==
-                                "Custom"
-                              ) {
-                                setCustomStartDate(
-                                  "",
-                                );
-
-                                setCustomEndDate(
-                                  "",
-                                );
-                              }
-                            }}
-                            className="h-10 w-full appearance-none rounded-lg border border-[#D5E8EE] bg-white px-3 pr-9 text-sm text-[#123047] outline-none focus:border-[#08779D]"
-                          >
-                            <option value="All">
-                              All Dates
-                            </option>
-
-                            <option value="Today">
-                              Today
-                            </option>
-
-                            <option value="Custom">
-                              Custom Range
-                            </option>
-                          </select>
-
-                          <ChevronDown
-                            size={15}
-                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7890A0]"
-                          />
-                        </div>
-                      </div>
-
-                      {deliveryFilter ===
-                        "Custom" && (
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="mb-1 block text-[11px] font-semibold text-[#7890A0]">
-                              From
-                            </label>
-
-                            <input
-                              type="date"
-                              value={
-                                customStartDate
-                              }
-                              onChange={(
-                                event,
-                              ) => {
-                                setCustomStartDate(
-                                  event
-                                    .target
-                                    .value,
-                                );
-
-                                setCurrentPage(
-                                  1,
-                                );
-                              }}
-                              className="h-9 w-full rounded-lg border border-[#D5E8EE] px-2 text-xs text-[#123047] outline-none focus:border-[#08779D]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="mb-1 block text-[11px] font-semibold text-[#7890A0]">
-                              To
-                            </label>
-
-                            <input
-                              type="date"
-                              value={
-                                customEndDate
-                              }
-                              onChange={(
-                                event,
-                              ) => {
-                                setCustomEndDate(
-                                  event
-                                    .target
-                                    .value,
-                                );
-
-                                setCurrentPage(
-                                  1,
-                                );
-                              }}
-                              className="h-9 w-full rounded-lg border border-[#D5E8EE] px-2 text-xs text-[#123047] outline-none focus:border-[#08779D]"
-                            />
-                          </div>
-                        </div>
-                      )}
+                {filterOpen && (
+                  <div className="absolute right-0 top-[48px] z-[500] w-[290px] rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-base font-bold text-gray-800">
+                        Filters
+                      </h3>
 
                       <button
                         type="button"
-                        onClick={
-                          resetFilters
-                        }
-                        className="mt-4 w-full rounded-lg bg-[#EAF7FA] py-2 text-xs font-semibold text-[#08779D] transition hover:bg-[#D5F1F8]"
+                        onClick={() => {
+                          setFilterOpen(false);
+                          setStatusDropdownOpen(false);
+                          setDeliveryDateDropdownOpen(false);
+                        }}
+                        className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* STATUS */}
+                      <div className="relative">
+                        <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#7890A3]">
+                          Status
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStatusDropdownOpen(
+                              (open) => !open
+                            );
+                            setDeliveryDateDropdownOpen(
+                              false
+                            );
+                          }}
+                          className="flex h-10 w-full items-center justify-between rounded-lg border border-[#D6E5EC] bg-white px-3 text-sm text-gray-700 transition hover:border-[#B8D7E4]"
+                        >
+                          <span>
+                            {statusFilter ===
+                            "All"
+                              ? "All Statuses"
+                              : statusFilter}
+                          </span>
+
+                          <ChevronDown className="h-4 w-4 text-[#7890A3]" />
+                        </button>
+
+                        {statusDropdownOpen && (
+                          <div className="absolute left-0 right-0 top-[68px] z-[600] rounded-lg border border-gray-200 bg-white p-1.5 shadow-lg">
+                            {[
+                              "All",
+                              ...STATUS_OPTIONS,
+                            ].map(
+                              (option) => {
+                                const selected =
+                                  statusFilter ===
+                                  option;
+
+                                return (
+                                  <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => {
+                                      setStatusFilter(
+                                        option
+                                      );
+                                      setStatusDropdownOpen(
+                                        false
+                                      );
+                                    }}
+                                    className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-sm transition ${
+                                      selected
+                                        ? "bg-[#E8F7FC] font-semibold text-[#1687B8]"
+                                        : "text-gray-600 hover:bg-gray-50"
+                                    }`}
+                                  >
+                                    <span>
+                                      {option ===
+                                      "All"
+                                        ? "All Statuses"
+                                        : option}
+                                    </span>
+
+                                    {selected && (
+                                      <Check className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                );
+                              }
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* DELIVERY DATE */}
+                      <div className="relative">
+                        <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#7890A3]">
+                          Delivery Date
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeliveryDateDropdownOpen(
+                              (open) => !open
+                            );
+                            setStatusDropdownOpen(
+                              false
+                            );
+                          }}
+                          className="flex h-10 w-full items-center justify-between rounded-lg border border-[#D6E5EC] bg-white px-3 text-sm text-gray-700 transition hover:border-[#B8D7E4]"
+                        >
+                          <span>
+                            {deliveryDateFilter}
+                          </span>
+
+                          <ChevronDown className="h-4 w-4 text-[#7890A3]" />
+                        </button>
+
+                        {deliveryDateDropdownOpen && (
+                          <div className="absolute left-0 right-0 top-[68px] z-[600] rounded-lg border border-gray-200 bg-white p-1.5 shadow-lg">
+                            {[
+                              "All Dates",
+                              "Today",
+                              "Tomorrow",
+                              "This Week",
+                            ].map(
+                              (option) => {
+                                const selected =
+                                  deliveryDateFilter ===
+                                  option;
+
+                                return (
+                                  <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => {
+                                      setDeliveryDateFilter(
+                                        option
+                                      );
+                                      setDeliveryDateDropdownOpen(
+                                        false
+                                      );
+                                    }}
+                                    className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-sm transition ${
+                                      selected
+                                        ? "bg-[#E8F7FC] font-semibold text-[#1687B8]"
+                                        : "text-gray-600 hover:bg-gray-50"
+                                    }`}
+                                  >
+                                    <span>
+                                      {option}
+                                    </span>
+
+                                    {selected && (
+                                      <Check className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                );
+                              }
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="flex h-10 w-full items-center justify-center rounded-lg bg-[#E8F7FC] text-sm font-semibold text-[#1687B8] transition hover:bg-[#DDF3FA]"
                       >
                         Clear Filters
                       </button>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SORT */}
+              <div
+                ref={sortRef}
+                className="relative"
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortOpen(
+                      (open) => !open
+                    );
+                    setFilterOpen(false);
+                    setStatusDropdownOpen(false);
+                    setDeliveryDateDropdownOpen(false);
+                  }}
+                  className="flex h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+
+                  <span>Sort</span>
+
+                  {sortOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
                   )}
-                </div>
+                </button>
 
-                {/* Sort */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowSort(
-                        (value) =>
-                          !value,
-                      );
-
-                      setShowFilters(
-                        false,
-                      );
-                    }}
-                    className="flex h-[42px] items-center gap-2 rounded-lg border border-[#D5E8EE] bg-white px-4 text-sm font-semibold text-[#123047] transition hover:border-[#08779D]"
-                  >
-                    <ArrowUpDown
-                      size={16}
-                      strokeWidth={2}
-                    />
-
-                    <span>
-                      Sort
-                    </span>
-
-                    <ChevronDown
-                      size={15}
-                      className={`transition-transform ${
-                        showSort
-                          ? "rotate-180"
-                          : ""
-                      }`}
-                    />
-                  </button>
-
-                  {showSort && (
-                    <div className="absolute right-0 top-full z-[100] mt-2 w-[235px] rounded-xl border border-[#D5E8EE] bg-white p-2 shadow-[0_12px_35px_rgba(0,0,0,0.12)]">
-
-                      <p className="px-3 pb-2 pt-2 text-[11px] font-bold uppercase tracking-[0.6px] text-[#7890A0]">
+                {sortOpen && (
+                  <div className="absolute right-0 top-[48px] z-[500] w-[280px] rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+                    <div className="mb-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wide text-[#91A4B8]">
                         Sort Orders
-                      </p>
+                      </h3>
+                    </div>
 
+                    <div className="space-y-1">
                       {[
-                        [
-                          "date-newest",
-                          "Date: Newest to Oldest",
-                        ],
-                        [
-                          "date-oldest",
-                          "Date: Oldest to Newest",
-                        ],
-                        [
-                          "total-highest",
-                          "Total: Highest to Lowest",
-                        ],
-                        [
-                          "total-lowest",
-                          "Total: Lowest to Highest",
-                        ],
-                        [
-                          "order-asc",
-                          "Order #: A–Z / 0–9",
-                        ],
-                        [
-                          "order-desc",
-                          "Order #: Z–A / 9–0",
-                        ],
+                        {
+                          value: "newest",
+                          label: "Date: Newest to Oldest",
+                        },
+                        {
+                          value: "oldest",
+                          label: "Date: Oldest to Newest",
+                        },
+                        {
+                          value: "order-asc",
+                          label: "Order #: A-Z / 0-9",
+                        },
+                        {
+                          value: "order-desc",
+                          label: "Order #: Z-A / 9-0",
+                        },
                       ].map(
-                        ([
-                          value,
-                          label,
-                        ]) => (
-                          <button
-                            key={
-                              value
-                            }
-                            type="button"
-                            onClick={() => {
-                              setSortOption(
-                                value,
-                              );
+                        (option) => {
+                          const selected =
+                            sortOption ===
+                            option.value;
 
-                              setCurrentPage(
-                                1,
-                              );
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => {
+                                setSortOption(
+                                  option.value
+                                );
+                              }}
+                              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                                selected
+                                  ? "bg-[#E8F7FC] font-semibold text-[#1687B8]"
+                                  : "text-[#506176] hover:bg-gray-50"
+                              }`}
+                            >
+                              <span>
+                                {option.label}
+                              </span>
 
-                              setShowSort(
-                                false,
-                              );
-                            }}
-                            className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
-                              sortOption ===
-                              value
-                                ? "bg-[#EAF7FA] font-semibold text-[#08779D]"
-                                : "text-[#123047] hover:bg-[#F5FAFC]"
-                            }`}
-                          >
-                            <span>
-                              {
-                                label
-                              }
-                            </span>
-
-                            {sortOption ===
-                              value && (
-                              <Check
-                                size={
-                                  15
-                                }
-                              />
-                            )}
-                          </button>
-                        ),
+                              {selected && (
+                                <Check className="h-4 w-4" />
+                              )}
+                            </button>
+                          );
+                        }
                       )}
                     </div>
-                  )}
-                </div>
+
+                    <div className="my-3 border-t border-gray-100" />
+
+                    <div className="relative">
+                      <div className="mb-2 text-xs font-bold uppercase tracking-wide text-[#91A4B8]">
+                        From
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCustomerDropdownOpen(
+                            (open) => !open
+                          )
+                        }
+                        className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-[#506176] transition hover:bg-gray-50"
+                      >
+                        <span>
+                          {customerFilter}
+                        </span>
+
+                        <ChevronDown className="h-4 w-4 text-[#7890A3]" />
+                      </button>
+
+                      {customerDropdownOpen && (
+                        <div className="absolute left-0 right-0 top-[66px] z-[600] max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white p-1.5 shadow-lg">
+                          {customerOptions.map(
+                            (customer) => {
+                              const selected =
+                                customerFilter ===
+                                customer;
+
+                              return (
+                                <button
+                                  key={customer}
+                                  type="button"
+                                  onClick={() => {
+                                    setCustomerFilter(
+                                      customer
+                                    );
+                                    setCustomerDropdownOpen(
+                                      false
+                                    );
+                                  }}
+                                  className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-sm transition ${
+                                    selected
+                                      ? "bg-[#E8F7FC] font-semibold text-[#1687B8]"
+                                      : "text-gray-600 hover:bg-gray-50"
+                                  }`}
+                                >
+                                  <span>
+                                    {customer}
+                                  </span>
+
+                                  {selected && (
+                                    <Check className="h-4 w-4" />
+                                  )}
+                                </button>
+                              );
+                            }
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Table */}
-            <section className="mt-6 w-full overflow-hidden rounded-xl border border-[#DCE9ED] bg-white shadow-[0_4px_18px_rgba(8,119,157,0.05)]">
-              <div className="w-full overflow-x-auto">
-                <table className="w-full min-w-[1200px] border-collapse">
-                  <thead>
-                    <tr className="border-b border-[#DCE9ED] bg-[#EAF7FA]">
-                      <th className="h-[48px] px-5 text-left text-[11px] font-bold uppercase tracking-[0.55px] text-[#496777]">
-                        Order #
-                      </th>
+            <div className="text-sm font-medium text-gray-500">
+              {filteredOrders.length}{" "}
+              {filteredOrders.length ===
+              1
+                ? "order"
+                : "orders"}
+            </div>
+          </div>
 
-                      <th className="h-[48px] px-5 text-left text-[11px] font-bold uppercase tracking-[0.55px] text-[#496777]">
-                        Customer Name
-                      </th>
+          <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table className="w-full table-fixed border-collapse">
+              <colgroup>
+                <col className="w-[18%]" />
+                <col className="w-[19%]" />
+                <col className="w-[17%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[18%]" />
+                <col className="w-[8%]" />
+              </colgroup>
 
-                      <th className="h-[48px] px-5 text-left text-[11px] font-bold uppercase tracking-[0.55px] text-[#496777]">
-                        Product
-                      </th>
+              <thead>
+                <tr className="border-b border-blue-100 bg-blue-50">
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                    Order / Customer
+                  </th>
 
-                      <th className="h-[48px] px-5 text-center text-[11px] font-bold uppercase tracking-[0.55px] text-[#496777]">
-                        Qty
-                      </th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                    Items
+                  </th>
 
-                      <th className="h-[48px] px-5 text-left text-[11px] font-bold uppercase tracking-[0.55px] text-[#496777]">
-                        Delivery Date
-                      </th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                    Delivery Schedule
+                  </th>
 
-                      <th className="h-[48px] px-5 text-right text-[11px] font-bold uppercase tracking-[0.55px] text-[#496777]">
-                        Total
-                      </th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                    Total
+                  </th>
 
-                      <th className="h-[48px] px-5 text-center text-[11px] font-bold uppercase tracking-[0.55px] text-[#496777]">
-                        Paid
-                      </th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                    Payment
+                  </th>
 
-                      <th className="h-[48px] px-5 text-center text-[11px] font-bold uppercase tracking-[0.55px] text-[#496777]">
-                        Status
-                      </th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                    Fulfillment Status
+                  </th>
 
-                      <th className="h-[48px] w-[70px] px-3 text-center text-[11px] font-bold uppercase tracking-[0.55px] text-[#496777]">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
+                  <th className="px-5 py-3.5 text-center text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                    Action
+                  </th>
+                </tr>
+              </thead>
 
-                  <tbody>
-                    {displayedOrders.length >
-                    0 ? (
-                      displayedOrders.map(
-                        (
-                          order,
-                        ) => {
-                          /*
-                           * IMPORTANT:
-                           * This identifier is now guaranteed to be
-                           * unique for the rendered row.
-                           */
-                          const orderId =
-                            getUniqueOrderId(
-                              order,
-                              orders,
-                            );
+              <tbody>
+                {paginatedOrders.length ===
+                0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-14 text-center"
+                    >
+                      <div className="flex flex-col items-center">
+                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                          <Package className="h-6 w-6 text-gray-400" />
+                        </div>
 
-                          const isHighlighted =
-                            String(
-                              orderId,
-                            ) ===
-                            String(
-                              highlightedOrderId,
-                            );
+                        <p className="text-sm font-semibold text-gray-700">
+                          No orders found
+                        </p>
 
-                          const status =
-                            normalizeStatus(
-                              order?.status,
-                            );
+                        <p className="mt-1 text-sm text-gray-400">
+                          Try adjusting your
+                          search or filters.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedOrders.map(
+                    (order, index) => {
+                      const orderKey =
+                        order?.id ||
+                        order?.orderId ||
+                        order?.orderNumber ||
+                        `order-${index}`;
 
-                          const paymentStatus =
-                            getPaymentStatus(
-                              order,
-                            );
+                      const compactProducts =
+                        getCompactProducts(
+                          order
+                        );
 
-                          const actionId =
-                            String(
-                              orderId,
-                            );
+                      const status =
+                        normalizeStatus(
+                          order.status
+                        );
 
-                          return (
-                            <tr
-                              key={
-                                actionId
-                              }
-                              id={`order-row-${CSS.escape(
-                                actionId,
-                              )}`}
-                              className={`border-t border-[#EDF3F5] bg-white transition-colors hover:bg-[#F8FCFD] ${
-                                isHighlighted
-                                  ? "animate-order-highlight relative"
-                                  : ""
-                              }`}
-                            >
-                              {/* Order # */}
-                              <td
-                                className={`h-[72px] px-5 text-left text-sm font-bold text-[#123047] ${
-                                  isHighlighted
-                                    ? "border-l-4 border-[#08779D]"
-                                    : ""
-                                }`}
-                              >
-                                #{orderId}
-                              </td>
+                      const paymentStatus =
+                        getPaymentStatus(
+                          order
+                        );
 
-                              {/* Customer */}
-                              <td className="h-[72px] max-w-[180px] px-5 text-left text-sm text-[#123047]">
-                                <span className="block truncate">
-                                  {order?.customerName ||
-                                    order?.customer ||
-                                    "Unknown Customer"}
+                      const deliveryDate =
+                        getDeliveryDate(
+                          order
+                        );
+
+                      const deliveryTime =
+                        getDeliveryTime(
+                          order
+                        );
+
+                      const isStatusOpen =
+                        openStatusId ===
+                        orderKey;
+
+                      return (
+                        <tr
+                          key={orderKey}
+                          className="border-b border-slate-100 bg-white transition-colors last:border-b-0 hover:bg-slate-50/60"
+                        >
+                          <td className="px-5 py-4 align-middle">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-bold text-gray-900">
+                                {getOrderNumber(
+                                  order
+                                )}
+                              </div>
+
+                              <div className="mt-1 truncate text-sm font-medium text-gray-700">
+                                {getCustomerName(
+                                  order
+                                )}
+                              </div>
+
+                              {getContactNumber(
+                                order
+                              ) && (
+                                <div className="mt-0.5 truncate text-xs text-gray-400">
+                                  {getContactNumber(
+                                    order
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4 align-middle">
+                            <div className="min-w-0 space-y-1">
+                              {compactProducts.length ===
+                              0 ? (
+                                <span className="text-xs text-gray-400">
+                                  No items
                                 </span>
-                              </td>
+                              ) : (
+                                compactProducts.map(
+                                  (
+                                    product,
+                                    productIndex
+                                  ) => (
+                                    <div
+                                      key={`${orderKey}-product-${productIndex}`}
+                                      className="flex min-w-0 items-center gap-1.5"
+                                    >
+                                      <span
+                                        title={
+                                          product.name
+                                        }
+                                        className="min-w-0 flex-1 truncate text-xs font-medium leading-5 text-gray-700"
+                                      >
+                                        {
+                                          product.name
+                                        }
+                                      </span>
 
-                              {/* Product */}
-                              <td className="h-[72px] max-w-[220px] px-5 text-left text-sm text-[#123047]">
-                                <span className="block truncate">
-                                  {getOrderProductName(
-                                    order,
+                                      <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 px-1.5 text-[10px] font-bold leading-none text-gray-600">
+                                        {
+                                          product.quantity
+                                        }
+                                      </span>
+                                    </div>
+                                  )
+                                )
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4 align-middle">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-gray-700">
+                                <CalendarDays className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+
+                                <span className="truncate">
+                                  {formatDate(
+                                    deliveryDate
                                   )}
                                 </span>
-                              </td>
+                              </div>
 
-                              {/* Quantity */}
-                              <td className="h-[72px] px-5 text-center text-sm font-medium text-[#123047]">
-                                {getOrderQuantity(
-                                  order,
-                                )}
-                              </td>
+                              <div className="mt-1.5 flex items-center gap-1.5 whitespace-nowrap text-xs text-gray-500">
+                                <Clock3 className="h-3.5 w-3.5 shrink-0 text-gray-400" />
 
-                              {/* Delivery Date */}
-                              <td className="h-[72px] whitespace-nowrap px-5 text-left text-sm text-[#496777]">
-                                <div className="flex items-center gap-2">
-                                  <CalendarDays
-                                    size={
-                                      15
-                                    }
-                                    className="shrink-0 text-[#08779D]"
-                                  />
-
-                                  <span>
-                                    {getDeliveryDate(
-                                      order,
-                                    )}
-                                  </span>
-                                </div>
-                              </td>
-
-                              {/* Total */}
-                              <td className="h-[72px] whitespace-nowrap px-5 text-right text-sm font-semibold text-[#123047]">
-                                {formatCurrency(
-                                  getOrderTotal(
-                                    order,
-                                  ),
-                                )}
-                              </td>
-
-                              {/* Paid */}
-                              <td className="h-[72px] px-5 text-center">
-                                <span
-                                  className={`inline-flex min-w-[48px] items-center justify-center rounded-md px-2.5 py-1 text-xs font-semibold ${
-                                    paymentStatus ===
-                                    "Paid"
-                                      ? "border border-green-100 bg-green-50 text-green-700"
-                                      : "border border-red-100 bg-red-50 text-red-600"
-                                  }`}
-                                >
-                                  {paymentStatus ===
-                                  "Paid"
-                                    ? "Yes"
-                                    : "No"}
+                                <span className="truncate">
+                                  {deliveryTime ||
+                                    "Time not set"}
                                 </span>
-                              </td>
+                              </div>
+                            </div>
+                          </td>
 
-                              {/* Status */}
-                              <td className="h-[72px] px-5 text-center">
-                                <span
-                                  className={`inline-flex whitespace-nowrap rounded-md px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
-                                    status,
-                                  )}`}
-                                >
-                                  {
+                          <td className="px-5 py-4 align-middle">
+                            <span className="whitespace-nowrap text-sm font-bold text-gray-900">
+                              {formatCurrency(
+                                getOrderTotal(
+                                  order
+                                )
+                              )}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4 align-middle">
+                            <PaymentBadge
+                              status={
+                                paymentStatus
+                              }
+                            />
+                          </td>
+
+                          <td className="px-5 py-4 align-middle">
+                            <div className="relative w-fit">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenActionId(
+                                    null
+                                  );
+
+                                  setActionMenuPosition(
+                                    null
+                                  );
+
+                                  setOpenStatusId(
+                                    isStatusOpen
+                                      ? null
+                                      : orderKey
+                                  );
+                                }}
+                                className="flex max-w-full items-center gap-1.5"
+                              >
+                                <OrderStatusBadge
+                                  status={
                                     status
                                   }
-                                </span>
-                              </td>
+                                />
 
-                              {/* Action */}
-                              <td className="relative h-[72px] px-3 text-center">
-                                <button
-                                  type="button"
-                                  data-order-action-button={
-                                    actionId
-                                  }
-                                  onMouseDown={(
-                                    event,
-                                  ) => {
-                                    event.stopPropagation();
-                                  }}
-                                  onClick={(
-                                    event,
-                                  ) => {
-                                    event.stopPropagation();
+                                <ChevronDown
+                                  className={`h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform ${
+                                    isStatusOpen
+                                      ? "rotate-180"
+                                      : ""
+                                  }`}
+                                />
+                              </button>
 
-                                    if (
-                                      openActionId ===
-                                      actionId
-                                    ) {
-                                      setOpenActionId(
-                                        null,
-                                      );
-                                      setActionMenuPosition(
-                                        null,
-                                      );
-                                      return;
-                                    }
+                              {isStatusOpen && (
+                                <div className="absolute left-0 top-full z-[100] mt-2 w-48 rounded-lg border border-gray-200 bg-white p-1.5 shadow-xl">
+                                  {STATUS_OPTIONS.map(
+                                    (
+                                      statusOption
+                                    ) => (
+                                      <button
+                                        key={
+                                          statusOption
+                                        }
+                                        type="button"
+                                        onClick={() =>
+                                          handleStatusUpdate(
+                                            order,
+                                            statusOption
+                                          )
+                                        }
+                                        className={`flex w-full items-center rounded-md px-3 py-2 text-left text-sm transition ${
+                                          normalizeStatus(
+                                            statusOption
+                                          ) ===
+                                          status
+                                            ? "bg-gray-100 font-semibold text-gray-900"
+                                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                        }`}
+                                      >
+                                        {
+                                          statusOption
+                                        }
+                                      </button>
+                                    )
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </td>
 
-                                    const rect =
-                                      event.currentTarget.getBoundingClientRect();
+                          <td className="px-5 py-4 text-center align-middle">
+                            <button
+                              type="button"
+                              aria-label={`Actions for ${getOrderNumber(
+                                order
+                              )}`}
+                              onClick={(
+                                event
+                              ) =>
+                                handleActionMenuToggle(
+                                  event,
+                                  orderKey
+                                )
+                              }
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+                            >
+                              <MoreVertical className="h-5 w-5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    }
+                  )
+                )}
+              </tbody>
+            </table>
 
-                                    const menuWidth = 155;
-                                    const menuHeight = 100;
-                                    const gap = 4;
-                                    const padding = 8;
-
-                                    let left =
-                                      rect.right -
-                                      menuWidth;
-
-                                    left = Math.max(
-                                      padding,
-                                      Math.min(
-                                        left,
-                                        window.innerWidth -
-                                          menuWidth -
-                                          padding,
-                                      ),
-                                    );
-
-                                    let top =
-                                      rect.bottom +
-                                      gap;
-
-                                    if (
-                                      top +
-                                        menuHeight >
-                                      window.innerHeight -
-                                        padding
-                                    ) {
-                                      top =
-                                        rect.top -
-                                        menuHeight -
-                                        gap;
-                                    }
-
-                                    top = Math.max(
-                                      padding,
-                                      Math.min(
-                                        top,
-                                        window.innerHeight -
-                                          menuHeight -
-                                          padding,
-                                      ),
-                                    );
-
-                                    setActionMenuPosition(
-                                      {
-                                        top,
-                                        left,
-                                      },
-                                    );
-
-                                    setOpenActionId(
-                                      actionId,
-                                    );
-                                  }}
-                                  aria-label={`Actions for order ${orderId}`}
-                                  aria-expanded={
-                                    openActionId ===
-                                    actionId
-                                  }
-                                  className="flex h-9 w-9 items-center justify-center rounded-lg text-[#7890A0] transition hover:bg-[#EAF7FA] hover:text-[#08779D]"
-                                >
-                                  <MoreVertical
-                                    size={
-                                      18
-                                    }
-                                  />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        },
-                      )
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan="9"
-                          className="h-[170px] px-6 text-center text-sm text-text-secondary"
-                        >
-                          No orders found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              <div className="flex min-h-[72px] flex-col justify-between gap-4 border-t border-[#DCE9ED] bg-[#F8FCFD] px-5 py-4 sm:flex-row sm:items-center">
-                <span className="text-sm text-[#496777]">
+            {filteredOrders.length >
+              0 && (
+              <div className="flex flex-col gap-4 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-text-secondary">
                   Showing{" "}
-                  {firstItem}-
-                  {lastItem} of{" "}
-                  {
-                    filteredOrders.length
-                  }{" "}
+                  <span className="font-semibold text-text-primary">
+                    {(currentPage - 1) *
+                      ORDERS_PER_PAGE +
+                      1}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-semibold text-text-primary">
+                    {Math.min(
+                      currentPage *
+                        ORDERS_PER_PAGE,
+                      filteredOrders.length
+                    )}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-text-primary">
+                    {
+                      filteredOrders.length
+                    }
+                  </span>{" "}
                   orders
-                </span>
+                </p>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={
-                      handlePreviousPage
-                    }
                     disabled={
-                      safePage ===
-                      1
+                      currentPage === 1
                     }
-                    aria-label="Previous page"
-                    className="flex h-9 w-9 items-center justify-center rounded-md border border-[#D5E8EE] bg-white text-[#7890A0] transition hover:border-[#08779D] hover:text-[#08779D] disabled:cursor-not-allowed disabled:opacity-40"
+                    onClick={() =>
+                      setCurrentPage(
+                        (page) =>
+                          Math.max(
+                            1,
+                            page - 1
+                          )
+                      )
+                    }
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <ChevronLeft
-                      size={17}
-                    />
+                    <ChevronLeft className="h-4 w-4" />
                   </button>
 
-                  <button
-                    type="button"
-                    className="flex h-9 min-w-9 items-center justify-center rounded-md border border-[#08779D] bg-[#08779D] px-2 text-sm font-semibold text-white"
-                  >
-                    {safePage}
-                  </button>
+                  {getPaginationNumbers().map(
+                    (
+                      page,
+                      index
+                    ) => {
+                      if (
+                        page ===
+                        "..."
+                      ) {
+                        return (
+                          <span
+                            key={`ellipsis-${index}`}
+                            className="flex h-8 w-8 items-center justify-center text-sm text-gray-400"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+
+                      const isCurrent =
+                        page ===
+                        currentPage;
+
+                      return (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() =>
+                            setCurrentPage(
+                              page
+                            )
+                          }
+                          className={`flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm font-semibold transition-colors ${
+                            isCurrent
+                              ? "border-button-background bg-button-background text-white"
+                              : "border-slate-200 bg-white text-text-primary hover:bg-slate-50"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    }
+                  )}
 
                   <button
                     type="button"
-                    onClick={
-                      handleNextPage
-                    }
                     disabled={
-                      safePage ===
+                      currentPage ===
                       totalPages
                     }
-                    aria-label="Next page"
-                    className="flex h-9 w-9 items-center justify-center rounded-md border border-[#D5E8EE] bg-white text-[#123047] transition hover:border-[#08779D] hover:text-[#08779D] disabled:cursor-not-allowed disabled:opacity-40"
+                    onClick={() =>
+                      setCurrentPage(
+                        (page) =>
+                          Math.min(
+                            totalPages,
+                            page + 1
+                          )
+                      )
+                    }
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <ChevronRight
-                      size={17}
-                    />
+                    <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-            </section>
-          </div>
-
-          {openActionId &&
-            actionMenuPosition &&
-            createPortal(
-              (() => {
-                const order =
-                  orders.find(
-                    (item) =>
-                      getUniqueOrderId(
-                        item,
-                        orders,
-                      ) ===
-                      String(
-                        openActionId,
-                      ),
-                  );
-
-                if (!order) {
-                  return null;
-                }
-
-                return (
-                  <div
-                    data-order-action-portal
-                    data-order-action-menu
-                    onMouseDown={(
-                      event,
-                    ) =>
-                      event.stopPropagation()
-                    }
-                    style={{
-                      position:
-                        "fixed",
-                      top: actionMenuPosition.top,
-                      left: actionMenuPosition.left,
-                      width: 155,
-                      zIndex: 99999,
-                    }}
-                    className="overflow-hidden rounded-lg border border-[#DCE9ED] bg-white p-1.5 text-left shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
-                  >
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleEditOrder(
-                          order,
-                        )
-                      }
-                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium text-[#123047] transition hover:bg-[#EAF7FA] hover:text-[#08779D]"
-                    >
-                      <Pencil
-                        size={15}
-                      />
-
-                      <span>
-                        Edit Order
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDeleteOrder(
-                          order,
-                        )
-                      }
-                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700"
-                    >
-                      <Trash2
-                        size={15}
-                      />
-
-                      <span>
-                        Delete
-                      </span>
-                    </button>
-                  </div>
-                );
-              })(),
-              document.body,
             )}
+          </div>
         </main>
 
         <AdminFooter />
       </div>
+
+      {openActionId &&
+        actionMenuPosition &&
+        createPortal(
+          <div
+            className="fixed z-[99999] w-56 overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-2xl"
+            style={{
+              top: `${actionMenuPosition.top}px`,
+              left: `${actionMenuPosition.left}px`,
+            }}
+          >
+            {(() => {
+              const selectedOrder =
+                paginatedOrders.find(
+                  (order, index) => {
+                    const key =
+                      order?.id ||
+                      order?.orderId ||
+                      order?.orderNumber ||
+                      `order-${index}`;
+
+                    return (
+                      key ===
+                      openActionId
+                    );
+                  }
+                );
+
+              if (!selectedOrder) {
+                return null;
+              }
+
+              return (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleViewDeliveryDetails(
+                        selectedOrder
+                      )
+                    }
+                    className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <Eye className="h-4 w-4 text-gray-500" />
+
+                    <span>
+                      View delivery details
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleEditOrder(
+                        selectedOrder
+                      )
+                    }
+                    className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <Package className="h-4 w-4 text-gray-500" />
+
+                    <span>
+                      Edit order
+                    </span>
+                  </button>
+
+                  <div className="mx-3 border-t border-gray-100" />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDeleteOrder(
+                        selectedOrder
+                      )
+                    }
+                    className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+
+                    <span>
+                      Delete order
+                    </span>
+                  </button>
+                </>
+              );
+            })()}
+          </div>,
+          document.body
+        )}
     </div>
   );
-}
+};
 
 export default Orders;

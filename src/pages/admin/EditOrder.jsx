@@ -4,6 +4,7 @@ import React, {
 } from "react";
 
 import {
+  useLocation,
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -300,11 +301,9 @@ function EditOrder() {
   const navigate =
     useNavigate();
 
-  /*
-   * IMPORTANT:
-   * The route is /admin/orders/edit/:id,
-   * so we must read "id" here.
-   */
+  const location =
+    useLocation();
+
   const { id } =
     useParams();
 
@@ -338,14 +337,72 @@ function EditOrder() {
   ] = useState(true);
 
   /*
-   * Find the order using either:
-   * 1. orderNumber
-   * 2. unique order id
+   * Load the selected order.
    *
-   * This allows every row in the Admin Orders
-   * table to open correctly.
+   * Orders.jsx sends the complete order
+   * through React Router location.state.
+   *
+   * If state is unavailable, keep the
+   * existing URL-id lookup as a fallback.
    */
   useEffect(() => {
+    const stateOrder =
+      location?.state?.order;
+
+    /*
+     * PRIMARY METHOD:
+     * Use the exact order passed from
+     * the Admin Orders action menu.
+     */
+    if (stateOrder) {
+      setOrder(stateOrder);
+
+      setFormData({
+        customerName:
+          stateOrder?.customerName ||
+          stateOrder?.customer ||
+          "",
+
+        product:
+          getOrderProductName(
+            stateOrder,
+          ),
+
+        quantity:
+          getOrderQuantity(
+            stateOrder,
+          ),
+
+        deliveryDate:
+          getDeliveryDateValue(
+            stateOrder,
+          ),
+
+        total:
+          getOrderTotal(
+            stateOrder,
+          ),
+
+        paymentStatus:
+          getPaymentStatus(
+            stateOrder,
+          ),
+
+        status:
+          normalizeStatus(
+            stateOrder?.status,
+          ),
+      });
+
+      setLoading(false);
+      return;
+    }
+
+    /*
+     * FALLBACK METHOD:
+     * If there is no location.state,
+     * continue supporting /:id routes.
+     */
     const savedOrders =
       getOrders();
 
@@ -419,7 +476,7 @@ function EditOrder() {
     });
 
     setLoading(false);
-  }, [id]);
+  }, [id, location?.state?.order]);
 
   const handleChange = (
     event,
@@ -472,17 +529,10 @@ function EditOrder() {
           formData.paymentStatus ===
           "Paid";
 
-        /*
-         * Preserve the original order identity.
-         */
         const orderIdentifier =
           order?.orderNumber ||
           order?.id;
 
-        /*
-         * Keep the products array synchronized
-         * with the edited product and quantity.
-         */
         const updatedProducts =
           Array.isArray(
             order?.products,
@@ -507,39 +557,23 @@ function EditOrder() {
               )
             : order?.products;
 
-        /*
-         * Build the complete updated order
-         * while preserving all existing fields.
-         */
         const updatedOrder = {
           ...order,
 
-          /*
-           * ORIGINAL IDENTITY
-           */
           id: order?.id,
 
           orderNumber:
             order?.orderNumber,
 
-          /*
-           * CUSTOMER
-           */
           customerName:
             formData.customerName.trim(),
 
           customer:
             formData.customerName.trim(),
 
-          /*
-           * PRODUCT
-           */
           product:
             formData.product.trim(),
 
-          /*
-           * QUANTITY
-           */
           quantity:
             numericQuantity,
 
@@ -549,18 +583,12 @@ function EditOrder() {
           products:
             updatedProducts,
 
-          /*
-           * DELIVERY
-           */
           deliveryDate:
             formData.deliveryDate,
 
           deliverySchedule:
             formData.deliveryDate,
 
-          /*
-           * TOTAL
-           */
           total:
             numericTotal,
 
@@ -573,9 +601,6 @@ function EditOrder() {
           amount:
             numericTotal,
 
-          /*
-           * PAYMENT
-           */
           paymentStatus:
             formData.paymentStatus,
 
@@ -591,29 +616,13 @@ function EditOrder() {
               formData.paymentStatus,
           },
 
-          /*
-           * ORDER STATUS
-           */
           status:
             formData.status,
 
-          /*
-           * TIMESTAMP
-           */
           updatedAt:
             new Date().toISOString(),
         };
 
-        /*
-         * ------------------------------------------------
-         * SAVE DIRECTLY TO THE ORDERS STORAGE
-         * ------------------------------------------------
-         *
-         * This matches BOTH the unique id and
-         * orderNumber so an order can always be
-         * updated, even if its order number is being
-         * used by the Admin Orders table.
-         */
         const currentOrders =
           getOrders();
 
@@ -662,10 +671,6 @@ function EditOrder() {
               )
             : [];
 
-        /*
-         * Make sure the order was actually found
-         * before replacing the stored data.
-         */
         const orderWasUpdated =
           updatedOrders.some(
             (existingOrder) => {
@@ -710,9 +715,6 @@ function EditOrder() {
           );
         }
 
-        /*
-         * Save the updated order list.
-         */
         localStorage.setItem(
           ORDERS_KEY,
           JSON.stringify(
@@ -720,11 +722,6 @@ function EditOrder() {
           ),
         );
 
-        /*
-         * Also run the existing storage helper
-         * so any existing order-storage behavior
-         * remains compatible.
-         */
         try {
           updateOrder(
             orderIdentifier,
@@ -733,29 +730,16 @@ function EditOrder() {
             },
           );
         } catch (storageError) {
-          /*
-           * The direct localStorage update above
-           * is already complete. This prevents a
-           * storage helper mismatch from cancelling
-           * an otherwise successful edit.
-           */
           console.warn(
             "updateOrder helper warning:",
             storageError,
           );
         }
 
-        /*
-         * Keep local state synchronized.
-         */
         setOrder(
           updatedOrder,
         );
 
-        /*
-         * Notify the Admin Orders table and
-         * other pages immediately.
-         */
         window.dispatchEvent(
           new Event(
             "orderUpdated",
@@ -768,9 +752,6 @@ function EditOrder() {
           ),
         );
 
-        /*
-         * Show success toast on Admin Orders.
-         */
         localStorage.setItem(
           ORDER_TOAST_KEY,
           "Order updated successfully.",
@@ -779,10 +760,6 @@ function EditOrder() {
         setShowWarning(false);
         setSaving(false);
 
-        /*
-         * Return to Admin Orders and highlight
-         * the exact order that was edited.
-         */
         navigate(
           `/admin/orders?highlight=${encodeURIComponent(
             orderIdentifier,

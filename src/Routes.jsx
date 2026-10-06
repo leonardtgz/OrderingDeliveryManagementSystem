@@ -41,6 +41,7 @@ import AdminProfile from "./pages/admin/Profile";
 import AdminNotifications from "./pages/admin/Notifications";
 import AdminEditProfile from "./pages/admin/AdminEditProfile";
 import AdminChangePassword from "./pages/admin/AdminChangePassword";
+import AdminDeliveryDetails from "./pages/admin/DeliveryDetails";
 
 
 
@@ -97,6 +98,7 @@ function AppRoutes() {
         <Route path="/admin/notifications" element={<AdminNotifications />} />
         <Route path="/admin/edit-profile" element={<AdminEditProfile />} />
         <Route path="/admin/change-password" element={<AdminChangePassword />} />
+        <Route path="/admin/delivery-details" element={<AdminDeliveryDetails />} />
         
 
 

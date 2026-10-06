@@ -326,6 +326,24 @@ function GoogleLocationMap({ deliveryTime }) {
   );
 }
 
+function formatTime12Hour(time) {
+  if (!time) {
+    return "";
+  }
+
+  const [hours, minutes] = String(time).split(":");
+  const hour = Number(hours);
+
+  if (Number.isNaN(hour) || minutes === undefined) {
+    return time;
+  }
+
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+
+  return `${displayHour}:${minutes} ${period}`;
+}
+
 function findLatestTrackedOrder(referenceOrder) {
   if (!referenceOrder) {
     return null;
@@ -472,7 +490,9 @@ function Track() {
         },
         {
           label: "Delivered",
-          time: normalizedOrder?.deliveryTime || "Completed",
+          time: normalizedOrder?.deliveryTime
+            ? formatTime12Hour(normalizedOrder.deliveryTime)
+            : "Completed",
           status: "done",
         },
       ];
@@ -627,8 +647,9 @@ function Track() {
         ? [normalizedOrder.deliveryAddress]
         : customer.address;
 
-  const deliveryTime =
-    normalizedOrder.deliveryTime || "--:--";
+  const deliveryTime = normalizedOrder.deliveryTime
+    ? formatTime12Hour(normalizedOrder.deliveryTime)
+    : "--:--";
 
   const deliverySchedule =
     normalizedOrder.deliverySchedule ||
@@ -847,7 +868,9 @@ function Track() {
                 <GoogleLocationMap
                   deliveryTime={
                     isDelivered
-                      ? normalizedOrder.deliveryTime || "Delivered"
+                      ? normalizedOrder.deliveryTime
+                        ? formatTime12Hour(normalizedOrder.deliveryTime)
+                        : "Delivered"
                       : deliveryTime
                   }
                 />

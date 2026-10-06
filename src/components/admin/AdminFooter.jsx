@@ -5,8 +5,7 @@ const adminLinks = [
   { label: "Dashboard", to: "/admin/dashboard" },
   { label: "Products", to: "/admin/products" },
   { label: "Customers", to: "/admin/customers" },
-  { label: "Orders", to: "/admin/orders" },
-  { label: "Deliveries", to: "/admin/deliveries" },
+  { label: "Orders & Deliveries", to: "/admin/orders" },
 ];
 
 function AdminFooter() {

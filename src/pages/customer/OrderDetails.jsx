@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from "react";
+
 import { useLocation, useNavigate } from "react-router-dom";
 
 import Header from "../../components/Header/Header";
+
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
+
 import CustomerFooter from "../../components/customer/CustomerFooter";
 
 import roundPurifiedWater from "../../assets/images/round-purified-water.png";
+
 import slimPurifiedWater from "../../assets/images/slim-purified-water.png";
+
 import bottle500ml from "../../assets/images/500ml-bottle.png";
 
 import {
@@ -97,7 +102,10 @@ function DateTimeIcon() {
 const getProductImage = (productName = "") => {
   const name = String(productName).toLowerCase();
 
-  if (name.includes("500ml") || name.includes("bottle")) {
+  if (
+    name.includes("500ml") ||
+    name.includes("bottle")
+  ) {
     return bottle500ml;
   }
 
@@ -109,16 +117,28 @@ const getProductImage = (productName = "") => {
 };
 
 const getOrderTitle = (order) => {
-  if (Array.isArray(order.products) && order.products.length > 0) {
-    return order.products
-      .map((product) => {
-        const quantity = Number(product.quantity || 0);
-        return `${quantity}x ${product.name}`;
-      })
-      .join(" + ");
+  if (
+    Array.isArray(order.products) &&
+    order.products.length > 0
+  ) {
+    return order.products.map((product) => {
+      const quantity = Number(
+        product.quantity || 0
+      );
+
+      return {
+        quantity,
+        name: product.name || "Water product",
+      };
+    });
   }
 
-  return order.title || "Order";
+  return [
+    {
+      quantity: Number(order.qty || 0),
+      name: order.title || "Order",
+    },
+  ];
 };
 
 const getOrderDate = (order) => {
@@ -165,16 +185,41 @@ const getDeliveryDate = (order) => {
   return "Today";
 };
 
+const formatTime12Hour = (time) => {
+  if (!time) {
+    return "";
+  }
+
+  const [hours, minutes] = String(time).split(":");
+  const hour = Number(hours);
+
+  if (
+    Number.isNaN(hour) ||
+    minutes === undefined
+  ) {
+    return time;
+  }
+
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+
+  return `${displayHour}:${minutes} ${period}`;
+};
+
 const getDeliveryTime = (order) => {
   if (order.deliveryTime) {
-    return order.deliveryTime;
+    return formatTime12Hour(
+      order.deliveryTime
+    );
   }
 
   return "Not specified";
 };
 
 const getStatusStyle = (status) => {
-  const normalizedStatus = String(status || "")
+  const normalizedStatus = String(
+    status || ""
+  )
     .trim()
     .toLowerCase();
 
@@ -222,7 +267,9 @@ function OrderDetails() {
   // This is the EXACT order selected from the Orders page.
   const passedOrder = location.state?.order;
 
-  const [order, setOrder] = useState(passedOrder || null);
+  const [order, setOrder] = useState(
+    passedOrder || null
+  );
 
   // Use the exact order passed through navigation.
   // Do NOT search getOrders() for another order because that can
@@ -254,20 +301,27 @@ function OrderDetails() {
       return;
     }
 
-    if (String(order.status || "").trim().toLowerCase() !== "pending") {
-      window.alert("Only pending orders can be cancelled.");
+    if (
+      String(order.status || "")
+        .trim()
+        .toLowerCase() !== "pending"
+    ) {
+      window.alert(
+        "Only pending orders can be cancelled."
+      );
       return;
     }
 
     const confirmed = window.confirm(
-      "Are you sure you want to cancel this order?",
+      "Are you sure you want to cancel this order?"
     );
 
     if (!confirmed) {
       return;
     }
 
-    const orderId = order.orderNumber || order.id;
+    const orderId =
+      order.orderNumber || order.id;
 
     updateOrder(orderId, {
       status: "Cancelled",
@@ -278,7 +332,9 @@ function OrderDetails() {
       status: "Cancelled",
     }));
 
-    window.alert("Order cancelled successfully.");
+    window.alert(
+      "Order cancelled successfully."
+    );
   };
 
   if (!order) {
@@ -319,25 +375,64 @@ function OrderDetails() {
 
   const status = order.status || "Pending";
 
-  const image = getProductImage(
-    order.products?.[0]?.name || order.product || title,
+  const total = Number(
+    order.total || 0
   );
 
-  const total = Number(order.total || 0);
+  const deliveryFee = Number(
+    order.deliveryFee ||
+      order.delivery?.fee ||
+      0
+  );
 
-  const orderNumber =
-    order.orderNumber || order.id || "Unknown";
+  const subtotal =
+    order.subtotal !== undefined &&
+    order.subtotal !== null
+      ? Number(order.subtotal || 0)
+      : Math.max(
+          total - deliveryFee,
+          0
+        );
 
-  const deliveryAddress = getAddress(order);
-  const deliveryDate = getDeliveryDate(order);
-  const deliveryTime = getDeliveryTime(order);
+  const orderNumber = String(
+    order.orderNumber ||
+      order.id ||
+      "Unknown"
+  ).replace(/^#+/, "");
 
-  const isCompleted = ["delivered", "completed"].includes(
-    String(status).trim().toLowerCase(),
+  const deliveryAddress =
+    getAddress(order);
+
+  const deliveryDate =
+    getDeliveryDate(order);
+
+  const deliveryTime =
+    getDeliveryTime(order);
+
+  const isCompleted = [
+    "delivered",
+    "completed",
+  ].includes(
+    String(status)
+      .trim()
+      .toLowerCase()
   );
 
   const canCancel =
-    String(status).trim().toLowerCase() === "pending";
+    String(status)
+      .trim()
+      .toLowerCase() ===
+    "pending";
+
+  // Organize the delivery address into separate fields.
+  const addressFields = Array.isArray(
+    deliveryAddress
+  )
+    ? deliveryAddress.filter(Boolean)
+    : String(deliveryAddress || "")
+        .split(/\n|,/)
+        .map((part) => part.trim())
+        .filter(Boolean);
 
   return (
     <div className="flex min-h-screen flex-col bg-background-main">
@@ -367,49 +462,104 @@ function OrderDetails() {
                 </span>
 
                 <span className="text-sm font-bold text-text-primary sm:text-base">
-                  {orderNumber}
+                  #{orderNumber}
                 </span>
               </div>
 
               <span
                 className={`w-fit rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.6px] ${getStatusStyle(
-                  status,
+                  status
                 )}`}
               >
                 {status}
               </span>
             </div>
 
-            {/* Product */}
-            <div className="flex items-center gap-3 border-b border-border-light px-4 py-4 sm:px-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-50">
-                <img
-                  src={image}
-                  alt={title}
-                  className="h-11 w-9 object-contain"
-                />
-              </div>
+            {/* Products */}
+            <div className="border-b border-border-light px-4 py-4 sm:px-5">
+              <div className="flex flex-col gap-4">
+                {Array.isArray(title) &&
+                title.length > 0 ? (
+                  title.map(
+                    (product, index) => {
+                      const image = getProductImage(
+                        product.name
+                      );
 
-              <div className="min-w-0 flex-1">
-                <span className="block break-words text-sm font-bold leading-5 text-text-primary sm:text-base">
-                  {title}
-                </span>
+                      return (
+                        <div
+                          key={`${product.name}-${index}`}
+                          className="flex items-start gap-3"
+                        >
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-50">
+                            <img
+                              src={image}
+                              alt={product.name}
+                              className="h-11 w-9 object-contain"
+                            />
+                          </div>
 
-                <div className="mt-1">
-                  <span className="inline-flex items-center rounded-sm bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-text-accent">
-                    Refill Service
-                  </span>
-                </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="block break-words text-sm font-bold leading-5 text-text-primary sm:text-base">
+                              {product.quantity}x{" "}
+                              {product.name}
+                            </span>
 
-                <span className="mt-1 block text-xs text-text-secondary">
-                  Ordered {getOrderDate(order)}
-                </span>
+                            <div className="mt-1">
+                              <span className="inline-flex items-center rounded-sm bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-text-accent">
+                                Refill Service
+                              </span>
+                            </div>
+
+                            {index === 0 && (
+                              <span className="mt-1 block text-xs text-text-secondary">
+                                Ordered{" "}
+                                {getOrderDate(order)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                  )
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-50">
+                      <img
+                        src={getProductImage(
+                          order.product ||
+                            order.title ||
+                            "Order"
+                        )}
+                        alt="Order"
+                        className="h-11 w-9 object-contain"
+                      />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <span className="block break-words text-sm font-bold leading-5 text-text-primary sm:text-base">
+                        Order
+                      </span>
+
+                      <div className="mt-1">
+                        <span className="inline-flex items-center rounded-sm bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-text-accent">
+                          Refill Service
+                        </span>
+                      </div>
+
+                      <span className="mt-1 block text-xs text-text-secondary">
+                        Ordered{" "}
+                        {getOrderDate(order)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Delivery Details */}
-            <div className="px-4 py-4 sm:px-5">
-              <div className="flex items-start gap-3">
+            <div className="px-4 py-5 sm:px-5 sm:py-5">
+              <div className="flex items-start gap-3 rounded-lg">
                 <AddressIcon />
 
                 <div className="min-w-0 flex-1">
@@ -417,16 +567,29 @@ function OrderDetails() {
                     Delivery Address
                   </span>
 
-                  <span className="mt-1 block break-words text-sm leading-5 text-text-primary">
-                    {deliveryAddress}
-                  </span>
+                  <div className="mt-2 flex flex-col gap-1">
+                    {addressFields.map(
+                      (field, index) => (
+                        <span
+                          key={`${field}-${index}`}
+                          className={
+                            index === 0
+                              ? "break-words text-sm font-medium leading-5 text-text-primary"
+                              : "break-words text-sm leading-5 text-text-secondary"
+                          }
+                        >
+                          {field}
+                        </span>
+                      )
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Full-width divider */}
-              <div className="-mx-4 my-4 h-px w-[calc(100%+2rem)] bg-border-light sm:-mx-5 sm:w-[calc(100%+2.5rem)]" />
+              <div className="my-4 h-px w-full bg-border-light" />
 
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 rounded-lg">
                 <DateTimeIcon />
 
                 <div className="min-w-0 flex-1">
@@ -434,9 +597,15 @@ function OrderDetails() {
                     Delivery Date &amp; Time
                   </span>
 
-                  <span className="mt-1 block text-sm leading-5 text-text-primary">
-                    {deliveryDate}, {deliveryTime}
-                  </span>
+                  <div className="mt-1.5 flex flex-col gap-0.5 text-sm leading-5 text-text-primary">
+                    <span>
+                      {deliveryDate}
+                    </span>
+
+                    <span>
+                      {deliveryTime}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -449,27 +618,38 @@ function OrderDetails() {
                 Payment Summary
               </h2>
 
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <span className="text-sm text-text-secondary">
-                  Order Total
-                </span>
+              <div className="mt-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm text-text-secondary">
+                    Subtotal
+                  </span>
 
-                <span className="text-sm font-bold text-text-primary">
-                  PHP {total.toFixed(2)}
-                </span>
+                  <span className="text-sm font-semibold text-text-primary">
+                    ₱{subtotal.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm text-text-secondary">
+                    Delivery Fee
+                  </span>
+
+                  <span className="text-sm font-semibold text-text-primary">
+                    ₱{deliveryFee.toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Full-width divider */}
             <div className="h-px w-full bg-border-light" />
 
-            <div className="flex items-center justify-between gap-3 px-4 py-4 sm:px-5">
+            <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-5 sm:py-4">
               <span className="text-base font-bold text-text-primary">
-                Total
+                Final Total
               </span>
 
               <span className="text-lg font-bold text-text-accent sm:text-xl">
-                PHP {total.toFixed(2)}
+                ₱{total.toFixed(2)}
               </span>
             </div>
           </section>
@@ -487,7 +667,9 @@ function OrderDetails() {
             {canCancel && (
               <button
                 type="button"
-                onClick={handleCancelOrder}
+                onClick={
+                  handleCancelOrder
+                }
                 className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-red-200 bg-white px-3 text-xs font-bold uppercase tracking-[0.05em] text-red-600 transition-colors hover:bg-red-50"
               >
                 Cancel Order
@@ -497,7 +679,9 @@ function OrderDetails() {
             {!isCompleted && (
               <button
                 type="button"
-                onClick={handleTrackOrder}
+                onClick={
+                  handleTrackOrder
+                }
                 className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-primary-background px-3 text-xs font-bold uppercase tracking-[0.05em] text-primary-foreground shadow-sm transition-colors hover:opacity-90"
               >
                 Track Order

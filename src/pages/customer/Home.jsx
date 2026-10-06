@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import lightBlueIcon from "../../assets/images/img_icon_light_blue_900.svg";
 import icon from "../../assets/images/img_icon.svg";
 import roundPurifiedWaterImage from "../../assets/images/round-purified-water.png";
 import slimPurifiedWaterImage from "../../assets/images/slim-purified-water.png";
 import bottleImage from "../../assets/images/500ml-bottle.png";
-
 import Header from "../../components/Header/Header";
 import CustomerNavbar from "../../components/customer/CustomerNavbar";
 import CustomerFooter from "../../components/customer/CustomerFooter";
-
 import { getOrders } from "../../utils/orderStorage";
 
 const customer = {
@@ -45,15 +42,18 @@ const products = [
 
 const getOrderTitle = (order) => {
   if (Array.isArray(order.products) && order.products.length > 0) {
-    return order.products
-      .map((product) => {
-        const quantity = Number(product.quantity || 0);
-        return `${quantity}x ${product.name}`;
-      })
-      .join(" + ");
+    return order.products.map((product) => ({
+      quantity: Number(product.quantity || 0),
+      name: product.name || "Water product",
+    }));
   }
 
-  return order.title || "Order";
+  return [
+    {
+      quantity: Number(order.qty || 0),
+      name: order.title || "Order",
+    },
+  ];
 };
 
 const getTotalQuantity = (order) => {
@@ -221,8 +221,10 @@ const getStatusSteps = (status) => {
   if (type === "cancelled") {
     return steps.map((step) => ({
       ...step,
-      value: step.label === "Pending" ? "Cancelled" : "Not applicable",
-      state: step.label === "Pending" ? "cancelled" : "upcoming",
+      value:
+        step.label === "Pending" ? "Cancelled" : "Not applicable",
+      state:
+        step.label === "Pending" ? "cancelled" : "upcoming",
     }));
   }
 
@@ -251,12 +253,23 @@ const getEstimatedTime = (order) => {
     return "Cancelled";
   }
 
-  if (order?.deliveryTime) {
-    return order.deliveryTime;
-  }
+  const time =
+    order?.deliveryTime ||
+    order?.deliverySchedule ||
+    "";
 
-  if (order?.deliverySchedule) {
-    return order.deliverySchedule;
+  if (time) {
+    const [hours, minutes] = String(time).split(":");
+    const hour = Number(hours);
+
+    if (!Number.isNaN(hour) && minutes !== undefined) {
+      const period = hour >= 12 ? "PM" : "AM";
+      const displayHour = hour % 12 || 12;
+
+      return `${displayHour}:${minutes} ${period}`;
+    }
+
+    return time;
   }
 
   return "Delivery pending";
@@ -278,7 +291,6 @@ const sortOrdersNewestFirst = (orders) => {
 
 function Home() {
   const navigate = useNavigate();
-
   const [activeTab, setActiveTab] = useState("home");
   const [customerOrders, setCustomerOrders] = useState([]);
 
@@ -326,7 +338,9 @@ function Home() {
   }, []);
 
   const currentOrder =
-    customerOrders.find((order) => isActiveStatus(order.status)) || null;
+    customerOrders.find(
+      (order) => isActiveStatus(order.status),
+    ) || null;
 
   const orderHistory = customerOrders.slice(0, 3);
 
@@ -450,9 +464,22 @@ function Home() {
                     Order {currentOrderNumber}
                   </h4>
 
-                  <p className="mt-1 break-words text-xs text-text-secondary">
-                    {currentTitle}
-                  </p>
+                  <div className="mt-1 flex flex-col gap-0.5">
+                    {Array.isArray(currentTitle) ? (
+                      currentTitle.map((product, index) => (
+                        <p
+                          key={`${product.name}-${index}`}
+                          className="break-words text-xs text-text-secondary"
+                        >
+                          {product.quantity}x {product.name}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="break-words text-xs text-text-secondary">
+                        {currentTitle}
+                      </p>
+                    )}
+                  </div>
 
                   <div className="mt-2">
                     <span className="text-xs font-semibold text-text-primary">
@@ -670,9 +697,26 @@ function Home() {
                         {getOrderDate(order)}
                       </p>
 
-                      <p className="mt-1 break-words text-xs text-text-secondary">
-                        {quantity} Item{quantity !== 1 ? "s" : ""} · {title}
-                      </p>
+                      <div className="mt-1 flex flex-col gap-0.5">
+                        <p className="break-words text-xs text-text-secondary">
+                          {quantity} Item{quantity !== 1 ? "s" : ""}
+                        </p>
+
+                        {Array.isArray(title) ? (
+                          title.map((product, productIndex) => (
+                            <p
+                              key={`${product.name}-${productIndex}`}
+                              className="break-words text-xs text-text-secondary"
+                            >
+                              {product.quantity}x {product.name}
+                            </p>
+                          ))
+                        ) : (
+                          <p className="break-words text-xs text-text-secondary">
+                            {title}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <div className="shrink-0 text-right">

@@ -116,7 +116,7 @@ const AdminSidebar = () => {
     },
     {
       id: "orders",
-      label: "Orders",
+      label: "Orders & Deliveries",
       href: "/admin/orders",
       icon: (
         <svg
@@ -137,38 +137,6 @@ const AdminSidebar = () => {
             strokeLinecap="round"
             strokeWidth="2"
             d="M8 7h8M8 11h8M8 15h5"
-          />
-        </svg>
-      ),
-    },
-    {
-      id: "deliveries",
-      label: "Deliveries",
-      href: "/admin/deliveries",
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M3 6h11v11H3zM14 10h4l3 3v4h-7z"
-          />
-          <circle
-            cx="7"
-            cy="19"
-            r="2"
-            strokeWidth="2"
-          />
-          <circle
-            cx="18"
-            cy="19"
-            r="2"
-            strokeWidth="2"
           />
         </svg>
       ),
