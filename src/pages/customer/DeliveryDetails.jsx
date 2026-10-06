@@ -495,7 +495,7 @@ function DeliveryDetails() {
                 Total
               </span>
 
-              <span className="text-xl font-bold text-text-accent">
+              <span className="text-lg font-bold text-text-accent">
                 ₱{total.toFixed(2)}
               </span>
             </div>

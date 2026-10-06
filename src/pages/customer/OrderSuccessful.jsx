@@ -334,7 +334,7 @@ function OrderSuccessful() {
                   Total
                 </span>
 
-                <span className="text-lg font-bold text-text-accent sm:text-xl">
+                <span className="text-lg font-bold text-text-accent">
                   ₱{Number(total).toFixed(2)}
                 </span>
               </div>

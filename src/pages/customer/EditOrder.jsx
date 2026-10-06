@@ -7,6 +7,7 @@ import CustomerNavbar from "../../components/customer/CustomerNavbar";
 import CustomerFooter from "../../components/customer/CustomerFooter";
 import OrderStepper from "../../components/customer/OrderStepper";
 
+
 import {
   getCurrentOrder,
   saveCurrentOrder,
@@ -374,7 +375,7 @@ function EditOrder() {
                 Total
               </span>
 
-              <span className="text-xl font-bold text-text-accent">
+              <span className="text-lg font-bold text-text-accent">
                 ₱{total.toFixed(2)}
               </span>
             </div>

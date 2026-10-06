@@ -1,4 +1,5 @@
 import React from "react";
+
 import { Check } from "lucide-react";
 
 const steps = [
@@ -12,18 +13,25 @@ function OrderStepper({ currentStep = 1 }) {
   const progress = ((currentStep - 1) / (steps.length - 1)) * 100;
 
   return (
-    <div className="w-full border-b border-border-light bg-background-card px-3 py-5 sm:px-6 sm:py-6">
-      <div className="mx-auto w-full max-w-[900px]">
-        <div className="relative">
-          {/* Progress line */}
-          <div className="absolute left-[12.5%] right-[12.5%] top-5 h-0.5 bg-border-light">
-            <div
-              className="h-full bg-primary-background transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
+    <div className="w-full">
+      {/* Full-width stepper container */}
+      <div className="w-full border-b border-[#DDECEF] bg-[#F8FCFD] px-4 py-5 shadow-[0_4px_20px_rgba(8,119,157,0.06)] sm:px-6 sm:py-6">
+        <div className="relative mx-auto w-full">
+          {/* Connecting track */}
+          <div className="absolute left-[calc(12.5%+20px)] right-[calc(12.5%+20px)] top-5 z-0 sm:left-[calc(12.5%+22px)] sm:right-[calc(12.5%+22px)] sm:top-[22px]">
+            <div className="relative h-[3px] w-full">
+              {/* Base track */}
+              <div className="absolute inset-0 rounded-full bg-[#E2E8EA]" />
+
+              {/* Progress track */}
+              <div
+                className="absolute left-0 top-0 h-full rounded-full bg-primary-background transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
 
-          <div className="relative grid grid-cols-4">
+          <div className="relative z-10 grid grid-cols-4">
             {steps.map((step, index) => {
               const stepNumber = index + 1;
               const isActive = stepNumber === currentStep;
@@ -34,17 +42,19 @@ function OrderStepper({ currentStep = 1 }) {
                   key={step.number}
                   className="flex min-w-0 flex-col items-center"
                 >
+                  {/* Step node */}
                   <div
                     className={`
-                      relative z-10 flex h-10 w-10 items-center justify-center
+                      relative z-20 flex h-10 w-10 items-center justify-center
                       rounded-full border-2 text-[10px] font-bold
-                      transition-all duration-300 sm:h-11 sm:w-11 sm:text-xs
+                      transition-all duration-300
+                      sm:h-11 sm:w-11 sm:text-xs
                       ${
                         isActive
-                          ? "scale-105 border-primary-background bg-primary-background text-white shadow-md"
+                          ? "scale-105 border-primary-background bg-primary-background text-white shadow-[0_0_0_5px_rgba(8,119,157,0.10),0_4px_12px_rgba(8,119,157,0.22)]"
                           : isCompleted
-                            ? "border-primary-background bg-primary-light text-white"
-                            : "border-border-light bg-background-card text-text-secondary"
+                            ? "border-primary-background bg-primary-background text-white shadow-[0_2px_8px_rgba(8,119,157,0.16)]"
+                            : "border-[#D5DEE1] bg-white text-[#9AA7AB]"
                       }
                     `}
                   >
@@ -55,26 +65,24 @@ function OrderStepper({ currentStep = 1 }) {
                     )}
                   </div>
 
+                  {/* Step label */}
                   <span
                     className={`
-                      mt-2 max-w-[90px] text-center text-[9px] font-bold
+                      mt-2.5 max-w-[90px] text-center text-[9px]
                       uppercase leading-4 tracking-[0.3px]
+                      transition-colors duration-300
                       sm:max-w-none sm:text-[10px] sm:tracking-[0.5px]
                       ${
                         isActive
-                          ? "text-text-accent"
+                          ? "font-extrabold text-text-accent"
                           : isCompleted
-                            ? "text-text-primary"
-                            : "text-text-secondary"
+                            ? "font-bold text-text-primary"
+                            : "font-semibold text-[#9AA7AB]"
                       }
                     `}
                   >
                     {step.label}
                   </span>
-
-                  {isActive && (
-                    <span className="mt-1 h-1 w-5 rounded-full bg-primary-background" />
-                  )}
                 </div>
               );
             })}
