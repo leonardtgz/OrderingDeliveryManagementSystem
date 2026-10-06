@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-
 import { useLocation, useNavigate } from "react-router-dom";
-
 import {
   Bell,
   CheckCircle2,
@@ -9,22 +7,29 @@ import {
   Clock,
   XCircle,
 } from "lucide-react";
-
 import userIcon from "../../assets/images/img_user_light_blue_900.svg";
-
 import goldenPRLogo from "../../assets/images/goldenpr-logo.png";
-
 import { getOrders } from "../../utils/orderStorage";
 
 function getNotificationForOrder(order, isCustomer) {
   const status = String(order.status || "").toLowerCase();
 
-  let title = "Order Update";
+  // Admin should only receive notifications for new/pending orders.
+  // Order status update notifications are for customers only.
+  if (
+    !isCustomer &&
+    !(
+      status.includes("pending") ||
+      status.includes("processing")
+    )
+  ) {
+    return null;
+  }
 
+  let title = "Order Update";
   let message = isCustomer
     ? "Your order has been updated."
     : "An order has been updated.";
-
   let Icon = Bell;
 
   const orderNumber =
@@ -180,6 +185,7 @@ function Header() {
           isCustomer
         )
       )
+      .filter(Boolean)
       .sort((a, b) => {
         return (
           new Date(b.date || 0) -
@@ -277,6 +283,11 @@ function Header() {
 
   useEffect(() => {
     const showUpdateToast = () => {
+      // Order status update toast should only appear for customers.
+      if (!isCustomer) {
+        return;
+      }
+
       setShowToast(false);
 
       window.clearTimeout(
@@ -304,7 +315,10 @@ function Header() {
     );
 
     const handleStorageUpdate = (event) => {
-      if (event.key === "goldenpr_orders") {
+      if (
+        event.key === "goldenpr_orders" &&
+        isCustomer
+      ) {
         showUpdateToast();
       }
     };
@@ -334,7 +348,7 @@ function Header() {
         toastTimeoutRef.current
       );
     };
-  }, []);
+  }, [isCustomer]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
