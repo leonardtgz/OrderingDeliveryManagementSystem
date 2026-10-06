@@ -127,6 +127,7 @@ function VerifyOTP() {
               background: "#ffffff",
               boxShadow: "0 4px 16px rgba(15, 23, 42, 0.06)",
             }}
+            className="verify-otp-form"
           >
             {/* Header */}
             <div
@@ -186,6 +187,7 @@ function VerifyOTP() {
                   maxWidth: "362px",
                   margin: "0 auto",
                 }}
+                className="otp-input-wrapper"
               >
                 <label
                   style={{
@@ -209,6 +211,7 @@ function VerifyOTP() {
                     gap: "10px",
                     width: "100%",
                   }}
+                  className="otp-input-row"
                 >
                   {otp.map((digit, index) => (
                     <input
@@ -240,6 +243,7 @@ function VerifyOTP() {
                         boxSizing: "border-box",
                         flexShrink: 0,
                       }}
+                      className="otp-input"
                       onFocus={(e) => {
                         e.target.style.borderColor = "#2ca6d8";
                         e.target.style.boxShadow =
@@ -334,6 +338,44 @@ function VerifyOTP() {
           </form>
         </main>
       </div>
+
+      <style>{`
+        @media (max-width: 520px) {
+          .verify-otp-form {
+            padding: 24px 18px !important;
+          }
+
+          .otp-input-wrapper {
+            max-width: 100% !important;
+          }
+
+          .otp-input-row {
+            gap: 7px !important;
+          }
+
+          .otp-input {
+            width: 44px !important;
+            height: 52px !important;
+            font-size: 20px !important;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .verify-otp-form {
+            padding: 22px 14px !important;
+          }
+
+          .otp-input-row {
+            gap: 5px !important;
+          }
+
+          .otp-input {
+            width: 40px !important;
+            height: 50px !important;
+            font-size: 19px !important;
+          }
+        }
+      `}</style>
     </AuthBackground>
   );
 }
