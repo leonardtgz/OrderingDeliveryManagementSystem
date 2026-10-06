@@ -10,7 +10,6 @@ const AdminSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] =
     useState(false);
-
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -151,7 +150,6 @@ const AdminSidebar = () => {
   const handleLogout = () => {
     setShowLogoutModal(false);
     setIsOpen(false);
-
     navigate("/login");
   };
 
@@ -162,7 +160,7 @@ const AdminSidebar = () => {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle admin sidebar"
-        className="fixed left-4 top-20 z-50 rounded-sm bg-primary-background p-2 text-primary-foreground shadow-lg transition-colors hover:bg-primary-light lg:hidden"
+        className="fixed left-3 top-20 z-[60] rounded-sm bg-primary-background p-2 text-primary-foreground shadow-lg transition-colors hover:bg-primary-light sm:left-4 lg:hidden"
       >
         <svg
           className="h-6 w-6"
@@ -182,7 +180,7 @@ const AdminSidebar = () => {
       {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-primary-dark bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-50 bg-primary-dark bg-opacity-50 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -190,11 +188,11 @@ const AdminSidebar = () => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 z-50 h-screen w-64
+          fixed left-0 top-0 z-[55] h-screen w-[min(18rem,85vw)]
           border-r border-border-light
           bg-background-main
           transition-transform duration-300 ease-in-out
-          lg:sticky lg:z-auto
+          lg:sticky lg:z-auto lg:w-64
           lg:translate-x-0
           ${
             isOpen
@@ -203,10 +201,9 @@ const AdminSidebar = () => {
           }
         `}
       >
-        <div className="flex h-full flex-col">
-
+        <div className="flex h-full min-h-0 flex-col">
           {/* Sidebar Header */}
-          <div className="flex h-20 items-center border-b border-border-light px-5">
+          <div className="flex h-20 shrink-0 items-center border-b border-border-light px-5">
             <h1
               className="text-base font-bold leading-lg text-text-secondary"
               style={{ fontSize: "18px" }}
@@ -216,7 +213,7 @@ const AdminSidebar = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto px-3 py-5">
+          <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
             <ul className="space-y-2">
               {menuItems.map((item) => {
                 const isActive =
@@ -230,7 +227,7 @@ const AdminSidebar = () => {
                         handleNavigation(item.href)
                       }
                       className={`
-                        flex w-full items-center gap-3
+                        flex min-h-12 w-full items-center gap-3
                         rounded-md px-4 py-3
                         text-left text-sm font-semibold
                         transition-colors duration-200
@@ -251,10 +248,10 @@ const AdminSidebar = () => {
           </nav>
 
           {/* Logout */}
-          <div className="border-t border-border-light p-3">
+          <div className="shrink-0 border-t border-border-light p-3">
             <button
               type="button"
-              className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-sm font-semibold text-text-light transition-colors duration-200 hover:bg-secondary-light"
+              className="flex min-h-12 w-full items-center gap-3 rounded-md px-4 py-3 text-sm font-semibold text-text-light transition-colors duration-200 hover:bg-secondary-light"
               onClick={() =>
                 setShowLogoutModal(true)
               }
@@ -270,10 +267,8 @@ const AdminSidebar = () => {
       {showLogoutModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/25 px-4">
           <div className="w-full max-w-[420px] overflow-hidden rounded-xl border border-red-200 bg-background-card shadow-2xl">
-
             {/* Modal Body */}
-            <div className="px-7 pb-7 pt-8 text-center sm:px-9 sm:pt-9">
-
+            <div className="px-5 pb-7 pt-8 text-center sm:px-9 sm:pt-9">
               {/* Red Warning Icon */}
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
                 <AlertTriangle className="h-8 w-8 text-red-600" />
@@ -292,15 +287,14 @@ const AdminSidebar = () => {
             </div>
 
             {/* Modal Buttons */}
-            <div className="flex items-center justify-end gap-3 border-t border-red-100 bg-background-main px-6 py-4 sm:px-8">
-
+            <div className="flex flex-col-reverse gap-2 border-t border-red-100 bg-background-main px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:px-8">
               {/* Cancel */}
               <button
                 type="button"
                 onClick={() =>
                   setShowLogoutModal(false)
                 }
-                className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-border-secondary bg-transparent px-5 text-[11px] font-bold uppercase tracking-[0.5px] text-text-secondary transition-colors hover:bg-background-accent hover:text-text-primary"
+                className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-border-secondary bg-transparent px-5 text-[11px] font-bold uppercase tracking-[0.5px] text-text-secondary transition-colors hover:bg-background-accent hover:text-text-primary sm:w-auto"
               >
                 <X className="h-4 w-4" />
                 CANCEL
@@ -310,12 +304,11 @@ const AdminSidebar = () => {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex min-h-10 items-center justify-center gap-2 rounded-full bg-red-600 px-5 text-[11px] font-bold uppercase tracking-[0.5px] text-white shadow-sm transition-colors hover:bg-red-700"
+                className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full bg-red-600 px-5 text-[11px] font-bold uppercase tracking-[0.5px] text-white shadow-sm transition-colors hover:bg-red-700 sm:w-auto"
               >
                 <LogOut className="h-4 w-4" />
                 LOG OUT
               </button>
-
             </div>
           </div>
         </div>

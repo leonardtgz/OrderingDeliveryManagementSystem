@@ -436,11 +436,15 @@ const PaymentBadge = ({ status }) => {
     .trim()
     .toLowerCase();
 
-  const isPaid = ["paid", "completed", "complete"].includes(
-    normalized
-  );
+  const isPaid = [
+    "paid",
+    "completed",
+    "complete",
+  ].includes(normalized);
 
-  const displayStatus = isPaid ? "Paid" : "Unpaid";
+  const displayStatus = isPaid
+    ? "Paid"
+    : "Unpaid";
 
   return (
     <span
@@ -968,12 +972,6 @@ const Orders = () => {
     );
   };
 
-  /*
-   * Edit Order navigation:
-   * Use the selected order's id in the URL
-   * and also pass the complete order through
-   * React Router state for EditOrder.jsx.
-   */
   const handleEditOrder = (order) => {
     if (!order) {
       return;
@@ -1197,17 +1195,17 @@ const Orders = () => {
 
   return (
     <div className="min-h-screen bg-[#F6F8FA] text-gray-900">
-      <div className="fixed inset-y-0 left-0 z-40 w-64">
+      <div className="fixed inset-y-0 left-0 z-40 w-64 lg:w-64">
         <AdminSidebar />
       </div>
 
-      <div className="ml-64 flex min-h-screen min-w-0 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-col lg:ml-64">
         <div className="shrink-0">
           <Header />
         </div>
 
-        <main className="flex-1 px-7 py-7">
-          <div className="mb-7 flex items-start justify-between">
+        <main className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-7 lg:py-7">
+          <div className="mb-6 flex flex-col gap-4 sm:mb-7 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-gray-900">
                 Orders & Deliveries
@@ -1220,7 +1218,7 @@ const Orders = () => {
               </p>
             </div>
 
-            <div className="flex h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 shadow-sm">
+            <div className="flex h-10 w-fit items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 shadow-sm">
               <Package className="h-4 w-4 text-gray-500" />
 
               <span className="text-sm font-medium text-gray-600">
@@ -1229,8 +1227,8 @@ const Orders = () => {
             </div>
           </div>
 
-          <div className="mb-5 border-b border-gray-200">
-            <div className="flex items-center gap-8">
+          <div className="mb-5 overflow-x-auto border-b border-gray-200">
+            <div className="flex min-w-max items-center gap-5 sm:gap-8">
               {TABS.map((tab) => {
                 const isActive =
                   activeTab === tab.key;
@@ -1270,9 +1268,9 @@ const Orders = () => {
             </div>
           </div>
 
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="relative">
+          <div className="mb-5 flex flex-col items-stretch justify-between gap-3 lg:flex-row lg:items-center">
+            <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center lg:w-auto">
+              <div className="relative w-full sm:w-auto">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
                 <input
@@ -1284,11 +1282,10 @@ const Orders = () => {
                     )
                   }
                   placeholder="Search orders..."
-                  className="h-10 w-[288px] rounded-lg border border-gray-200 bg-white pl-9 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-[#2CA6D8] focus:ring-2 focus:ring-[#2CA6D8]/10"
+                  className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-4 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-[#2CA6D8] focus:ring-2 focus:ring-[#2CA6D8]/10 sm:w-[288px]"
                 />
               </div>
 
-              {/* FILTERS */}
               <div
                 ref={filterRef}
                 className="relative"
@@ -1302,7 +1299,7 @@ const Orders = () => {
                     setSortOpen(false);
                     setCustomerDropdownOpen(false);
                   }}
-                  className={`flex h-10 items-center gap-2 rounded-lg border px-3.5 text-sm font-semibold transition ${
+                  className={`flex h-10 w-full items-center justify-center gap-2 rounded-lg border px-3.5 text-sm font-semibold transition sm:w-auto ${
                     hasActiveFilters
                       ? "border-[#CFEAF4] bg-[#E8F7FC] text-[#1687B8]"
                       : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
@@ -1320,7 +1317,7 @@ const Orders = () => {
                 </button>
 
                 {filterOpen && (
-                  <div className="absolute right-0 top-[48px] z-[500] w-[290px] rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+                  <div className="absolute left-0 top-[48px] z-[500] w-[min(290px,calc(100vw-2rem))] rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
                     <div className="mb-4 flex items-center justify-between">
                       <h3 className="text-base font-bold text-gray-800">
                         Filters
@@ -1340,7 +1337,6 @@ const Orders = () => {
                     </div>
 
                     <div className="space-y-4">
-                      {/* STATUS */}
                       <div className="relative">
                         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#7890A3]">
                           Status
@@ -1415,7 +1411,6 @@ const Orders = () => {
                         )}
                       </div>
 
-                      {/* DELIVERY DATE */}
                       <div className="relative">
                         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#7890A3]">
                           Delivery Date
@@ -1498,7 +1493,6 @@ const Orders = () => {
                 )}
               </div>
 
-              {/* SORT */}
               <div
                 ref={sortRef}
                 className="relative"
@@ -1513,7 +1507,7 @@ const Orders = () => {
                     setStatusDropdownOpen(false);
                     setDeliveryDateDropdownOpen(false);
                   }}
-                  className="flex h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 sm:w-auto"
                 >
                   <SlidersHorizontal className="h-4 w-4" />
 
@@ -1527,7 +1521,7 @@ const Orders = () => {
                 </button>
 
                 {sortOpen && (
-                  <div className="absolute right-0 top-[48px] z-[500] w-[280px] rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+                  <div className="absolute left-0 top-[48px] z-[500] w-[min(280px,calc(100vw-2rem))] rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
                     <div className="mb-3">
                       <h3 className="text-xs font-bold uppercase tracking-wide text-[#91A4B8]">
                         Sort Orders
@@ -1654,7 +1648,7 @@ const Orders = () => {
               </div>
             </div>
 
-            <div className="text-sm font-medium text-gray-500">
+            <div className="text-left text-sm font-medium text-gray-500 lg:text-right">
               {filteredOrders.length}{" "}
               {filteredOrders.length ===
               1
@@ -1664,75 +1658,28 @@ const Orders = () => {
           </div>
 
           <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table className="w-full table-fixed border-collapse">
-              <colgroup>
-                <col className="w-[18%]" />
-                <col className="w-[19%]" />
-                <col className="w-[17%]" />
-                <col className="w-[10%]" />
-                <col className="w-[10%]" />
-                <col className="w-[18%]" />
-                <col className="w-[8%]" />
-              </colgroup>
+            {/* MOBILE ORDER CARDS */}
+            <div className="block lg:hidden">
+              {paginatedOrders.length === 0 ? (
+                <div className="px-5 py-14 text-center">
+                  <div className="flex flex-col items-center">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                      <Package className="h-6 w-6 text-gray-400" />
+                    </div>
 
-              <thead>
-                <tr className="border-b border-blue-100 bg-blue-50">
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
-                    Order / Customer
-                  </th>
+                    <p className="text-sm font-semibold text-gray-700">
+                      No orders found
+                    </p>
 
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
-                    Items
-                  </th>
-
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
-                    Delivery Schedule
-                  </th>
-
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
-                    Total
-                  </th>
-
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
-                    Payment
-                  </th>
-
-                  <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
-                    Fulfillment Status
-                  </th>
-
-                  <th className="px-5 py-3.5 text-center text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {paginatedOrders.length ===
-                0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-6 py-14 text-center"
-                    >
-                      <div className="flex flex-col items-center">
-                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-                          <Package className="h-6 w-6 text-gray-400" />
-                        </div>
-
-                        <p className="text-sm font-semibold text-gray-700">
-                          No orders found
-                        </p>
-
-                        <p className="mt-1 text-sm text-gray-400">
-                          Try adjusting your
-                          search or filters.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedOrders.map(
+                    <p className="mt-1 text-sm text-gray-400">
+                      Try adjusting your
+                      search or filters.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {paginatedOrders.map(
                     (order, index) => {
                       const orderKey =
                         order?.id ||
@@ -1770,119 +1717,168 @@ const Orders = () => {
                         orderKey;
 
                       return (
-                        <tr
+                        <div
                           key={orderKey}
-                          className="border-b border-slate-100 bg-white transition-colors last:border-b-0 hover:bg-slate-50/60"
+                          className="bg-white p-4 transition-colors active:bg-slate-50"
                         >
-                          <td className="px-5 py-4 align-middle">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-bold text-gray-900">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                                Order
+                              </p>
+
+                              <p className="mt-0.5 break-words text-sm font-bold text-gray-900">
                                 {getOrderNumber(
                                   order
                                 )}
-                              </div>
+                              </p>
 
-                              <div className="mt-1 truncate text-sm font-medium text-gray-700">
+                              <p className="mt-1 break-words text-sm font-medium text-gray-700">
                                 {getCustomerName(
                                   order
                                 )}
-                              </div>
+                              </p>
 
                               {getContactNumber(
                                 order
                               ) && (
-                                <div className="mt-0.5 truncate text-xs text-gray-400">
+                                <p className="mt-0.5 break-words text-xs text-gray-400">
                                   {getContactNumber(
                                     order
                                   )}
-                                </div>
+                                </p>
                               )}
                             </div>
-                          </td>
 
-                          <td className="px-5 py-4 align-middle">
-                            <div className="min-w-0 space-y-1">
-                              {compactProducts.length ===
-                              0 ? (
-                                <span className="text-xs text-gray-400">
-                                  No items
-                                </span>
-                              ) : (
-                                compactProducts.map(
+                            <button
+                              type="button"
+                              aria-label={`Actions for ${getOrderNumber(
+                                order
+                              )}`}
+                              onClick={(
+                                event
+                              ) =>
+                                handleActionMenuToggle(
+                                  event,
+                                  orderKey
+                                )
+                              }
+                              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+                            >
+                              <MoreVertical className="h-5 w-5" />
+                            </button>
+                          </div>
+
+                          <div className="mt-4 rounded-lg bg-slate-50 p-3">
+                            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                              Items
+                            </p>
+
+                            {compactProducts.length ===
+                            0 ? (
+                              <p className="text-xs text-gray-400">
+                                No items
+                              </p>
+                            ) : (
+                              <div className="space-y-2">
+                                {compactProducts.map(
                                   (
                                     product,
                                     productIndex
                                   ) => (
                                     <div
-                                      key={`${orderKey}-product-${productIndex}`}
-                                      className="flex min-w-0 items-center gap-1.5"
+                                      key={`${orderKey}-mobile-product-${productIndex}`}
+                                      className="flex items-start justify-between gap-3"
                                     >
-                                      <span
-                                        title={
-                                          product.name
+                                      <span className="min-w-0 break-words text-sm font-medium leading-5 text-gray-700">
+                                        {
+                                          product.quantity
                                         }
-                                        className="min-w-0 flex-1 truncate text-xs font-medium leading-5 text-gray-700"
-                                      >
+                                        x{" "}
                                         {
                                           product.name
                                         }
                                       </span>
 
-                                      <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 px-1.5 text-[10px] font-bold leading-none text-gray-600">
+                                      <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-gray-500 shadow-sm">
                                         {
                                           product.quantity
                                         }
                                       </span>
                                     </div>
                                   )
-                                )
-                              )}
-                            </div>
-                          </td>
+                                )}
+                              </div>
+                            )}
+                          </div>
 
-                          <td className="px-5 py-4 align-middle">
+                          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4">
                             <div className="min-w-0">
-                              <div className="flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-gray-700">
-                                <CalendarDays className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                                Delivery Date
+                              </p>
 
-                                <span className="truncate">
+                              <div className="mt-1 flex items-start gap-1.5 text-sm font-medium text-gray-700">
+                                <CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
+
+                                <span className="break-words">
                                   {formatDate(
                                     deliveryDate
                                   )}
                                 </span>
                               </div>
+                            </div>
 
-                              <div className="mt-1.5 flex items-center gap-1.5 whitespace-nowrap text-xs text-gray-500">
-                                <Clock3 className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                                Delivery Time
+                              </p>
 
-                                <span className="truncate">
+                              <div className="mt-1 flex items-start gap-1.5 text-sm font-medium text-gray-700">
+                                <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
+
+                                <span className="break-words">
                                   {deliveryTime ||
                                     "Time not set"}
                                 </span>
                               </div>
                             </div>
-                          </td>
 
-                          <td className="px-5 py-4 align-middle">
-                            <span className="whitespace-nowrap text-sm font-bold text-gray-900">
-                              {formatCurrency(
-                                getOrderTotal(
-                                  order
-                                )
-                              )}
-                            </span>
-                          </td>
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                                Total
+                              </p>
 
-                          <td className="px-5 py-4 align-middle">
-                            <PaymentBadge
-                              status={
-                                paymentStatus
-                              }
-                            />
-                          </td>
+                              <p className="mt-1 text-sm font-bold text-gray-900">
+                                {formatCurrency(
+                                  getOrderTotal(
+                                    order
+                                  )
+                                )}
+                              </p>
+                            </div>
 
-                          <td className="px-5 py-4 align-middle">
-                            <div className="relative w-fit">
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                                Payment
+                              </p>
+
+                              <div className="mt-1">
+                                <PaymentBadge
+                                  status={
+                                    paymentStatus
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 border-t border-slate-200 pt-3">
+                            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                              Fulfillment Status
+                            </p>
+
+                            <div className="relative w-fit max-w-full">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1918,7 +1914,7 @@ const Orders = () => {
                               </button>
 
                               {isStatusOpen && (
-                                <div className="absolute left-0 top-full z-[100] mt-2 w-48 rounded-lg border border-gray-200 bg-white p-1.5 shadow-xl">
+                                <div className="absolute bottom-full left-0 z-[100] mb-2 w-48 rounded-lg border border-gray-200 bg-white p-1.5 shadow-xl">
                                   {STATUS_OPTIONS.map(
                                     (
                                       statusOption
@@ -1952,38 +1948,338 @@ const Orders = () => {
                                 </div>
                               )}
                             </div>
-                          </td>
-
-                          <td className="px-5 py-4 text-center align-middle">
-                            <button
-                              type="button"
-                              aria-label={`Actions for ${getOrderNumber(
-                                order
-                              )}`}
-                              onClick={(
-                                event
-                              ) =>
-                                handleActionMenuToggle(
-                                  event,
-                                  orderKey
-                                )
-                              }
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
-                            >
-                              <MoreVertical className="h-5 w-5" />
-                            </button>
-                          </td>
-                        </tr>
+                          </div>
+                        </div>
                       );
                     }
-                  )
-                )}
-              </tbody>
-            </table>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* DESKTOP TABLE */}
+            <div className="hidden w-full overflow-x-auto lg:block">
+              <table className="w-full table-fixed border-collapse">
+                <colgroup>
+                  <col className="w-[18%]" />
+                  <col className="w-[19%]" />
+                  <col className="w-[17%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[8%]" />
+                </colgroup>
+
+                <thead>
+                  <tr className="border-b border-blue-100 bg-blue-50">
+                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                      Order / Customer
+                    </th>
+
+                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                      Items
+                    </th>
+
+                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                      Delivery Schedule
+                    </th>
+
+                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                      Total
+                    </th>
+
+                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                      Payment
+                    </th>
+
+                    <th className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                      Fulfillment Status
+                    </th>
+
+                    <th className="px-5 py-3.5 text-center text-[11px] font-bold uppercase tracking-[0.8px] text-slate-600">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {paginatedOrders.length ===
+                  0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-6 py-14 text-center"
+                      >
+                        <div className="flex flex-col items-center">
+                          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                            <Package className="h-6 w-6 text-gray-400" />
+                          </div>
+
+                          <p className="text-sm font-semibold text-gray-700">
+                            No orders found
+                          </p>
+
+                          <p className="mt-1 text-sm text-gray-400">
+                            Try adjusting your
+                            search or filters.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedOrders.map(
+                      (order, index) => {
+                        const orderKey =
+                          order?.id ||
+                          order?.orderId ||
+                          order?.orderNumber ||
+                          `order-${index}`;
+
+                        const compactProducts =
+                          getCompactProducts(
+                            order
+                          );
+
+                        const status =
+                          normalizeStatus(
+                            order.status
+                          );
+
+                        const paymentStatus =
+                          getPaymentStatus(
+                            order
+                          );
+
+                        const deliveryDate =
+                          getDeliveryDate(
+                            order
+                          );
+
+                        const deliveryTime =
+                          getDeliveryTime(
+                            order
+                          );
+
+                        const isStatusOpen =
+                          openStatusId ===
+                          orderKey;
+
+                        return (
+                          <tr
+                            key={orderKey}
+                            className="border-b border-slate-100 bg-white transition-colors last:border-b-0 hover:bg-slate-50/60"
+                          >
+                            <td className="px-5 py-4 align-middle">
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-bold text-gray-900">
+                                  {getOrderNumber(
+                                    order
+                                  )}
+                                </div>
+
+                                <div className="mt-1 truncate text-sm font-medium text-gray-700">
+                                  {getCustomerName(
+                                    order
+                                  )}
+                                </div>
+
+                                {getContactNumber(
+                                  order
+                                ) && (
+                                  <div className="mt-0.5 truncate text-xs text-gray-400">
+                                    {getContactNumber(
+                                      order
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-4 align-middle">
+                              <div className="min-w-0 space-y-1">
+                                {compactProducts.length ===
+                                0 ? (
+                                  <span className="text-xs text-gray-400">
+                                    No items
+                                  </span>
+                                ) : (
+                                  compactProducts.map(
+                                    (
+                                      product,
+                                      productIndex
+                                    ) => (
+                                      <div
+                                        key={`${orderKey}-product-${productIndex}`}
+                                        className="flex min-w-0 items-center gap-1.5"
+                                      >
+                                        <span
+                                          title={
+                                            product.name
+                                          }
+                                          className="min-w-0 flex-1 truncate text-xs font-medium leading-5 text-gray-700"
+                                        >
+                                          {
+                                            product.name
+                                          }
+                                        </span>
+
+                                        <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 px-1.5 text-[10px] font-bold leading-none text-gray-600">
+                                          {
+                                            product.quantity
+                                          }
+                                        </span>
+                                      </div>
+                                    )
+                                  )
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-4 align-middle">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-gray-700">
+                                  <CalendarDays className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+
+                                  <span className="truncate">
+                                    {formatDate(
+                                      deliveryDate
+                                    )}
+                                  </span>
+                                </div>
+
+                                <div className="mt-1.5 flex items-center gap-1.5 whitespace-nowrap text-xs text-gray-500">
+                                  <Clock3 className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+
+                                  <span className="truncate">
+                                    {deliveryTime ||
+                                      "Time not set"}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-4 align-middle">
+                              <span className="whitespace-nowrap text-sm font-bold text-gray-900">
+                                {formatCurrency(
+                                  getOrderTotal(
+                                    order
+                                  )
+                                )}
+                              </span>
+                            </td>
+
+                            <td className="px-5 py-4 align-middle">
+                              <PaymentBadge
+                                status={
+                                  paymentStatus
+                                }
+                              />
+                            </td>
+
+                            <td className="px-5 py-4 align-middle">
+                              <div className="relative w-fit">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionId(
+                                      null
+                                    );
+
+                                    setActionMenuPosition(
+                                      null
+                                    );
+
+                                    setOpenStatusId(
+                                      isStatusOpen
+                                        ? null
+                                        : orderKey
+                                    );
+                                  }}
+                                  className="flex max-w-full items-center gap-1.5"
+                                >
+                                  <OrderStatusBadge
+                                    status={
+                                      status
+                                    }
+                                  />
+
+                                  <ChevronDown
+                                    className={`h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform ${
+                                      isStatusOpen
+                                        ? "rotate-180"
+                                        : ""
+                                    }`}
+                                  />
+                                </button>
+
+                                {isStatusOpen && (
+                                  <div className="absolute left-0 top-full z-[100] mt-2 w-48 rounded-lg border border-gray-200 bg-white p-1.5 shadow-xl">
+                                    {STATUS_OPTIONS.map(
+                                      (
+                                        statusOption
+                                      ) => (
+                                        <button
+                                          key={
+                                            statusOption
+                                          }
+                                          type="button"
+                                          onClick={() =>
+                                            handleStatusUpdate(
+                                              order,
+                                              statusOption
+                                            )
+                                          }
+                                          className={`flex w-full items-center rounded-md px-3 py-2 text-left text-sm transition ${
+                                            normalizeStatus(
+                                              statusOption
+                                            ) ===
+                                            status
+                                              ? "bg-gray-100 font-semibold text-gray-900"
+                                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                          }`}
+                                        >
+                                          {
+                                            statusOption
+                                          }
+                                        </button>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-4 text-center align-middle">
+                              <button
+                                type="button"
+                                aria-label={`Actions for ${getOrderNumber(
+                                  order
+                                )}`}
+                                onClick={(
+                                  event
+                                ) =>
+                                  handleActionMenuToggle(
+                                    event,
+                                    orderKey
+                                  )
+                                }
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+                              >
+                                <MoreVertical className="h-5 w-5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      }
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {filteredOrders.length >
               0 && (
-              <div className="flex flex-col gap-4 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 border-t border-slate-100 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <p className="text-sm text-text-secondary">
                   Showing{" "}
                   <span className="font-semibold text-text-primary">
@@ -2008,7 +2304,7 @@ const Orders = () => {
                   orders
                 </p>
 
-                <div className="flex items-center gap-1">
+                <div className="flex max-w-full items-center gap-1 overflow-x-auto pb-0.5">
                   <button
                     type="button"
                     disabled={

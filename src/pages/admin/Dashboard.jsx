@@ -62,7 +62,11 @@ function normalizeStatus(status) {
 }
 
 function getCustomerName(order) {
-  return order.customerName || order.customer?.name || "Customer";
+  return (
+    order.customerName ||
+    order.customer?.name ||
+    "Customer"
+  );
 }
 
 function getOrderNumber(order) {
@@ -71,7 +75,6 @@ function getOrderNumber(order) {
 
 function formatOrderNumber(order) {
   const orderNumber = String(getOrderNumber(order));
-
   return `#${orderNumber.replace(/^#+/, "")}`;
 }
 
@@ -81,7 +84,10 @@ function getOrderQuantity(order) {
   }
 
   return order.products.reduce((total, product) => {
-    return total + Number(product.quantity || product.qty || 0);
+    return (
+      total +
+      Number(product.quantity || product.qty || 0)
+    );
   }, 0);
 }
 
@@ -97,7 +103,9 @@ function getCompactProducts(order) {
         product.productName ||
         product.title ||
         "Unnamed Product",
-      quantity: Number(product.quantity || product.qty || 0),
+      quantity: Number(
+        product.quantity || product.qty || 0
+      ),
     }))
     .filter((product) => product.name);
 }
@@ -171,7 +179,10 @@ function formatDeliveryDate(order) {
 
 const formatDeliveryTime = (order) => {
   if (order.deliveryTime) {
-    const [hours, minutes] = String(order.deliveryTime).split(":");
+    const [hours, minutes] = String(
+      order.deliveryTime
+    ).split(":");
+
     const hour = Number(hours);
 
     if (!Number.isNaN(hour) && minutes !== undefined) {
@@ -417,14 +428,15 @@ function RecentOrders({
 
   return (
     <section className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-blue-100 bg-blue-50 px-5 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm">
+      {/* HEADER */}
+      <div className="border-b border-blue-100 bg-blue-50 px-4 py-4 sm:px-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
               <Package className="h-4 w-4 text-cyan-600" />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <h3 className="text-sm font-bold text-slate-800">
                 New Orders & Active Queue
               </h3>
@@ -438,7 +450,7 @@ function RecentOrders({
           <button
             type="button"
             onClick={onOpenOrders}
-            className="group flex shrink-0 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-[9px] font-bold uppercase tracking-[0.6px] text-slate-500 transition-colors hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
+            className="group flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-[9px] font-bold uppercase tracking-[0.6px] text-slate-500 transition-colors hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700 sm:w-auto sm:shrink-0"
           >
             View All
             <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
@@ -446,8 +458,178 @@ function RecentOrders({
         </div>
       </div>
 
-      {/* WIDER TABLE AREA */}
-      <div className="w-full overflow-x-auto">
+      {/* MOBILE ORDERS */}
+      <div className="block divide-y divide-slate-100 lg:hidden">
+        {activeOrders.length > 0 ? (
+          activeOrders.map((order) => {
+            const status =
+              normalizeStatus(order.status);
+
+            const styles =
+              getStatusStyle(status);
+
+            const compactProducts =
+              getCompactProducts(order);
+
+            const paidStatus =
+              getPaidStatus(order);
+
+            const orderKey =
+              order.id ||
+              order.orderNumber ||
+              "order";
+
+            return (
+              <button
+                key={orderKey}
+                type="button"
+                onClick={() =>
+                  handleOrderClick(order)
+                }
+                className="block w-full text-left transition-colors hover:bg-slate-50/60 active:bg-slate-50"
+              >
+                <div className="p-4 sm:p-5">
+                  {/* Order Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.6px] text-slate-400">
+                        Order
+                      </p>
+
+                      <p className="mt-1 text-sm font-bold text-slate-700">
+                        {formatOrderNumber(order)}
+                      </p>
+                    </div>
+
+                    <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-slate-400" />
+                  </div>
+
+                  {/* Customer */}
+                  <div className="mt-4">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.5px] text-slate-400">
+                      Customer
+                    </p>
+
+                    <p className="mt-1 break-words text-sm font-semibold text-slate-700">
+                      {getCustomerName(order)}
+                    </p>
+                  </div>
+
+                  {/* Items */}
+                  <div className="mt-4 rounded-lg bg-slate-50 p-3">
+                    <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.5px] text-slate-400">
+                      Items
+                    </p>
+
+                    {compactProducts.length === 0 ? (
+                      <span className="text-xs text-slate-400">
+                        No items
+                      </span>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {compactProducts.map(
+                          (
+                            product,
+                            productIndex
+                          ) => (
+                            <div
+                              key={`${orderKey}-product-${productIndex}`}
+                              className="flex min-w-0 items-start justify-between gap-3"
+                            >
+                              <span
+                                title={product.name}
+                                className="min-w-0 flex-1 break-words text-xs font-medium leading-5 text-slate-600"
+                              >
+                                {product.name}
+                              </span>
+
+                              <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-bold leading-none text-slate-600 shadow-sm">
+                                {product.quantity}
+                              </span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Order Information */}
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    {/* Delivery Date */}
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.5px] text-slate-400">
+                        Delivery Date
+                      </p>
+
+                      <p className="mt-1 break-words text-xs font-medium text-slate-600">
+                        {formatDeliveryDate(order)}
+                      </p>
+                    </div>
+
+                    {/* Total */}
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.5px] text-slate-400">
+                        Total
+                      </p>
+
+                      <p className="mt-1 text-sm font-bold text-slate-700">
+                        {getAmount(order)}
+                      </p>
+                    </div>
+
+                    {/* Payment */}
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.5px] text-slate-400">
+                        Payment
+                      </p>
+
+                      <span
+                        className={`mt-1 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                          paidStatus === "Paid"
+                            ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border border-red-200 bg-red-50 text-red-700"
+                        }`}
+                      >
+                        {paidStatus}
+                      </span>
+                    </div>
+
+                    {/* Status */}
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.5px] text-slate-400">
+                        Status
+                      </p>
+
+                      <span
+                        className={`mt-1 inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${styles.badge}`}
+                      >
+                        {styles.label}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })
+        ) : (
+          <div className="px-5 py-12 text-center">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-cyan-50">
+              <Package className="h-4 w-4 text-cyan-600" />
+            </div>
+
+            <p className="mt-3 text-xs font-semibold text-slate-600">
+              No active orders
+            </p>
+
+            <p className="mt-1 text-[10px] text-slate-400">
+              Pending and active deliveries will appear here.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* DESKTOP ORDERS TABLE */}
+      <div className="hidden w-full overflow-x-auto lg:block">
         <table className="w-full table-fixed border-collapse">
           <colgroup>
             <col className="w-[11%]" />
@@ -919,7 +1101,6 @@ function Dashboard() {
         <div className="flex-1 overflow-y-auto bg-slate-50 px-4 py-6 pb-12 sm:px-6 sm:py-7 sm:pb-14 lg:px-8 lg:pb-16">
           <div className="mx-auto w-full max-w-[1440px]">
             <div className="flex flex-col gap-6">
-
               {/* HEADER */}
               <section className="flex flex-col justify-between gap-4 rounded-xl border border-cyan-100 bg-gradient-to-r from-white via-white to-cyan-50/70 px-5 py-5 shadow-sm sm:flex-row sm:items-center">
                 <div>
@@ -972,11 +1153,12 @@ function Dashboard() {
                 <DeliverySchedule
                   orders={orders}
                   onOpenDeliveries={() =>
-                    navigate("/admin/orders?tab=history")
+                    navigate(
+                      "/admin/orders?tab=history"
+                    )
                   }
                 />
               </div>
-
             </div>
           </div>
         </div>
