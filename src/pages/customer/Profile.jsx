@@ -14,6 +14,7 @@ import {
   X,
   MapPinned,
   Phone,
+  Mail,
   CheckCircle2,
   Edit3,
   LockKeyhole,
@@ -182,6 +183,23 @@ function Profile() {
                 <p className="mt-1 text-sm font-semibold text-text-primary">
                   {profile.phoneNumber || "Not provided"}
                 </p>
+              </div>
+
+              <div className="border-b border-border-light px-5 py-4 sm:px-6">
+                <span className="text-[10px] font-bold uppercase tracking-[0.6px] text-text-secondary">
+                  Email Address
+                </span>
+
+                <div className="mt-1 flex items-center gap-2 text-sm font-semibold text-text-primary">
+                  <Mail
+                    size={14}
+                    className="shrink-0 text-text-secondary"
+                  />
+
+                  <span className="break-all">
+                    {profile.email || "maria.santos@email.com"}
+                  </span>
+                </div>
               </div>
 
               {/* Improved Saved Addresses */}

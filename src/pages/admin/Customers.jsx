@@ -20,6 +20,7 @@ import {
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import Header from "../../components/Header/Header";
 import AdminFooter from "../../components/admin/AdminFooter";
+import { getOrders } from "../../utils/orderStorage";
 
 const CUSTOMER_TOAST_KEY = "adminCustomerToast";
 const CUSTOMERS_PER_PAGE = 10;
@@ -51,6 +52,16 @@ const defaultCustomers = [
     orders: 2,
   },
 ];
+
+/*
+ * These are the same static order-history counts
+ * used by the View Customer Details page.
+ */
+const staticOrderHistoryCounts = {
+  "1": 2,
+  "2": 1,
+  "3": 2,
+};
 
 const restoreMissingDefaultCustomers = (savedCustomers) => {
   const currentCustomers = Array.isArray(savedCustomers)
@@ -85,49 +96,201 @@ const restoreMissingDefaultCustomers = (savedCustomers) => {
   };
 };
 
+/*
+ * Calculate the same order count used by
+ * View Customer Details.
+ *
+ * Static history is included first, then live orders
+ * are added while preventing duplicate order IDs.
+ */
+const getCustomerOrderCount = (
+  customer,
+  savedOrders,
+) => {
+  const staticCount =
+    Number(
+      staticOrderHistoryCounts[
+        String(customer.id)
+      ] || 0,
+    );
+
+  const liveOrders = Array.isArray(
+    savedOrders,
+  )
+    ? savedOrders
+    : [];
+
+  const customerName = String(
+    customer.name || "",
+  )
+    .trim()
+    .toLowerCase();
+
+  const customerContact = String(
+    customer.contact || "",
+  )
+    .trim()
+    .toLowerCase();
+
+  const matchingLiveOrders =
+    liveOrders.filter((order) => {
+      const orderCustomerName = String(
+        order.customerName || "",
+      )
+        .trim()
+        .toLowerCase();
+
+      const orderContact = String(
+        order.contactNumber ||
+          order.customerContact ||
+          order.contact ||
+          "",
+      )
+        .trim()
+        .toLowerCase();
+
+      return (
+        (customerName &&
+          orderCustomerName ===
+            customerName) ||
+        (customerContact &&
+          orderContact ===
+            customerContact)
+      );
+    });
+
+  /*
+   * The View Customer Details page combines
+   * static history with live orders and removes
+   * duplicate order IDs.
+   */
+  const uniqueLiveOrderIds =
+    new Set();
+
+  let additionalLiveOrders = 0;
+
+  matchingLiveOrders.forEach(
+    (order) => {
+      const orderId = String(
+        order.id ||
+          order.orderNumber ||
+          "",
+      )
+        .trim()
+        .toLowerCase();
+
+      if (!orderId) {
+        additionalLiveOrders += 1;
+        return;
+      }
+
+      if (
+        !uniqueLiveOrderIds.has(
+          orderId,
+        )
+      ) {
+        uniqueLiveOrderIds.add(
+          orderId,
+        );
+        additionalLiveOrders += 1;
+      }
+    },
+  );
+
+  /*
+   * Keep the customer record's original
+   * static order value as the fallback when
+   * there is no history available.
+   */
+  if (
+    staticCount === 0 &&
+    additionalLiveOrders === 0
+  ) {
+    return Number(
+      customer.orders || 0,
+    );
+  }
+
+  /*
+   * If the customer has live orders, use
+   * the same combined count as View Customer Details.
+   */
+  return (
+    staticCount +
+    additionalLiveOrders
+  );
+};
+
 export default function Customers() {
   const navigate = useNavigate();
 
-  const [search, setSearch] = useState("");
-  const [customers, setCustomers] = useState([]);
-  const [sortOption, setSortOption] = useState("name-asc");
-  const [showSort, setShowSort] = useState(false);
-  const [openActionId, setOpenActionId] = useState(null);
-  const [actionMenuPosition, setActionMenuPosition] =
-    useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [customerToDelete, setCustomerToDelete] =
-    useState(null);
-  const [showDeleteModal, setShowDeleteModal] =
+  const [search, setSearch] =
+    useState("");
+  const [customers, setCustomers] =
+    useState([]);
+  const [savedOrders, setSavedOrders] =
+    useState([]);
+  const [sortOption, setSortOption] =
+    useState("name-asc");
+  const [showSort, setShowSort] =
     useState(false);
-  const [toast, setToast] = useState("");
+  const [openActionId, setOpenActionId] =
+    useState(null);
+  const [
+    actionMenuPosition,
+    setActionMenuPosition,
+  ] = useState(null);
+  const [currentPage, setCurrentPage] =
+    useState(1);
+  const [
+    customerToDelete,
+    setCustomerToDelete,
+  ] = useState(null);
+  const [
+    showDeleteModal,
+    setShowDeleteModal,
+  ] = useState(false);
+  const [toast, setToast] =
+    useState("");
 
   /* ---------------------------------------------
      LOAD CUSTOMERS
   --------------------------------------------- */
   useEffect(() => {
     const savedCustomers =
-      localStorage.getItem("adminCustomers");
+      localStorage.getItem(
+        "adminCustomers",
+      );
 
     if (savedCustomers) {
       try {
         const parsedCustomers =
           JSON.parse(savedCustomers);
 
-        if (Array.isArray(parsedCustomers)) {
-          const {
-            customers: restoredCustomers,
-            changed,
-          } = restoreMissingDefaultCustomers(
+        if (
+          Array.isArray(
             parsedCustomers,
-          );
+          )
+        ) {
+          const {
+            customers:
+              restoredCustomers,
+            changed,
+          } =
+            restoreMissingDefaultCustomers(
+              parsedCustomers,
+            );
 
-          setCustomers(restoredCustomers);
+          setCustomers(
+            restoredCustomers,
+          );
 
           if (changed) {
             localStorage.setItem(
               "adminCustomers",
-              JSON.stringify(restoredCustomers),
+              JSON.stringify(
+                restoredCustomers,
+              ),
             );
           }
 
@@ -138,12 +301,80 @@ export default function Customers() {
       }
     }
 
-    setCustomers(defaultCustomers);
+    setCustomers(
+      defaultCustomers,
+    );
 
     localStorage.setItem(
       "adminCustomers",
-      JSON.stringify(defaultCustomers),
+      JSON.stringify(
+        defaultCustomers,
+      ),
     );
+  }, []);
+
+  /* ---------------------------------------------
+     LOAD ORDERS
+  --------------------------------------------- */
+  useEffect(() => {
+    const loadOrders = () => {
+      const orders = getOrders();
+
+      setSavedOrders(
+        Array.isArray(orders)
+          ? [...orders]
+          : [],
+      );
+    };
+
+    loadOrders();
+
+    const handleOrderUpdate =
+      () => {
+        loadOrders();
+      };
+
+    window.addEventListener(
+      "storage",
+      handleOrderUpdate,
+    );
+
+    window.addEventListener(
+      "orderUpdated",
+      handleOrderUpdate,
+    );
+
+    window.addEventListener(
+      "ordersUpdated",
+      handleOrderUpdate,
+    );
+
+    const intervalId =
+      setInterval(
+        loadOrders,
+        1000,
+      );
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        handleOrderUpdate,
+      );
+
+      window.removeEventListener(
+        "orderUpdated",
+        handleOrderUpdate,
+      );
+
+      window.removeEventListener(
+        "ordersUpdated",
+        handleOrderUpdate,
+      );
+
+      clearInterval(
+        intervalId,
+      );
+    };
   }, []);
 
   /* ---------------------------------------------
@@ -151,18 +382,24 @@ export default function Customers() {
   --------------------------------------------- */
   useEffect(() => {
     const savedToast =
-      localStorage.getItem(CUSTOMER_TOAST_KEY);
+      localStorage.getItem(
+        CUSTOMER_TOAST_KEY,
+      );
 
     if (!savedToast) {
       return;
     }
 
-    localStorage.removeItem(CUSTOMER_TOAST_KEY);
+    localStorage.removeItem(
+      CUSTOMER_TOAST_KEY,
+    );
+
     setToast(savedToast);
 
-    const timeoutId = setTimeout(() => {
-      setToast("");
-    }, 3000);
+    const timeoutId =
+      setTimeout(() => {
+        setToast("");
+      }, 3000);
 
     return () => {
       clearTimeout(timeoutId);
@@ -173,39 +410,54 @@ export default function Customers() {
      LISTEN FOR CUSTOMER UPDATES
   --------------------------------------------- */
   useEffect(() => {
-    const handleCustomerUpdate = () => {
-      const savedCustomers =
-        localStorage.getItem("adminCustomers");
-
-      if (!savedCustomers) {
-        return;
-      }
-
-      try {
-        const parsedCustomers =
-          JSON.parse(savedCustomers);
-
-        if (Array.isArray(parsedCustomers)) {
-          const {
-            customers: restoredCustomers,
-            changed,
-          } = restoreMissingDefaultCustomers(
-            parsedCustomers,
+    const handleCustomerUpdate =
+      () => {
+        const savedCustomers =
+          localStorage.getItem(
+            "adminCustomers",
           );
 
-          setCustomers(restoredCustomers);
-
-          if (changed) {
-            localStorage.setItem(
-              "adminCustomers",
-              JSON.stringify(restoredCustomers),
-            );
-          }
+        if (!savedCustomers) {
+          return;
         }
-      } catch {
-        // Ignore invalid localStorage data
-      }
-    };
+
+        try {
+          const parsedCustomers =
+            JSON.parse(
+              savedCustomers,
+            );
+
+          if (
+            Array.isArray(
+              parsedCustomers,
+            )
+          ) {
+            const {
+              customers:
+                restoredCustomers,
+              changed,
+            } =
+              restoreMissingDefaultCustomers(
+                parsedCustomers,
+              );
+
+            setCustomers(
+              restoredCustomers,
+            );
+
+            if (changed) {
+              localStorage.setItem(
+                "adminCustomers",
+                JSON.stringify(
+                  restoredCustomers,
+                ),
+              );
+            }
+          }
+        } catch {
+          // Ignore invalid localStorage data
+        }
+      };
 
     window.addEventListener(
       "storage",
@@ -234,29 +486,33 @@ export default function Customers() {
      CLOSE MENUS WHEN CLICKING OUTSIDE
   --------------------------------------------- */
   useEffect(() => {
-    const handleDocumentClick = (event) => {
-      const target = event.target;
+    const handleDocumentClick =
+      (event) => {
+        const target =
+          event.target;
 
-      if (
-        !target.closest(
-          "[data-customer-sort-menu]",
-        )
-      ) {
-        setShowSort(false);
-      }
+        if (
+          !target.closest(
+            "[data-customer-sort-menu]",
+          )
+        ) {
+          setShowSort(false);
+        }
 
-      if (
-        !target.closest(
-          "[data-customer-action-button]",
-        ) &&
-        !target.closest(
-          "[data-customer-action-portal]",
-        )
-      ) {
-        setOpenActionId(null);
-        setActionMenuPosition(null);
-      }
-    };
+        if (
+          !target.closest(
+            "[data-customer-action-button]",
+          ) &&
+          !target.closest(
+            "[data-customer-action-portal]",
+          )
+        ) {
+          setOpenActionId(null);
+          setActionMenuPosition(
+            null,
+          );
+        }
+      };
 
     document.addEventListener(
       "mousedown",
@@ -279,56 +535,65 @@ export default function Customers() {
       return;
     }
 
-    const updateMenuPosition = () => {
-      const button = document.querySelector(
-        `[data-customer-action-button="${openActionId}"]`,
-      );
+    const updateMenuPosition =
+      () => {
+        const button =
+          document.querySelector(
+            `[data-customer-action-button="${openActionId}"]`,
+          );
 
-      if (!button) {
-        return;
-      }
+        if (!button) {
+          return;
+        }
 
-      const rect = button.getBoundingClientRect();
-      const menuWidth = 176;
-      const menuHeight = 140;
-      const spacing = 8;
+        const rect =
+          button.getBoundingClientRect();
 
-      let left = rect.right - menuWidth;
-      let top = rect.bottom + spacing;
+        const menuWidth = 176;
+        const menuHeight = 140;
+        const spacing = 8;
 
-      if (left < 8) {
-        left = 8;
-      }
+        let left =
+          rect.right -
+          menuWidth;
 
-      if (
-        left + menuWidth >
-        window.innerWidth - 8
-      ) {
-        left =
-          window.innerWidth -
-          menuWidth -
-          8;
-      }
-
-      if (
-        top + menuHeight >
-        window.innerHeight - 8
-      ) {
-        top =
-          rect.top -
-          menuHeight -
+        let top =
+          rect.bottom +
           spacing;
-      }
 
-      if (top < 8) {
-        top = 8;
-      }
+        if (left < 8) {
+          left = 8;
+        }
 
-      setActionMenuPosition({
-        top,
-        left,
-      });
-    };
+        if (
+          left + menuWidth >
+          window.innerWidth - 8
+        ) {
+          left =
+            window.innerWidth -
+            menuWidth -
+            8;
+        }
+
+        if (
+          top + menuHeight >
+          window.innerHeight - 8
+        ) {
+          top =
+            rect.top -
+            menuHeight -
+            spacing;
+        }
+
+        if (top < 8) {
+          top = 8;
+        }
+
+        setActionMenuPosition({
+          top,
+          left,
+        });
+      };
 
     updateMenuPosition();
 
@@ -360,110 +625,188 @@ export default function Customers() {
   /* ---------------------------------------------
      SEARCH
   --------------------------------------------- */
-  const filteredCustomers = useMemo(() => {
-    const query = search
-      .trim()
-      .toLowerCase();
+  const filteredCustomers =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
 
-    if (!query) {
-      return customers;
-    }
+      if (!query) {
+        return customers;
+      }
 
-    return customers.filter((customer) => {
-      const name = String(
-        customer.name || "",
-      ).toLowerCase();
+      return customers.filter(
+        (customer) => {
+          const name =
+            String(
+              customer.name ||
+                "",
+            ).toLowerCase();
 
-      const email = String(
-        customer.email || "",
-      ).toLowerCase();
+          const email =
+            String(
+              customer.email ||
+                "",
+            ).toLowerCase();
 
-      const contact = String(
-        customer.contact || "",
-      ).toLowerCase();
+          const contact =
+            String(
+              customer.contact ||
+                "",
+            ).toLowerCase();
 
-      const address = String(
-        customer.address || "",
-      ).toLowerCase();
+          const address =
+            String(
+              customer.address ||
+                "",
+            ).toLowerCase();
 
-      return (
-        name.includes(query) ||
-        email.includes(query) ||
-        contact.includes(query) ||
-        address.includes(query)
+          return (
+            name.includes(
+              query,
+            ) ||
+            email.includes(
+              query,
+            ) ||
+            contact.includes(
+              query,
+            ) ||
+            address.includes(
+              query,
+            )
+          );
+        },
       );
-    });
-  }, [search, customers]);
+    }, [search, customers]);
+
+  /* ---------------------------------------------
+     ADD LIVE ORDER COUNTS
+  --------------------------------------------- */
+  const customersWithOrderCounts =
+    useMemo(() => {
+      return filteredCustomers.map(
+        (customer) => ({
+          ...customer,
+          orders:
+            getCustomerOrderCount(
+              customer,
+              savedOrders,
+            ),
+        }),
+      );
+    }, [
+      filteredCustomers,
+      savedOrders,
+    ]);
 
   /* ---------------------------------------------
      SORT
   --------------------------------------------- */
-  const sortedCustomers = useMemo(() => {
-    const sorted = [...filteredCustomers];
+  const sortedCustomers =
+    useMemo(() => {
+      const sorted = [
+        ...customersWithOrderCounts,
+      ];
 
-    switch (sortOption) {
-      case "name-desc":
-        return sorted.sort((a, b) =>
-          String(b.name || "").localeCompare(
-            String(a.name || ""),
-          ),
-        );
+      switch (sortOption) {
+        case "name-desc":
+          return sorted.sort(
+            (a, b) =>
+              String(
+                b.name || "",
+              ).localeCompare(
+                String(
+                  a.name || "",
+                ),
+              ),
+          );
 
-      case "orders-high":
-        return sorted.sort(
-          (a, b) =>
-            Number(b.orders || 0) -
-            Number(a.orders || 0),
-        );
+        case "orders-high":
+          return sorted.sort(
+            (a, b) =>
+              Number(
+                b.orders || 0,
+              ) -
+              Number(
+                a.orders || 0,
+              ),
+          );
 
-      case "orders-low":
-        return sorted.sort(
-          (a, b) =>
-            Number(a.orders || 0) -
-            Number(b.orders || 0),
-        );
+        case "orders-low":
+          return sorted.sort(
+            (a, b) =>
+              Number(
+                a.orders || 0,
+              ) -
+              Number(
+                b.orders || 0,
+              ),
+          );
 
-      case "name-asc":
-      default:
-        return sorted.sort((a, b) =>
-          String(a.name || "").localeCompare(
-            String(b.name || ""),
-          ),
-        );
-    }
-  }, [filteredCustomers, sortOption]);
+        case "name-asc":
+        default:
+          return sorted.sort(
+            (a, b) =>
+              String(
+                a.name || "",
+              ).localeCompare(
+                String(
+                  b.name || "",
+                ),
+              ),
+          );
+      }
+    }, [
+      customersWithOrderCounts,
+      sortOption,
+    ]);
 
   /* ---------------------------------------------
      PAGINATION
   --------------------------------------------- */
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      sortedCustomers.length /
-        CUSTOMERS_PER_PAGE,
-    ),
-  );
-
-  const paginatedCustomers = useMemo(() => {
-    const startIndex =
-      (currentPage - 1) *
-      CUSTOMERS_PER_PAGE;
-
-    return sortedCustomers.slice(
-      startIndex,
-      startIndex + CUSTOMERS_PER_PAGE,
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        sortedCustomers.length /
+          CUSTOMERS_PER_PAGE,
+      ),
     );
-  }, [sortedCustomers, currentPage]);
+
+  const paginatedCustomers =
+    useMemo(() => {
+      const startIndex =
+        (currentPage - 1) *
+        CUSTOMERS_PER_PAGE;
+
+      return sortedCustomers.slice(
+        startIndex,
+        startIndex +
+          CUSTOMERS_PER_PAGE,
+      );
+    }, [
+      sortedCustomers,
+      currentPage,
+    ]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [search, sortOption]);
 
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
+    if (
+      currentPage >
+      totalPages
+    ) {
+      setCurrentPage(
+        totalPages,
+      );
     }
-  }, [currentPage, totalPages]);
+  }, [
+    currentPage,
+    totalPages,
+  ]);
 
   const showingStart =
     sortedCustomers.length === 0
@@ -472,29 +815,38 @@ export default function Customers() {
           CUSTOMERS_PER_PAGE +
         1;
 
-  const showingEnd = Math.min(
-    currentPage * CUSTOMERS_PER_PAGE,
-    sortedCustomers.length,
-  );
+  const showingEnd =
+    Math.min(
+      currentPage *
+        CUSTOMERS_PER_PAGE,
+      sortedCustomers.length,
+    );
 
   /* ---------------------------------------------
      VIEW CUSTOMER
   --------------------------------------------- */
-  const handleViewDetails = (customer) => {
-    setOpenActionId(null);
-    setActionMenuPosition(null);
+  const handleViewDetails =
+    (customer) => {
+      setOpenActionId(null);
+      setActionMenuPosition(
+        null,
+      );
 
-    navigate(
-      `/admin/customers/${customer.id}`,
-    );
-  };
+      navigate(
+        `/admin/customers/${customer.id}`,
+      );
+    };
 
   /* ---------------------------------------------
      EDIT CUSTOMER
   --------------------------------------------- */
-  const handleEdit = (customer) => {
+  const handleEdit = (
+    customer,
+  ) => {
     setOpenActionId(null);
-    setActionMenuPosition(null);
+    setActionMenuPosition(
+      null,
+    );
 
     navigate(
       `/admin/customers/${customer.id}/edit`,
@@ -513,11 +865,16 @@ export default function Customers() {
 
     setShowSort(false);
 
-    const id = String(customerId);
+    const id =
+      String(customerId);
 
-    if (openActionId === id) {
+    if (
+      openActionId === id
+    ) {
       setOpenActionId(null);
-      setActionMenuPosition(null);
+      setActionMenuPosition(
+        null,
+      );
       return;
     }
 
@@ -528,8 +885,13 @@ export default function Customers() {
     const menuHeight = 140;
     const spacing = 8;
 
-    let left = rect.right - menuWidth;
-    let top = rect.bottom + spacing;
+    let left =
+      rect.right -
+      menuWidth;
+
+    let top =
+      rect.bottom +
+      spacing;
 
     if (left < 8) {
       left = 8;
@@ -570,62 +932,93 @@ export default function Customers() {
   /* ---------------------------------------------
      DELETE CUSTOMER
   --------------------------------------------- */
-  const handleDeleteClick = (customer) => {
-    setOpenActionId(null);
-    setActionMenuPosition(null);
-
-    const orderCount = Number(
-      customer.orders || 0,
-    );
-
-    if (orderCount > 0) {
-      window.alert(
-        "This customer cannot be deleted because they have existing orders.",
+  const handleDeleteClick =
+    (customer) => {
+      setOpenActionId(null);
+      setActionMenuPosition(
+        null,
       );
-      return;
-    }
 
-    setCustomerToDelete(customer);
-    setShowDeleteModal(true);
-  };
+      const orderCount =
+        Number(
+          customer.orders || 0,
+        );
+
+      if (orderCount > 0) {
+        window.alert(
+          "This customer cannot be deleted because they have existing orders.",
+        );
+        return;
+      }
+
+      setCustomerToDelete(
+        customer,
+      );
+
+      setShowDeleteModal(
+        true,
+      );
+    };
 
   /* ---------------------------------------------
      CONFIRM DELETE
   --------------------------------------------- */
-  const handleConfirmDelete = () => {
-    if (!customerToDelete) {
-      return;
-    }
+  const handleConfirmDelete =
+    () => {
+      if (!customerToDelete) {
+        return;
+      }
 
-    const updatedCustomers =
-      customers.filter(
-        (customer) =>
-          String(customer.id) !==
-          String(customerToDelete.id),
+      const updatedCustomers =
+        customers.filter(
+          (customer) =>
+            String(
+              customer.id,
+            ) !==
+            String(
+              customerToDelete.id,
+            ),
+        );
+
+      setCustomers(
+        updatedCustomers,
       );
 
-    setCustomers(updatedCustomers);
+      localStorage.setItem(
+        "adminCustomers",
+        JSON.stringify(
+          updatedCustomers,
+        ),
+      );
 
-    localStorage.setItem(
-      "adminCustomers",
-      JSON.stringify(updatedCustomers),
-    );
+      window.dispatchEvent(
+        new Event(
+          "customerUpdated",
+        ),
+      );
 
-    window.dispatchEvent(
-      new Event("customerUpdated"),
-    );
+      setCustomerToDelete(
+        null,
+      );
 
-    setCustomerToDelete(null);
-    setShowDeleteModal(false);
-  };
+      setShowDeleteModal(
+        false,
+      );
+    };
 
   /* ---------------------------------------------
      CANCEL DELETE
   --------------------------------------------- */
-  const handleCancelDelete = () => {
-    setCustomerToDelete(null);
-    setShowDeleteModal(false);
-  };
+  const handleCancelDelete =
+    () => {
+      setCustomerToDelete(
+        null,
+      );
+
+      setShowDeleteModal(
+        false,
+      );
+    };
 
   /* ---------------------------------------------
      PORTAL ACTION MENU
@@ -633,7 +1026,8 @@ export default function Customers() {
   const actionMenu =
     openActionId &&
     actionMenuPosition &&
-    typeof document !== "undefined"
+    typeof document !==
+      "undefined"
       ? createPortal(
           <div
             data-customer-action-portal
@@ -647,11 +1041,17 @@ export default function Customers() {
               const selectedCustomer =
                 customers.find(
                   (customer) =>
-                    String(customer.id) ===
-                    String(openActionId),
+                    String(
+                      customer.id,
+                    ) ===
+                    String(
+                      openActionId,
+                    ),
                 );
 
-              if (!selectedCustomer) {
+              if (
+                !selectedCustomer
+              ) {
                 return null;
               }
 
@@ -659,7 +1059,9 @@ export default function Customers() {
                 <>
                   <button
                     type="button"
-                    onClick={(event) => {
+                    onClick={(
+                      event,
+                    ) => {
                       event.stopPropagation();
 
                       handleViewDetails(
@@ -673,7 +1075,9 @@ export default function Customers() {
 
                   <button
                     type="button"
-                    onClick={(event) => {
+                    onClick={(
+                      event,
+                    ) => {
                       event.stopPropagation();
 
                       handleEdit(
@@ -687,7 +1091,9 @@ export default function Customers() {
 
                   <button
                     type="button"
-                    onClick={(event) => {
+                    onClick={(
+                      event,
+                    ) => {
                       event.stopPropagation();
 
                       handleDeleteClick(
@@ -765,7 +1171,9 @@ export default function Customers() {
                 className="flex h-11 items-center gap-2 rounded-lg bg-button-background px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-button-hover"
               >
                 <Plus size={18} />
-                <span>New Customer</span>
+                <span>
+                  New Customer
+                </span>
               </button>
             </div>
 
@@ -780,9 +1188,12 @@ export default function Customers() {
                 <input
                   type="text"
                   value={search}
-                  onChange={(event) =>
+                  onChange={(
+                    event,
+                  ) =>
                     setSearch(
-                      event.target.value,
+                      event.target
+                        .value,
                     )
                   }
                   placeholder="Search customers..."
@@ -810,7 +1221,9 @@ export default function Customers() {
               >
                 <button
                   type="button"
-                  onClick={(event) => {
+                  onClick={(
+                    event,
+                  ) => {
                     event.stopPropagation();
 
                     setShowSort(
@@ -818,16 +1231,23 @@ export default function Customers() {
                         !current,
                     );
 
-                    setOpenActionId(null);
+                    setOpenActionId(
+                      null,
+                    );
+
                     setActionMenuPosition(
                       null,
                     );
                   }}
                   className="flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-text-primary shadow-sm transition-colors hover:bg-slate-50"
                 >
-                  <ArrowUpDown size={17} />
+                  <ArrowUpDown
+                    size={17}
+                  />
 
-                  <span>Sort</span>
+                  <span>
+                    Sort
+                  </span>
 
                   <ChevronDown
                     size={16}
@@ -847,7 +1267,9 @@ export default function Customers() {
                         setSortOption(
                           "name-asc",
                         );
-                        setShowSort(false);
+                        setShowSort(
+                          false,
+                        );
                       }}
                       className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${
                         sortOption ===
@@ -856,11 +1278,15 @@ export default function Customers() {
                           : "text-text-primary hover:bg-slate-50"
                       }`}
                     >
-                      <span>Name A–Z</span>
+                      <span>
+                        Name A–Z
+                      </span>
 
                       {sortOption ===
                         "name-asc" && (
-                        <span>✓</span>
+                        <span>
+                          ✓
+                        </span>
                       )}
                     </button>
 
@@ -870,7 +1296,9 @@ export default function Customers() {
                         setSortOption(
                           "name-desc",
                         );
-                        setShowSort(false);
+                        setShowSort(
+                          false,
+                        );
                       }}
                       className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${
                         sortOption ===
@@ -879,11 +1307,15 @@ export default function Customers() {
                           : "text-text-primary hover:bg-slate-50"
                       }`}
                     >
-                      <span>Name Z–A</span>
+                      <span>
+                        Name Z–A
+                      </span>
 
                       {sortOption ===
                         "name-desc" && (
-                        <span>✓</span>
+                        <span>
+                          ✓
+                        </span>
                       )}
                     </button>
 
@@ -893,7 +1325,9 @@ export default function Customers() {
                         setSortOption(
                           "orders-high",
                         );
-                        setShowSort(false);
+                        setShowSort(
+                          false,
+                        );
                       }}
                       className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${
                         sortOption ===
@@ -908,7 +1342,9 @@ export default function Customers() {
 
                       {sortOption ===
                         "orders-high" && (
-                        <span>✓</span>
+                        <span>
+                          ✓
+                        </span>
                       )}
                     </button>
 
@@ -918,7 +1354,9 @@ export default function Customers() {
                         setSortOption(
                           "orders-low",
                         );
-                        setShowSort(false);
+                        setShowSort(
+                          false,
+                        );
                       }}
                       className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${
                         sortOption ===
@@ -933,7 +1371,9 @@ export default function Customers() {
 
                       {sortOption ===
                         "orders-low" && (
-                        <span>✓</span>
+                        <span>
+                          ✓
+                        </span>
                       )}
                     </button>
                   </div>
@@ -977,38 +1417,51 @@ export default function Customers() {
                     {paginatedCustomers.length >
                     0 ? (
                       paginatedCustomers.map(
-                        (customer) => (
+                        (
+                          customer,
+                        ) => (
                           <tr
-                            key={customer.id}
+                            key={
+                              customer.id
+                            }
                             className="border-b border-slate-100 bg-white transition-colors last:border-b-0 hover:bg-slate-50/60"
                           >
                             {/* CUSTOMER */}
                             <td className="px-5 py-4">
                               <div className="font-semibold text-text-primary">
-                                {customer.name}
+                                {
+                                  customer.name
+                                }
                               </div>
                             </td>
 
                             {/* CONTACT */}
                             <td className="px-5 py-4 text-sm text-text-primary">
-                              {customer.contact}
+                              {
+                                customer.contact
+                              }
                             </td>
 
                             {/* EMAIL */}
                             <td className="px-5 py-4 text-sm text-text-primary">
-                              {customer.email}
+                              {
+                                customer.email
+                              }
                             </td>
 
                             {/* ADDRESS */}
                             <td className="max-w-[280px] px-5 py-4 text-sm leading-5 text-text-secondary">
-                              {customer.address}
+                              {
+                                customer.address
+                              }
                             </td>
 
                             {/* ORDERS */}
                             <td className="px-5 py-4 text-center">
                               <span className="inline-flex min-w-[38px] items-center justify-center rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
-                                {customer.orders ||
-                                  0}
+                                {
+                                  customer.orders
+                                }
                               </span>
                             </td>
 
@@ -1020,7 +1473,9 @@ export default function Customers() {
                                   data-customer-action-button={String(
                                     customer.id,
                                   )}
-                                  onClick={(event) =>
+                                  onClick={(
+                                    event,
+                                  ) =>
                                     handleActionMenu(
                                       event,
                                       customer.id,
@@ -1030,7 +1485,9 @@ export default function Customers() {
                                   aria-label={`Actions for ${customer.name}`}
                                 >
                                   <MoreVertical
-                                    size={18}
+                                    size={
+                                      18
+                                    }
                                   />
                                 </button>
                               </div>
@@ -1041,15 +1498,20 @@ export default function Customers() {
                     ) : (
                       <tr>
                         <td
-                          colSpan={6}
+                          colSpan={
+                            6
+                          }
                           className="px-5 py-12 text-center"
                         >
                           <div className="text-sm font-semibold text-text-primary">
-                            No customers found
+                            No customers
+                            found
                           </div>
 
                           <p className="mt-1 text-sm text-text-secondary">
-                            Try adjusting your
+                            Try
+                            adjusting
+                            your
                             search.
                           </p>
                         </td>
@@ -1074,7 +1536,9 @@ export default function Customers() {
                   </span>{" "}
                   of{" "}
                   <span className="font-semibold text-text-primary">
-                    {sortedCustomers.length}
+                    {
+                      sortedCustomers.length
+                    }
                   </span>{" "}
                   items
                 </p>
@@ -1087,41 +1551,53 @@ export default function Customers() {
                         (page) =>
                           Math.max(
                             1,
-                            page - 1,
+                            page -
+                              1,
                           ),
                       )
                     }
                     disabled={
-                      currentPage === 1
+                      currentPage ===
+                      1
                     }
                     className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Previous page"
                   >
-                    <ChevronLeft size={16} />
+                    <ChevronLeft
+                      size={16}
+                    />
                   </button>
 
                   {Array.from(
                     {
-                      length: totalPages,
+                      length:
+                        totalPages,
                     },
                     (_, index) =>
                       index + 1,
-                  ).map((page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() =>
-                        setCurrentPage(page)
-                      }
-                      className={`flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm font-semibold transition-colors ${
-                        currentPage === page
-                          ? "border-button-background bg-button-background text-white"
-                          : "border-slate-200 bg-white text-text-primary hover:bg-slate-50"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                  ).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() =>
+                          setCurrentPage(
+                            page,
+                          )
+                        }
+                        className={`flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm font-semibold transition-colors ${
+                          currentPage ===
+                          page
+                            ? "border-button-background bg-button-background text-white"
+                            : "border-slate-200 bg-white text-text-primary hover:bg-slate-50"
+                        }`}
+                      >
+                        {
+                          page
+                        }
+                      </button>
+                    ),
+                  )}
 
                   <button
                     type="button"
@@ -1130,7 +1606,8 @@ export default function Customers() {
                         (page) =>
                           Math.min(
                             totalPages,
-                            page + 1,
+                            page +
+                              1,
                           ),
                       )
                     }
@@ -1141,7 +1618,9 @@ export default function Customers() {
                     className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Next page"
                   >
-                    <ChevronRight size={16} />
+                    <ChevronRight
+                      size={16}
+                    />
                   </button>
                 </div>
               </div>
@@ -1175,7 +1654,8 @@ export default function Customers() {
                     </h2>
 
                     <p className="mt-1 text-sm text-text-secondary">
-                      This action cannot be
+                      This action
+                      cannot be
                       undone.
                     </p>
                   </div>
@@ -1189,17 +1669,21 @@ export default function Customers() {
                   className="rounded-lg p-1 text-text-secondary transition-colors hover:bg-slate-100"
                   aria-label="Close"
                 >
-                  <X size={20} />
+                  <X
+                    size={20}
+                  />
                 </button>
               </div>
 
               {/* Modal Content */}
               <div className="px-6 py-6">
                 <p className="text-sm leading-6 text-text-primary">
-                  Are you sure you want to
-                  delete{" "}
+                  Are you sure you
+                  want to delete{" "}
                   <span className="font-bold">
-                    {customerToDelete.name}
+                    {
+                      customerToDelete.name
+                    }
                   </span>
                   ?
                 </p>
@@ -1212,10 +1696,13 @@ export default function Customers() {
                     />
 
                     <p className="text-sm leading-5 text-red-700">
-                      This customer will be
-                      permanently removed
-                      from the customer
-                      management list.
+                      This customer
+                      will be
+                      permanently
+                      removed from
+                      the customer
+                      management
+                      list.
                     </p>
                   </div>
                 </div>
@@ -1240,7 +1727,9 @@ export default function Customers() {
                   }
                   className="flex h-11 items-center justify-center gap-2 rounded-lg bg-red-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
                 >
-                  <Trash2 size={16} />
+                  <Trash2
+                    size={16}
+                  />
                   Delete Customer
                 </button>
               </div>

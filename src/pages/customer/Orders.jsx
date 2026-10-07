@@ -119,10 +119,6 @@ const formatTime12Hour = (time) => {
 };
 
 const getOrderDate = (order) => {
-  if (order.deliverySchedule) {
-    return order.deliverySchedule;
-  }
-
   if (
     order.deliveryDate &&
     order.deliveryTime
@@ -130,6 +126,44 @@ const getOrderDate = (order) => {
     return `${order.deliveryDate}, ${formatTime12Hour(
       order.deliveryTime
     )}`;
+  }
+
+  if (order.deliverySchedule) {
+    const schedule = String(
+      order.deliverySchedule
+    );
+
+    const timeMatch =
+      schedule.match(
+        /(\d{1,2}):(\d{2})(?:\s*(AM|PM))?/i
+      );
+
+    if (timeMatch) {
+      const hour = Number(
+        timeMatch[1]
+      );
+      const minutes =
+        timeMatch[2];
+      const existingPeriod =
+        timeMatch[3];
+
+      let formattedTime;
+
+      if (existingPeriod) {
+        formattedTime = `${hour % 12 || 12}:${minutes} ${existingPeriod.toUpperCase()}`;
+      } else {
+        formattedTime = formatTime12Hour(
+          `${hour}:${minutes}`
+        );
+      }
+
+      return schedule.replace(
+        timeMatch[0],
+        formattedTime
+      );
+    }
+
+    return schedule;
   }
 
   if (order.deliveryDate) {
