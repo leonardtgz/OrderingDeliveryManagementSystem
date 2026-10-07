@@ -502,6 +502,9 @@ const Orders = () => {
   const [openStatusId, setOpenStatusId] =
     useState(null);
 
+  const [statusDropdownPosition, setStatusDropdownPosition] =
+    useState(null);
+
   const [openActionId, setOpenActionId] =
     useState(null);
 
@@ -626,6 +629,8 @@ const Orders = () => {
     const closeMenus = () => {
       setOpenActionId(null);
       setActionMenuPosition(null);
+      setOpenStatusId(null);
+      setStatusDropdownPosition(null);
     };
 
     window.addEventListener(
@@ -953,6 +958,7 @@ const Orders = () => {
     });
 
     setOpenStatusId(null);
+    setStatusDropdownPosition(null);
     loadOrders();
   };
 
@@ -1046,6 +1052,55 @@ const Orders = () => {
     });
 
     loadOrders();
+  };
+
+  const handleStatusDropdownToggle = (
+    event,
+    orderKey
+  ) => {
+    event.stopPropagation();
+
+    setOpenActionId(null);
+    setActionMenuPosition(null);
+
+    if (openStatusId === orderKey) {
+      setOpenStatusId(null);
+      setStatusDropdownPosition(null);
+      return;
+    }
+
+    const buttonRect =
+      event.currentTarget.getBoundingClientRect();
+
+    const menuWidth = 192;
+    const menuHeight = 220;
+    const spacing = 8;
+
+    let left = buttonRect.left;
+    let top = buttonRect.bottom + spacing;
+
+    if (left < 12) {
+      left = 12;
+    }
+
+    if (left + menuWidth > window.innerWidth - 12) {
+      left = window.innerWidth - menuWidth - 12;
+    }
+
+    if (top + menuHeight > window.innerHeight - 12) {
+      top = buttonRect.top - menuHeight - spacing;
+    }
+
+    if (top < 12) {
+      top = 12;
+    }
+
+    setStatusDropdownPosition({
+      top,
+      left,
+    });
+
+    setOpenStatusId(orderKey);
   };
 
   const handleActionMenuToggle = (
@@ -2180,21 +2235,11 @@ const Orders = () => {
                               <div className="relative w-fit">
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setOpenActionId(
-                                      null
-                                    );
-
-                                    setActionMenuPosition(
-                                      null
-                                    );
-
-                                    setOpenStatusId(
-                                      isStatusOpen
-                                        ? null
-                                        : orderKey
-                                    );
-                                  }}
+                                  onClick={(event) =>
+                                    handleStatusDropdownToggle(
+                                      event,
+                                      orderKey
+                                    )}
                                   className="flex max-w-full items-center gap-1.5"
                                 >
                                   <OrderStatusBadge
@@ -2212,40 +2257,42 @@ const Orders = () => {
                                   />
                                 </button>
 
-                                {isStatusOpen && (
-                                  <div className="absolute left-0 top-full z-[100] mt-2 w-48 rounded-lg border border-gray-200 bg-white p-1.5 shadow-xl">
-                                    {STATUS_OPTIONS.map(
-                                      (
-                                        statusOption
-                                      ) => (
-                                        <button
-                                          key={
-                                            statusOption
-                                          }
-                                          type="button"
-                                          onClick={() =>
-                                            handleStatusUpdate(
-                                              order,
-                                              statusOption
-                                            )
-                                          }
-                                          className={`flex w-full items-center rounded-md px-3 py-2 text-left text-sm transition ${
-                                            normalizeStatus(
-                                              statusOption
-                                            ) ===
-                                            status
-                                              ? "bg-gray-100 font-semibold text-gray-900"
-                                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                          }`}
-                                        >
-                                          {
-                                            statusOption
-                                          }
-                                        </button>
-                                      )
-                                    )}
-                                  </div>
-                                )}
+                                {isStatusOpen &&
+                                  statusDropdownPosition &&
+                                  createPortal(
+                                    <div
+                                      className="fixed z-[99999] w-48 rounded-lg border border-gray-200 bg-white p-1.5 shadow-xl"
+                                      style={{
+                                        top: `${statusDropdownPosition.top}px`,
+                                        left: `${statusDropdownPosition.left}px`,
+                                      }}
+                                    >
+                                      {STATUS_OPTIONS.map(
+                                        (statusOption) => (
+                                          <button
+                                            key={statusOption}
+                                            type="button"
+                                            onClick={() =>
+                                              handleStatusUpdate(
+                                                order,
+                                                statusOption
+                                              )
+                                            }
+                                            className={`flex w-full items-center rounded-md px-3 py-2 text-left text-sm transition ${
+                                              normalizeStatus(
+                                                statusOption
+                                              ) === status
+                                                ? "bg-gray-100 font-semibold text-gray-900"
+                                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                            }`}
+                                          >
+                                            {statusOption}
+                                          </button>
+                                        )
+                                      )}
+                                    </div>,
+                                    document.body
+                                  )}
                               </div>
                             </td>
 
